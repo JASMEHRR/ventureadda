@@ -5,6 +5,7 @@ import Button from '../components/ui/Button'
 import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
 import ReviewSection from '../components/ReviewSection'
+import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
 import type { MenuItem, Venture } from '../data/ventures'
@@ -47,6 +48,7 @@ function PhotoGallery({ venture }: { venture: Venture }) {
 
 export default function VentureDetail() {
   const { ventureId = '' } = useParams()
+  const { profile } = useAuth()
   const [pending, setPending] = useState<MenuItem | null>(null)
   const [localCounts, setLocalCounts] = useState<Record<string, number>>({})
 
@@ -117,6 +119,10 @@ export default function VentureDetail() {
   const v = venture.data
   const waLink = pending ? inquiryLink(v.phone, v.name, pending.name) : null
 
+  // Per-item enquiry counts are the seller's own evidence of what sells, so
+  // they belong to the owner and the moderator, not to every passing browser.
+  const showItemStats = Boolean(profile && (profile.uid === v.ownerId || profile.isModerator))
+
   return (
     <div className="space-y-4">
       <Link
@@ -165,7 +171,18 @@ export default function VentureDetail() {
               key={item.id}
               title={item.name}
               description={item.description}
-              meta={`₹${item.price}`}
+              meta={
+                showItemStats ? (
+                  <span className="flex flex-col items-end gap-0.5">
+                    <span>₹{item.price}</span>
+                    <span className="text-[10px] font-bold text-brand-400">
+                      {(localCounts[item.id] ?? item.inquiryCount).toLocaleString('en-IN')} asked
+                    </span>
+                  </span>
+                ) : (
+                  `₹${item.price}`
+                )
+              }
               thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
               icon={item.photo ? undefined : UtensilsCrossed}
               actionIcon={MessageCircle}
