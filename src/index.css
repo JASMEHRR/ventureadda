@@ -1,0 +1,178 @@
+/* Fonts must be the first @import in the sheet. CSS requires all @import at the top,
+   so placing this after Tailwind's import makes the bundler drop it silently and the
+   entire type system falls back to system-ui. Spec §3, verbatim. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Design tokens — Ascend spec §1.
+   Ascend's physical/trek/ritual pillar colours are deliberately omitted:
+   they tag Arena life-pillars, and VentureAdda has no pillars.
+   Amber and red stay as Tailwind's stock classes, exactly as Ascend does it.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-app: #02040a;
+  --color-surface: #0b0d13;
+
+  /* Declared as a token rather than left at Tailwind's default. Every surface,
+     border and text colour in the system is white at a tuned alpha, so routing
+     them all through one variable is what would later let a [data-theme='light']
+     block flip the whole glass language by remapping this single value. */
+  --color-white: #ffffff;
+
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+
+  /* VentureAdda departure from Ascend: WhatsApp's brand green, scoped strictly
+     to WhatsApp CTAs. It is a third-party affordance, not an accent colour.
+     Cyan remains the only accent everywhere else. */
+  --color-whatsapp: #25d366;
+
+  --font-plus: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Spec §2 — two runtime knobs that scale every glass surface at once.
+   Fill, border and highlight opacity all multiply through --glass-opacity;
+   blur is independent. */
+:root {
+  --glass-opacity: 1;
+  --glass-blur: 20px;
+
+  /* Dark app: keeps scrollbars and native form controls from rendering light. */
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    /* 15px body, not Ascend's 11–12px. Ascend is a dense desktop dashboard for
+       one motivated user; this is a consumer site read on phones. */
+    @apply bg-app font-plus text-[15px] text-white/95 antialiased;
+  }
+
+  /* Visible focus ring — spec GAP. Ascend has none and relies on browser
+     defaults; a site used by a whole class should do better. An outline rather
+     than a box-shadow so it follows any border-radius automatically. */
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-brand-400) 55%, transparent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Liquid glass — Ascend spec §2, values copied verbatim.
+
+   These live in @layer components rather than unlayered. Unlayered CSS outranks
+   Tailwind's layered utilities, so `class="liquid-glass-panel bg-white/10"`
+   would silently ignore the bg-white/10. The layer keeps every value identical
+   and lets utilities win, which is what anyone reading the markup expects.
+
+   Two deviations from how §2 prints these rules, both deliberate:
+
+   1. Only the unprefixed `backdrop-filter` is written. The spec pairs each one
+      with a hand-written `-webkit-` copy, but Lightning CSS (Tailwind v4's
+      minifier) collapses an identical prefixed/unprefixed pair down to the
+      last declaration — and since the spec lists the standard property first,
+      the standard one is what got dropped from the production build. Chrome
+      survived that on the -webkit- alias; Firefox, which supports the standard
+      property and not the alias, lost the glass entirely. Lightning CSS adds
+      the prefix itself from the browser targets, exactly as it does for
+      Tailwind's own backdrop utilities, so writing one line is both shorter
+      and the version that actually ships correctly.
+   2. `color-mix` is not used here — the rgba() values are the spec's own.
+--------------------------------------------------------------------------- */
+@layer components {
+  /* Default glass surface — section wrappers, cards, list rows. */
+  .liquid-glass-panel {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(0.04 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.01 * var(--glass-opacity))) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur)) saturate(135%);
+    border: 1px solid rgba(255, 255, 255, calc(0.12 * var(--glass-opacity)));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.15),
+      0 12px 36px -8px rgba(0, 0, 0, 0.65);
+  }
+
+  /* Emphasised glass — hero panels, focused cards. Stronger fill, border and
+     blur; single-sided top highlight only, no bottom inner shadow. */
+  .liquid-glass-highlight {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(0.07 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--glass-opacity))) 100%
+    );
+    backdrop-filter: blur(calc(var(--glass-blur) * 1.2)) saturate(145%);
+    border: 1px solid rgba(255, 255, 255, calc(0.18 * var(--glass-opacity)));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+      0 16px 40px -10px rgba(0, 0, 0, 0.75);
+  }
+
+  /* Form fields — deliberately flatter. Recessed, not raised: no top highlight,
+     an inset shadow instead, so it reads as carved in rather than floating. */
+  .liquid-glass-input {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .liquid-glass-input:focus {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow:
+      inset 0 1.5px 3px rgba(0, 0, 0, 0.25),
+      0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  /* Hover shimmer sweep. Opt-in — not applied to every glass element.
+     The spec gives the gradient, transform and transition; the position,
+     size, content and overflow below are the mechanics it omits. */
+  .glass-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-shimmer::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    background: linear-gradient(
+      45deg,
+      transparent 45%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 55%
+    );
+    transform: rotate(45deg);
+    transition: transform 0.8s ease;
+  }
+
+  .glass-shimmer:hover::before {
+    transform: translate(50%, 50%) rotate(45deg);
+  }
+}
