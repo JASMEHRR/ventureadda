@@ -200,7 +200,7 @@ export default function DesignDemo() {
         <div className="grid gap-3 sm:grid-cols-2">
           <article className="liquid-glass-panel rounded-3xl p-3 transition duration-150 active:scale-[0.99]">
             <img
-              src="/demo/pastries.jpg"
+              src="/seed/pastries.jpg"
               alt="Tray of chocolate brownies dusted with sugar"
               className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
             />
@@ -223,7 +223,7 @@ export default function DesignDemo() {
 
           <article className="liquid-glass-panel rounded-3xl p-3 transition duration-150 active:scale-[0.99]">
             <img
-              src="/demo/cake.jpg"
+              src="/seed/cake.jpg"
               alt="Chocolate cake slices with syrup poured over them"
               className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
             />
@@ -267,7 +267,7 @@ export default function DesignDemo() {
             title="Chocolate Fudge Cake"
             description="Dark chocolate, 500g, serves four"
             meta="₹450"
-            thumbnail="/demo/cake.jpg"
+            thumbnail="/seed/cake.jpg"
             thumbnailAlt=""
             actionIcon={MessageCircle}
             actionLabel="Message Hostel Bakes on WhatsApp about Chocolate Fudge Cake"
@@ -276,7 +276,7 @@ export default function DesignDemo() {
             title="Walnut Brownie Box"
             description="Six pieces, freshly baked"
             meta="₹280"
-            thumbnail="/demo/brownies.jpg"
+            thumbnail="/seed/brownies.jpg"
             thumbnailAlt=""
             actionIcon={MessageCircle}
             actionLabel="Message Hostel Bakes on WhatsApp about Walnut Brownie Box"

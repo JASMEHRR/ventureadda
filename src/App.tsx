@@ -1,17 +1,11 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import {
-  Compass,
-  LayoutGrid,
-  MessageSquare,
-  Plus,
-  SearchX,
-  Shield,
-  Store,
-  UserRound,
-} from 'lucide-react'
+import { MessageSquare, Plus, SearchX, Shield, UserRound } from 'lucide-react'
 import AtmosphereBackdrop from './components/AtmosphereBackdrop'
 import AppShell from './components/layout/AppShell'
 import Placeholder from './components/ui/Placeholder'
+import Browse from './pages/Browse'
+import Categories from './pages/Categories'
+import VentureDetail from './pages/VentureDetail'
 import DesignDemo from './pages/DesignDemo'
 
 export default function App() {
@@ -21,32 +15,9 @@ export default function App() {
       <Routes>
         {/* isModerator is hardcoded until Step 2 lands accounts and the flag. */}
         <Route element={<AppShell isModerator />}>
-          <Route
-            index
-            element={
-              <Placeholder step="Step 1" icon={Store} title="Browse ventures">
-                Ventures grouped by category with search, read live from Firestore. Needs the
-                Firebase project first.
-              </Placeholder>
-            }
-          />
-          <Route
-            path="categories"
-            element={
-              <Placeholder step="Step 1" icon={LayoutGrid} title="Categories">
-                The six launch categories, each opening onto the ventures filed under it.
-              </Placeholder>
-            }
-          />
-          <Route
-            path="venture/:ventureId"
-            element={
-              <Placeholder step="Step 1" icon={Compass} title="Venture detail">
-                Photos, opening hours and the menu, where tapping an item opens WhatsApp with a
-                message already written.
-              </Placeholder>
-            }
-          />
+          <Route index element={<Browse />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="venture/:ventureId" element={<VentureDetail />} />
           <Route
             path="signin"
             element={
