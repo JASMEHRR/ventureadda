@@ -187,9 +187,61 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Everything else stays closed until the step that introduces it opens it
-    // deliberately. Reviews arrive in Step 5 and need their own rules written
-    // alongside, not retrofitted afterwards.
+    match /reviews/{reviewId} {
+      allow read: if true;
+
+      // The document id is ventureId_uid, which is what makes one review per
+      // person per venture a structural fact rather than something the app
+      // remembers to check. A second review lands on the same id and is an
+      // edit, not a duplicate.
+      allow create: if isThaparUser()
+                    && reviewId == request.resource.data.ventureId + '_' + request.auth.uid
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.rating is int
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5
+                    && request.resource.data.comment is string
+                    && request.resource.data.comment.size() <= 500
+                    && request.resource.data.deleted == false
+                    && request.resource.data.createdAt == request.time
+                    // Nobody reviews their own venture.
+                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId != request.auth.uid;
+
+      allow update: if
+                    // Moderator removal. Same reasoning as chat: a flag that
+                    // leaves the comment in the document is a button that lies.
+                    // The rating goes with it — the app drops deleted reviews
+                    // from the average, because erasing the words of a malicious
+                    // one-star while leaving the score would remove the
+                    // sentence and keep the damage.
+                    (isModerator()
+                     && request.resource.data.deleted == true
+                     && request.resource.data.comment == ''
+                     && request.resource.data.userId == resource.data.userId
+                     && request.resource.data.ventureId == resource.data.ventureId
+                     && request.resource.data.createdAt == resource.data.createdAt)
+                    // The author revising, while it still stands. Changing your
+                    // mind about a venture is legitimate; resurrecting a removed
+                    // review is not, hence the check on the existing flag.
+                    || (isThaparUser()
+                        && resource.data.userId == request.auth.uid
+                        && resource.data.deleted == false
+                        && request.resource.data.deleted == false
+                        && request.resource.data.userId == resource.data.userId
+                        && request.resource.data.ventureId == resource.data.ventureId
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.rating is int
+                        && request.resource.data.rating >= 1
+                        && request.resource.data.rating <= 5
+                        && request.resource.data.comment is string
+                        && request.resource.data.comment.size() <= 500);
+
+      // No hard delete, same as chat: who reviewed what is the trail.
+      allow delete: if false;
+    }
+
+    // Everything else stays closed. Any new collection needs its own rules
+    // written alongside the feature, not retrofitted afterwards.
     match /{document=**} {
       allow read, write: if false;
     }

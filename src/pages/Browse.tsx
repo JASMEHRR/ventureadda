@@ -6,6 +6,7 @@ import type { SelectOption } from '../components/ui/Select'
 import VentureCard from '../components/ui/VentureCard'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { listCategories, listVentures } from '../data/ventures'
+import { listRatingSummaries } from '../data/reviews'
 
 export default function Browse() {
   const [query, setQuery] = useState('')
@@ -26,6 +27,8 @@ export default function Browse() {
   }
 
   const categories = useAsyncData(() => listCategories(), [])
+  // One read for every card's rating, rather than one per venture.
+  const ratings = useAsyncData(() => listRatingSummaries(), [])
   const ventures = useAsyncData(
     () => listVentures({ query, categoryId: categoryId ?? undefined }),
     [query, categoryId],
@@ -155,6 +158,7 @@ export default function Browse() {
                 key={venture.id}
                 venture={venture}
                 categoryName={categoryName(venture.categoryId)}
+                rating={ratings.data?.[venture.id]}
               />
             ))}
           </div>

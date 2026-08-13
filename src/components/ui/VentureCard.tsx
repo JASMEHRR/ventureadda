@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
-import { Clock, ImageOff, Star } from 'lucide-react'
+import { Clock, ImageOff } from 'lucide-react'
 import type { Venture } from '../../data/ventures'
+import type { RatingSummary } from '../../data/reviews'
+import { StarDisplay } from './StarRating'
 import { displayUrl } from '../../lib/cloudinary'
 
 /**
@@ -11,9 +13,12 @@ import { displayUrl } from '../../lib/cloudinary'
 export default function VentureCard({
   venture,
   categoryName,
+  rating,
 }: {
   venture: Venture
   categoryName: string
+  /** Absent until anyone has reviewed. */
+  rating?: RatingSummary
 }) {
   return (
     <Link
@@ -39,11 +44,13 @@ export default function VentureCard({
           <span className="truncate font-mono text-[9px] tracking-[0.22em] text-white/30 uppercase">
             {categoryName}
           </span>
-          {venture.rating !== null && (
-            <span className="flex shrink-0 items-center gap-1 text-white/60">
-              <Star size={11} aria-hidden="true" className="text-brand-400" />
-              <span className="font-mono text-[11px] font-bold">{venture.rating.toFixed(1)}</span>
-              <span className="sr-only">out of 5, from {venture.reviewCount} reviews</span>
+          {rating && rating.count > 0 && (
+            <span className="flex shrink-0 items-center gap-1.5 text-white/60">
+              <StarDisplay value={rating.average} size={11} />
+              <span className="font-mono text-[11px] font-bold">{rating.average.toFixed(1)}</span>
+              <span className="sr-only">
+                out of 5, from {rating.count} {rating.count === 1 ? 'review' : 'reviews'}
+              </span>
             </span>
           )}
         </div>

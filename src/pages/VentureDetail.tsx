@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MessageCircle, SearchX, Star, UtensilsCrossed } from 'lucide-react'
+import { ArrowLeft, Clock, MessageCircle, SearchX, UtensilsCrossed } from 'lucide-react'
 import Button from '../components/ui/Button'
 import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
+import ReviewSection from '../components/ReviewSection'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
 import type { MenuItem, Venture } from '../data/ventures'
@@ -130,15 +131,6 @@ export default function VentureDetail() {
 
       <section className="liquid-glass-panel rounded-3xl p-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {v.rating !== null && (
-            <span className="flex items-center gap-1.5 text-white/70">
-              <Star size={13} aria-hidden="true" className="text-brand-400" />
-              <span className="font-mono text-[13px] font-bold text-white">
-                {v.rating.toFixed(1)}
-              </span>
-              <span className="text-[12px] text-white/40">({v.reviewCount} reviews)</span>
-            </span>
-          )}
           <span className="flex items-center gap-1.5 text-white/40">
             <Clock size={12} aria-hidden="true" />
             <span className="font-mono text-[10px] tracking-wider uppercase">{v.hours}</span>
@@ -183,6 +175,8 @@ export default function VentureDetail() {
           ))}
         </div>
       </section>
+
+      <ReviewSection ventureId={v.id} ownerId={v.ownerId} />
 
       <p className="px-1 pb-2 text-center font-mono text-[9px] tracking-[0.18em] text-white/25 uppercase">
         Payment is settled directly with the seller

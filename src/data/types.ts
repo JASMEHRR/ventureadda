@@ -29,8 +29,12 @@ export type Venture = {
   status: VentureStatus
   rejectionReason?: string
   clickCount: number
-  rating: number | null
-  reviewCount: number
+  // No rating or reviewCount here on purpose. A denormalised score would need
+  // its own write path on this document, open to anyone signed in, and rules
+  // cannot verify that a claimed delta matches a real review — so a rating
+  // could be moved without leaving anything to delete. Averages are computed
+  // from the reviews collection instead, which means the only way to shift a
+  // score is to leave a review a moderator can remove.
 }
 
 export type MenuItem = {

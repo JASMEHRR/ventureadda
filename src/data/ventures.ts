@@ -47,8 +47,6 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
     status: (data.status ?? 'pending') as VentureStatus,
     rejectionReason: data.rejectionReason,
     clickCount: typeof data.clickCount === 'number' ? data.clickCount : 0,
-    rating: typeof data.rating === 'number' ? data.rating : null,
-    reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : 0,
   }
 }
 
@@ -182,8 +180,6 @@ export async function createVenture(
     ...input,
     status: 'pending',
     clickCount: 0,
-    rating: null,
-    reviewCount: 0,
     createdAt: serverTimestamp(),
   })
 
