@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { MailCheck, ShieldCheck } from 'lucide-react'
 import Button from '../components/ui/Button'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from '../lib/firebase'
 
@@ -99,9 +100,7 @@ export default function SignIn() {
 
   if (mode === 'completing') {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Signing you in…
-      </p>
+      <LoadingLine label="Signing you in…" />
     )
   }
 

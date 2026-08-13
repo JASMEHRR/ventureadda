@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import VentureForm from '../components/VentureForm'
 import type { VentureFormValues } from '../components/VentureForm'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, updateVenture } from '../data/ventures'
@@ -22,9 +23,7 @@ export default function EditVenture() {
 
   if (status === 'loading' || venture.loading || menu.loading) {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Loading…
-      </p>
+      <LoadingLine label="Loading…" />
     )
   }
   if (status === 'signedOut' || !profile) return <Navigate to="/signin" replace />

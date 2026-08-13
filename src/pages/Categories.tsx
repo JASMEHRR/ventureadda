@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { countVenturesByCategory, listCategories } from '../data/ventures'
+import LoadingLine from '../components/ui/LoadingLine'
 
 /**
  * The sub-navigation pattern: bold mono uppercase title over a sentence-case
@@ -30,9 +31,7 @@ export default function Categories() {
 
   if (!categories.data) {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Loading categories…
-      </p>
+      <LoadingLine label="Loading categories…" />
     )
   }
 

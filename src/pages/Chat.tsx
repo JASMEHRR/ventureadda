@@ -4,6 +4,7 @@ import { MessagesSquare, SendHorizontal, Trash2 } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { MAX_MESSAGE_LENGTH, deleteMessage, sendMessage, subscribeToMessages } from '../data/chat'
 import type { ChatMessage } from '../data/chat'
@@ -105,9 +106,7 @@ export default function Chat() {
         )}
 
         {messages === null && !loadError && (
-          <p className="font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-            Loading messages…
-          </p>
+          <LoadingLine label="Loading messages…" inset={false} />
         )}
 
         {messages?.length === 0 && (

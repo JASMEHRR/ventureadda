@@ -4,6 +4,7 @@ import { Plus, Search, SearchX, Store } from 'lucide-react'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
 import VentureCard from '../components/ui/VentureCard'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { listCategories, listVentures } from '../data/ventures'
 import { listRatingSummaries } from '../data/reviews'
@@ -105,9 +106,7 @@ export default function Browse() {
       )}
 
       {ventures.loading && !ventures.data && (
-        <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-          Loading ventures…
-        </p>
+        <LoadingLine label="Loading ventures…" />
       )}
 
       {/* Two different nothings. "No results" tells you to change your search;

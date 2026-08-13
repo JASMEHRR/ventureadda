@@ -5,6 +5,7 @@ import Button from '../components/ui/Button'
 import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
 import ReviewSection from '../components/ReviewSection'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
@@ -90,9 +91,7 @@ export default function VentureDetail() {
 
   if (venture.loading) {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Loading venture…
-      </p>
+      <LoadingLine label="Loading venture…" />
     )
   }
 

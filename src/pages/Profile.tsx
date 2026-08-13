@@ -2,6 +2,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { LogOut, Plus, Shield } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { listVenturesByOwner } from '../data/ventures'
@@ -22,9 +23,7 @@ export default function Profile() {
 
   if (status === 'loading') {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Loading profile…
-      </p>
+      <LoadingLine label="Loading profile…" />
     )
   }
   if (status === 'signedOut' || !profile) return <Navigate to="/signin" replace />

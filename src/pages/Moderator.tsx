@@ -4,6 +4,7 @@ import { Check, Inbox, MessageCircle, MousePointerClick, Sprout, Store, X } from
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import StatCard from '../components/ui/StatCard'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import {
@@ -100,9 +101,7 @@ export default function Moderator() {
 
   if (status === 'loading') {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Loading…
-      </p>
+      <LoadingLine label="Loading…" />
     )
   }
   if (!profile?.isModerator) return <Navigate to="/" replace />

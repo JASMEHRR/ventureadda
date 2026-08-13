@@ -4,6 +4,7 @@ import { ClipboardCheck } from 'lucide-react'
 import VentureForm from '../components/VentureForm'
 import type { VentureFormValues } from '../components/VentureForm'
 import Button from '../components/ui/Button'
+import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { createVenture } from '../data/ventures'
 
@@ -14,9 +15,7 @@ export default function AddVenture() {
 
   if (status === 'loading') {
     return (
-      <p className="px-1 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-        Loading…
-      </p>
+      <LoadingLine label="Loading…" />
     )
   }
   // Listing needs an account, but browsing never does — so this redirects
