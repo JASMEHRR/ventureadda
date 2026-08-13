@@ -2,6 +2,8 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import MobileNav from './MobileNav'
+import ChooseUsername from '../../pages/ChooseUsername'
+import { useAuth } from '../../auth/AuthProvider'
 
 /**
  * Page chrome titles. Kept separate from navigation.ts because a nav label and
@@ -37,9 +39,11 @@ function pageMeta(pathname: string) {
  * is hidden. No ancestor here sets transform, filter or isolation, which would
  * trap AtmosphereBackdrop's negative z-index and hide the backdrop entirely.
  */
-export default function AppShell({ isModerator = false }: { isModerator?: boolean }) {
+export default function AppShell() {
   const { pathname } = useLocation()
+  const { profile, status } = useAuth()
   const meta = pageMeta(pathname)
+  const isModerator = profile?.isModerator ?? false
 
   return (
     <>
@@ -47,9 +51,15 @@ export default function AppShell({ isModerator = false }: { isModerator?: boolea
         <Sidebar isModerator={isModerator} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <TopBar eyebrow={meta.eyebrow} title={meta.title} user={null} />
+          <TopBar
+            eyebrow={status === 'needsUsername' ? 'Account' : meta.eyebrow}
+            title={status === 'needsUsername' ? 'Pick a username' : meta.title}
+            user={profile}
+          />
           <main className="min-w-0 flex-1">
-            <Outlet />
+            {/* A signed-in account with no profile yet gets the username gate
+                wherever it lands, including on a deep link. */}
+            {status === 'needsUsername' ? <ChooseUsername /> : <Outlet />}
           </main>
         </div>
       </div>

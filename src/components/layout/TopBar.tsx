@@ -6,7 +6,7 @@ type TopBarProps = {
   /** Mono eyebrow above the title. */
   eyebrow: string
   title: string
-  /** Null until Step 2 lands sign-in. */
+  /** Null while signed out, or before the profile has loaded. */
   user: { username: string } | null
 }
 

@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// VentureAdda Firestore security rules.
+//
+// PASTE THIS INTO Firebase console → Firestore Database → Rules → Publish.
+//
+// Why this cannot wait for Step 4:
+//
+// 1. Test mode allows every read and write from anyone on the internet who
+//    knows the project id — and the project id ships in the client bundle.
+//    From Step 2 onward the users collection holds real student email
+//    addresses, so test mode means those addresses are world-readable and
+//    anyone can overwrite them.
+// 2. The @thapar.edu check in the app runs in the browser. Anyone can call the
+//    Firebase Auth REST API directly with any address and get a valid account.
+//    These rules are the only place that restriction is actually enforced.
+// 3. Enabling email-link sign-in also enabled the parent Email/Password
+//    provider, so accounts can be created with a password outside our UI. The
+//    domain check below covers those too, because it tests the token rather
+//    than trusting how the account was made.
+//
+// Spark plan means no Cloud Functions, so there is no server-side hook to put
+// this logic in. Rules are it.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The whole trust boundary. Full-string match, so an address like
+    // someone@thapar.edu.example.com does not slip through.
+    function isThaparUser() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower().matches('.*@thapar[.]edu');
+    }
+
+    function isSelf(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // Usernames are shown next to chat messages and ventures, so any signed-in
+      // user needs to resolve them. This does expose email addresses to signed-in
+      // students; tighten it when chat lands if that turns out to matter.
+      allow read: if request.auth != null;
+
+      allow create: if isThaparUser()
+                    && isSelf(uid)
+                    && request.resource.data.uid == uid
+                    && request.resource.data.email == request.auth.token.email
+                    // Nobody gets to make themselves a moderator. Flip this by
+                    // hand in the console.
+                    && request.resource.data.isModerator == false
+                    && request.resource.data.username is string
+                    && request.resource.data.username.size() >= 3
+                    && request.resource.data.username.size() <= 20;
+
+      allow update: if isThaparUser()
+                    && isSelf(uid)
+                    && request.resource.data.isModerator == resource.data.isModerator
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.uid == resource.data.uid;
+
+      // Deleting a user would orphan their username claim and their ventures.
+      allow delete: if false;
+    }
+
+    // Username uniqueness. The document id IS the claim: ids are unique by
+    // definition, and create-only-if-absent is what Firestore's create rule
+    // already means, so two people picking the same name at the same moment
+    // cannot both succeed.
+    match /usernames/{username} {
+      allow read: if request.auth != null;
+      allow create: if isThaparUser() && request.resource.data.uid == request.auth.uid;
+      // Immutable — releasing a name would let someone impersonate a past owner.
+      allow update, delete: if false;
+    }
+
+    // Everything else is closed until the step that introduces it opens it
+    // deliberately. Ventures, menu items, reviews and chat arrive in Steps 3
+    // to 5 and each needs its own rules written with it, not retrofitted.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

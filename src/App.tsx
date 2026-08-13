@@ -1,40 +1,28 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { MessageSquare, Plus, SearchX, Shield, UserRound } from 'lucide-react'
+import { MessageSquare, Plus, SearchX, Shield } from 'lucide-react'
 import AtmosphereBackdrop from './components/AtmosphereBackdrop'
 import AppShell from './components/layout/AppShell'
 import Placeholder from './components/ui/Placeholder'
+import { AuthProvider } from './auth/AuthProvider'
 import Browse from './pages/Browse'
 import Categories from './pages/Categories'
 import VentureDetail from './pages/VentureDetail'
+import SignIn from './pages/SignIn'
+import Profile from './pages/Profile'
 import DesignDemo from './pages/DesignDemo'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AtmosphereBackdrop />
-      <Routes>
-        {/* isModerator is hardcoded until Step 2 lands accounts and the flag. */}
-        <Route element={<AppShell isModerator />}>
+    <AuthProvider>
+      <BrowserRouter>
+        <AtmosphereBackdrop />
+        <Routes>
+        <Route element={<AppShell />}>
           <Route index element={<Browse />} />
           <Route path="categories" element={<Categories />} />
           <Route path="venture/:ventureId" element={<VentureDetail />} />
-          <Route
-            path="signin"
-            element={
-              <Placeholder step="Step 2" icon={UserRound} title="Sign in">
-                Firebase email-link sign-in, restricted to Thapar addresses. Blocked until the
-                Firebase project exists and the exact student domain is confirmed.
-              </Placeholder>
-            }
-          />
-          <Route
-            path="profile"
-            element={
-              <Placeholder step="Step 2" icon={UserRound} title="Your profile">
-                Display username, your listed ventures, and sign out.
-              </Placeholder>
-            }
-          />
+          <Route path="signin" element={<SignIn />} />
+          <Route path="profile" element={<Profile />} />
           <Route
             path="add"
             element={
@@ -70,8 +58,9 @@ export default function App() {
               </Placeholder>
             }
           />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
