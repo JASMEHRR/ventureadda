@@ -1,30 +1,32 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Clock, MessageCircle, SearchX, Star, UtensilsCrossed } from 'lucide-react'
 import Button from '../components/ui/Button'
 import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { getVenture, listMenuItems, recordInquiry } from '../data/ventures'
+import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
 import type { MenuItem, Venture } from '../data/ventures'
 import { inquiryLink, inquiryMessage } from '../lib/whatsapp'
+import { displayUrl } from '../lib/cloudinary'
 
 function PhotoGallery({ venture }: { venture: Venture }) {
   const [active, setActive] = useState(0)
   const photo = venture.photos[active]
+  if (!photo) return null
 
   return (
     <div className="liquid-glass-panel rounded-3xl p-3">
       <img
-        src={photo}
+        src={displayUrl(photo, 800)}
         alt={`${venture.name}, photo ${active + 1} of ${venture.photos.length}`}
         className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
       />
       {venture.photos.length > 1 && (
         <div className="mt-3 flex gap-2 px-1 pb-1">
-          {venture.photos.map((src, index) => (
+          {venture.photos.map((image, index) => (
             <button
-              key={src}
+              key={image.url + index}
               type="button"
               onClick={() => setActive(index)}
               aria-label={`Show photo ${index + 1}`}
@@ -33,7 +35,7 @@ function PhotoGallery({ venture }: { venture: Venture }) {
                 index === active ? 'ring-brand-400' : 'ring-white/10 hover:ring-white/30'
               }`}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <img src={displayUrl(image, 400)} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
@@ -50,14 +52,29 @@ export default function VentureDetail() {
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
   const menu = useAsyncData(() => listMenuItems(ventureId), [ventureId])
 
+  // One venture-level open per visit. Deliberately not in the same effect as
+  // the data load, which re-runs whenever the id changes for other reasons.
+  useEffect(() => {
+    if (!ventureId) return
+    void recordVentureView(ventureId)
+  }, [ventureId])
+
   /**
    * Counting on confirm rather than on the WhatsApp tap: the anchor navigates
    * away the moment it is activated, so anything queued behind it is a race.
    * Confirming is also the honest signal — it is the point the buyer decided.
+   *
+   * The rules let signed-out visitors do this, capped at exactly plus one, so
+   * the count reflects everyone rather than only people with accounts.
    */
   const confirmInquiry = useCallback(async (item: MenuItem) => {
-    const next = await recordInquiry(item.id)
-    setLocalCounts((prev) => ({ ...prev, [item.id]: next }))
+    setLocalCounts((prev) => ({ ...prev, [item.id]: item.inquiryCount + 1 }))
+    try {
+      await recordInquiry(item.id)
+    } catch {
+      // The WhatsApp handoff already happened. A lost count is not worth an
+      // error message over the top of it.
+    }
   }, [])
 
   if (venture.error || menu.error) {
@@ -130,7 +147,7 @@ export default function VentureDetail() {
 
         <p className="mt-3 text-[14.5px] leading-relaxed text-white/70">{v.description}</p>
         <p className="mt-3 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
-          Run by {v.ownerName}
+          Run by {v.ownerUsername}
         </p>
       </section>
 
@@ -157,7 +174,7 @@ export default function VentureDetail() {
               title={item.name}
               description={item.description}
               meta={`₹${item.price}`}
-              thumbnail={item.photo}
+              thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
               icon={item.photo ? undefined : UtensilsCrossed}
               actionIcon={MessageCircle}
               actionLabel={`Ask ${v.name} about this on WhatsApp`}

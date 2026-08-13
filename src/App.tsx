@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { MessageSquare, Plus, SearchX, Shield } from 'lucide-react'
+import { MessageSquare, SearchX } from 'lucide-react'
 import AtmosphereBackdrop from './components/AtmosphereBackdrop'
 import AppShell from './components/layout/AppShell'
 import Placeholder from './components/ui/Placeholder'
@@ -7,6 +7,9 @@ import { AuthProvider } from './auth/AuthProvider'
 import Browse from './pages/Browse'
 import Categories from './pages/Categories'
 import VentureDetail from './pages/VentureDetail'
+import AddVenture from './pages/AddVenture'
+import EditVenture from './pages/EditVenture'
+import Moderator from './pages/Moderator'
 import SignIn from './pages/SignIn'
 import Profile from './pages/Profile'
 import DesignDemo from './pages/DesignDemo'
@@ -21,25 +24,11 @@ export default function App() {
           <Route index element={<Browse />} />
           <Route path="categories" element={<Categories />} />
           <Route path="venture/:ventureId" element={<VentureDetail />} />
+          <Route path="venture/:ventureId/edit" element={<EditVenture />} />
           <Route path="signin" element={<SignIn />} />
           <Route path="profile" element={<Profile />} />
-          <Route
-            path="add"
-            element={
-              <Placeholder step="Step 3" icon={Plus} title="List a venture">
-                Name, category, hours, photos and a menu builder, submitted to the approval queue.
-              </Placeholder>
-            }
-          />
-          <Route
-            path="moderator"
-            element={
-              <Placeholder step="Step 3" icon={Shield} title="Review queue">
-                Approve or reject submissions, edit live listings, moderate chat, manage
-                categories.
-              </Placeholder>
-            }
-          />
+          <Route path="add" element={<AddVenture />} />
+          <Route path="moderator" element={<Moderator />} />
           <Route
             path="chat"
             element={

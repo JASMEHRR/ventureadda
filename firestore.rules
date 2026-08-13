@@ -76,9 +76,87 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Everything else is closed until the step that introduces it opens it
-    // deliberately. Ventures, menu items, reviews and chat arrive in Steps 3
-    // to 5 and each needs its own rules written with it, not retrofitted.
+    function isModerator() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true;
+    }
+
+    match /ventures/{ventureId} {
+      // Three ways to read, and each corresponds to a query the app actually
+      // makes. Firestore checks a list query against these, so browse must
+      // filter status == 'live', the moderator queue must filter by status,
+      // and an owner's own list must filter by ownerId. A query that filters
+      // by none of them is refused, which is the intent: nobody can page
+      // through everyone's pending submissions.
+      allow read: if resource.data.status == 'live'
+                  || isModerator()
+                  || (request.auth != null && resource.data.ownerId == request.auth.uid);
+
+      allow create: if isThaparUser()
+                    && request.resource.data.ownerId == request.auth.uid
+                    // The entire point of the approval queue. An owner who
+                    // could set this would publish straight past you.
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.clickCount == 0
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 60
+                    && request.resource.data.phone is string
+                    && request.resource.data.description.size() <= 600;
+
+      // Owners may edit content but never status, ownership or the counters.
+      // Moderators may change anything, which is how approve and reject work.
+      // The first clause is the public view counter, same shape as the one on
+      // menu items: exactly one field, exactly plus one.
+      allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clickCount'])
+                        && request.resource.data.clickCount == resource.data.clickCount + 1)
+                    || isModerator()
+                    || (isThaparUser()
+                        && resource.data.ownerId == request.auth.uid
+                        && request.resource.data.ownerId == resource.data.ownerId
+                        && request.resource.data.status == resource.data.status
+                        && request.resource.data.clickCount == resource.data.clickCount);
+
+      allow delete: if isModerator()
+                    || (request.auth != null && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /menuItems/{itemId} {
+      // Menu items carry no private data and are always read alongside their
+      // venture, so gating them on a get() of the parent would cost an extra
+      // billed read per item to protect a price list.
+      allow read: if true;
+
+      allow create: if isThaparUser()
+                    && request.resource.data.inquiryCount == 0
+                    && request.resource.data.price is number
+                    && request.resource.data.price >= 0
+                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId == request.auth.uid;
+
+      allow update: if
+                    // Anyone at all, signed in or not, may add exactly one to
+                    // the inquiry counter and change nothing else. Logged-out
+                    // people can browse and tap WhatsApp, and they are most of
+                    // the traffic — counting only signed-in taps would throw
+                    // away the majority of the evidence. The trade is that the
+                    // number is inflatable by anyone willing to script it, so
+                    // treat it as a signal of interest, not an audited figure.
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inquiryCount'])
+                     && request.resource.data.inquiryCount == resource.data.inquiryCount + 1)
+                    || isModerator()
+                    || (isThaparUser()
+                        && get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid
+                        && request.resource.data.inquiryCount == resource.data.inquiryCount);
+
+      allow delete: if isModerator()
+                    || (request.auth != null
+                        && get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid);
+    }
+
+    // Everything else stays closed until the step that introduces it opens it
+    // deliberately. Reviews and chat arrive in Steps 4 and 5 and each needs its
+    // own rules written alongside, not retrofitted afterwards.
     match /{document=**} {
       allow read, write: if false;
     }

@@ -1,0 +1,297 @@
+import { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import Button from './ui/Button'
+import Select from './ui/Select'
+import PhotoUploader from './ui/PhotoUploader'
+import type { SelectOption } from './ui/Select'
+import { CATEGORIES } from '../data/types'
+import type { MenuItemDraft, StoredImage } from '../data/types'
+import type { MenuItemInput, VentureInput } from '../data/ventures'
+
+const CATEGORY_OPTIONS: SelectOption<string>[] = CATEGORIES.map((category) => ({
+  value: category.id,
+  label: category.name,
+}))
+
+let draftKeySeed = 0
+const newDraft = (): MenuItemDraft => ({
+  key: `draft-${(draftKeySeed += 1)}`,
+  name: '',
+  description: '',
+  price: '',
+})
+
+export type VentureFormValues = {
+  venture: VentureInput
+  items: MenuItemInput[]
+}
+
+type VentureFormProps = {
+  initial?: Partial<VentureInput> & { items?: MenuItemDraft[] }
+  submitLabel: string
+  onSubmit: (values: VentureFormValues) => Promise<void>
+}
+
+function Field({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id: string
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+      >
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1.5 text-[12.5px] text-white/35">{hint}</p>}
+    </div>
+  )
+}
+
+const inputClass =
+  'liquid-glass-input w-full rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30'
+
+export default function VentureForm({ initial, submitLabel, onSubmit }: VentureFormProps) {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [categoryId, setCategoryId] = useState(initial?.categoryId ?? 'food')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [hours, setHours] = useState(initial?.hours ?? '')
+  const [phone, setPhone] = useState(initial?.phone ?? '')
+  const [photos, setPhotos] = useState<StoredImage[]>(initial?.photos ?? [])
+  const [items, setItems] = useState<MenuItemDraft[]>(
+    initial?.items?.length ? initial.items : [newDraft()],
+  )
+
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const patchItem = (key: string, patch: Partial<MenuItemDraft>) =>
+    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
+
+    const filled = items.filter((item) => item.name.trim() !== '')
+    if (filled.length === 0) {
+      setError('Add at least one item to your menu — that is what buyers tap.')
+      return
+    }
+    const badPrice = filled.find((item) => {
+      const value = Number(item.price)
+      return !Number.isFinite(value) || value < 0
+    })
+    if (badPrice) {
+      setError(`"${badPrice.name}" needs a price in whole rupees.`)
+      return
+    }
+    if (photos.length === 0) {
+      setError('Add at least one photo. A listing without one gets skipped past.')
+      return
+    }
+    // wa.me needs digits only; anything shorter is a typo, not a number.
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length < 10) {
+      setError('Enter a WhatsApp number with country code, for example 919876543210.')
+      return
+    }
+
+    setBusy(true)
+    try {
+      await onSubmit({
+        venture: {
+          name: name.trim(),
+          categoryId,
+          description: description.trim(),
+          hours: hours.trim(),
+          phone: digits,
+          photos,
+        },
+        items: filled.map((item) => ({
+          id: item.id,
+          name: item.name.trim(),
+          description: item.description.trim(),
+          price: Math.round(Number(item.price)),
+          photo: item.photo,
+        })),
+      })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not save. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <section className="liquid-glass-panel space-y-4 rounded-3xl p-5">
+        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          The basics
+        </h2>
+
+        <Field id="venture-name" label="Venture name">
+          <input
+            id="venture-name"
+            required
+            maxLength={60}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Hostel Bakes"
+            className={inputClass}
+          />
+        </Field>
+
+        <Select
+          label="Category"
+          value={categoryId}
+          options={CATEGORY_OPTIONS}
+          onChange={setCategoryId}
+        />
+
+        <Field id="venture-description" label="Description" hint="Two lines is plenty.">
+          <textarea
+            id="venture-description"
+            required
+            rows={3}
+            maxLength={600}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="What you make, and how people collect it."
+            className={`${inputClass} resize-y`}
+          />
+        </Field>
+
+        <Field id="venture-hours" label="Opening hours">
+          <input
+            id="venture-hours"
+            required
+            value={hours}
+            onChange={(event) => setHours(event.target.value)}
+            placeholder="4pm – 11pm, daily"
+            className={inputClass}
+          />
+        </Field>
+
+        <Field
+          id="venture-phone"
+          label="WhatsApp number"
+          hint="With country code. This is where item enquiries land."
+        >
+          <input
+            id="venture-phone"
+            required
+            inputMode="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="919876543210"
+            className={inputClass}
+          />
+        </Field>
+
+        <PhotoUploader
+          label="Photos"
+          hint="Up to four. JPG, PNG or WebP, 5MB each."
+          photos={photos}
+          onChange={setPhotos}
+        />
+      </section>
+
+      <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            Menu
+          </h2>
+          <span className="font-mono text-[10px] text-white/30">
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+          </span>
+        </div>
+
+        {items.map((item, index) => (
+          <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+                Item {index + 1}
+              </span>
+              {items.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setItems((prev) => prev.filter((row) => row.key !== item.key))}
+                  aria-label={`Remove item ${index + 1}`}
+                  className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <input
+                aria-label={`Item ${index + 1} name`}
+                value={item.name}
+                onChange={(event) => patchItem(item.key, { name: event.target.value })}
+                placeholder="Chocolate Fudge Cake"
+                className={inputClass}
+              />
+              <input
+                aria-label={`Item ${index + 1} price in rupees`}
+                inputMode="numeric"
+                value={item.price}
+                onChange={(event) => patchItem(item.key, { price: event.target.value })}
+                placeholder="450"
+                className={`${inputClass} sm:w-28`}
+              />
+            </div>
+
+            <input
+              aria-label={`Item ${index + 1} description`}
+              value={item.description}
+              onChange={(event) => patchItem(item.key, { description: event.target.value })}
+              placeholder="Dark chocolate, 500g, serves four"
+              className={`${inputClass} mt-3`}
+            />
+
+            <div className="mt-3">
+              <PhotoUploader
+                label="Item photo"
+                photos={item.photo ? [item.photo] : []}
+                onChange={(next) => patchItem(item.key, { photo: next[0] })}
+                max={1}
+              />
+            </div>
+          </div>
+        ))}
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setItems((prev) => [...prev, newDraft()])}
+        >
+          <Plus size={13} aria-hidden="true" />
+          Add another item
+        </Button>
+      </section>
+
+      {error && (
+        <p
+          role="alert"
+          className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] text-red-400"
+        >
+          {error}
+        </p>
+      )}
+
+      <Button type="submit" variant="primary" loading={busy} className="w-full">
+        {submitLabel}
+      </Button>
+    </form>
+  )
+}
