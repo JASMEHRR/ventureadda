@@ -195,7 +195,8 @@ export default function VentureDetail() {
 
       <ReviewSection ventureId={v.id} ownerId={v.ownerId} />
 
-      <p className="px-1 pb-2 text-center font-mono text-[9px] tracking-[0.18em] text-white/25 uppercase">
+      {/* Also on bare backdrop, and smaller again — see the note in SignIn. */}
+      <p className="px-1 pb-2 text-center font-mono text-[9px] tracking-[0.18em] text-white/50 uppercase">
         Payment is settled directly with the seller
       </p>
 

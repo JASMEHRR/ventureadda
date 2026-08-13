@@ -180,7 +180,10 @@ export default function SignIn() {
         </Button>
       </form>
 
-      <p className="px-2 text-center text-[13px] leading-relaxed text-white/35">
+      {/* white/55, not the white/35 used for asides on glass. This paragraph
+          sits on the bare photographic backdrop, where 35% measured 3.24:1 —
+          under AA. Glass panels supply their own dark fill; this has none. */}
+      <p className="px-2 text-center text-[13px] leading-relaxed text-white/55">
         You can browse every venture without an account. Signing in is only needed to post in chat
         or list your own venture.
       </p>
