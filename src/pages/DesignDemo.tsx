@@ -142,7 +142,11 @@ export default function DesignDemo() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Brownies, prints, repairs…"
-                className="liquid-glass-input w-full rounded-xl py-2.5 pr-4 pl-10 text-[13px] text-white placeholder-white/30 outline-none"
+                // No `outline-none` here. Tailwind's utilities layer outranks
+                // the base layer where the focus ring lives, so it would
+                // silently delete the ring on the one control most likely to
+                // be reached by keyboard.
+                className="liquid-glass-input w-full rounded-xl py-2.5 pr-4 pl-10 text-[13px] text-white placeholder-white/30"
               />
             </div>
           </div>

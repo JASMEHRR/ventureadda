@@ -48,7 +48,11 @@ export default function Button({
   return (
     <button
       type="button"
-      disabled={disabled ?? loading}
+      // `||`, not `??`. With `??`, the ordinary form case
+      // `disabled={!formValid} loading={submitting}` passes `false` once the
+      // form is valid, and `false ?? true` is `false` — leaving the button
+      // live for the whole submit, so a double tap submits twice.
+      disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={`${base} ${variants[variant]} ${className}`}
       {...rest}

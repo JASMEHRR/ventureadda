@@ -14,9 +14,11 @@ type ListRowProps = {
   /** Low-opacity affordance on the far right, brightening on hover. */
   actionIcon?: LucideIcon
   /**
-   * Accessible name for the whole row. The row is a single button, so this
-   * should describe what tapping does, not just repeat the title —
-   * e.g. "Message Hostel Bakes on WhatsApp about Chocolate Cake".
+   * What tapping the row does, e.g. "Message Hostel Bakes on WhatsApp".
+   * Rendered as visually-hidden text inside the button rather than as an
+   * aria-label: an aria-label would replace the button's whole accessible
+   * name, so the price and description below would never be announced — and
+   * the price is the entire point of a menu row.
    */
   actionLabel?: string
   onClick?: () => void
@@ -46,7 +48,6 @@ export default function ListRow({
     <button
       type="button"
       onClick={onClick}
-      aria-label={actionLabel}
       className="group liquid-glass-panel flex w-full items-center gap-3.5 rounded-2xl px-4 py-3.5 text-left transition duration-150 hover:bg-white/[0.06] active:scale-[0.98] sm:gap-4 sm:px-5 sm:py-4"
     >
       {thumbnail ? (
@@ -83,6 +84,9 @@ export default function ListRow({
           className="shrink-0 text-white/30 transition-colors group-hover:text-white"
         />
       )}
+
+      {/* Last, so the name reads "Chocolate Fudge Cake, …, ₹450, Message …". */}
+      {actionLabel && <span className="sr-only">{actionLabel}</span>}
     </button>
   )
 }

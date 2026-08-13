@@ -225,7 +225,18 @@ export default function Select<T extends string>({
       const trigger = triggerRef.current
       if (!trigger) return
       const box = trigger.getBoundingClientRect()
-      setRect({ top: box.top, left: box.left, width: box.width, bottom: box.bottom })
+      // Capture-phase means this also fires for scrolls of the popup's own
+      // overflow container. Returning the previous object when nothing moved
+      // keeps a long list from re-rendering on every wheel tick.
+      setRect((prev) =>
+        prev &&
+        prev.top === box.top &&
+        prev.left === box.left &&
+        prev.width === box.width &&
+        prev.bottom === box.bottom
+          ? prev
+          : { top: box.top, left: box.left, width: box.width, bottom: box.bottom },
+      )
     }
     measure()
     window.addEventListener('scroll', measure, true)
@@ -237,10 +248,14 @@ export default function Select<T extends string>({
   }, [open])
 
   // Keep the active option in view while arrowing through a scrolled list.
+  // `rect` is a dependency because the popup does not exist in the commit
+  // where `open` first flips true — it is gated on rect below, which the
+  // layout effect fills in a commit later. Without it the option refs are
+  // still null when this runs and the first open never scrolls.
   useEffect(() => {
-    if (!open || activeIndex < 0) return
+    if (!open || !rect || activeIndex < 0) return
     optionRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
-  }, [open, activeIndex])
+  }, [open, rect, activeIndex])
 
   // Dismiss on any pointer press outside the control. The popup is portalled,
   // so it is not inside wrapperRef — both have to be checked, otherwise
@@ -281,6 +296,12 @@ export default function Select<T extends string>({
         aria-expanded={open}
         // Only while the listbox exists — a dangling idref is invalid.
         aria-controls={open ? listboxId : undefined}
+        // Load-bearing because the popup is portalled. aria-activedescendant
+        // may only reference a DOM descendant of the focused element, or a
+        // logical one declared through aria-owns. Without this the option ids
+        // below resolve to nothing for a screen reader and arrowing through
+        // the list announces silence. aria-controls does not establish it.
+        aria-owns={open ? listboxId : undefined}
         // Self-reference is deliberate: it appends the button's own text — the
         // current value — to the name, so the control announces as
         // "Category, Food & Snacks" rather than just "Category".
