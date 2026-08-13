@@ -154,9 +154,42 @@ service cloud.firestore {
                         && get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid);
     }
 
+    match /chatMessages/{messageId} {
+      // Everyone reads, signed in or not. Someone opening a shared link should
+      // be able to see the room is alive before being asked for an account.
+      allow read: if true;
+
+      allow create: if isThaparUser()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.username is string
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 1000
+                    && request.resource.data.deleted == false
+                    // Forces serverTimestamp(). A client-supplied time could be
+                    // backdated to bury a message at the top of the room.
+                    && request.resource.data.createdAt == request.time;
+
+      // Moderator removal, and the only permitted update. The flag and the
+      // blanked text have to move together: a soft delete that leaves the text
+      // in the document means the message is still readable by anyone querying
+      // Firestore directly, which defeats the whole point of the button. Author
+      // and timestamp survive, so a repeat offender is still visible.
+      allow update: if isModerator()
+                    && request.resource.data.deleted == true
+                    && request.resource.data.text == ''
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.username == resource.data.username
+                    && request.resource.data.createdAt == resource.data.createdAt;
+
+      // No hard delete. Who posted and when is the moderation trail, and it is
+      // worth more than the row it occupies.
+      allow delete: if false;
+    }
+
     // Everything else stays closed until the step that introduces it opens it
-    // deliberately. Reviews and chat arrive in Steps 4 and 5 and each needs its
-    // own rules written alongside, not retrofitted afterwards.
+    // deliberately. Reviews arrive in Step 5 and need their own rules written
+    // alongside, not retrofitted afterwards.
     match /{document=**} {
       allow read, write: if false;
     }

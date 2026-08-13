@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Search, SearchX } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Plus, Search, SearchX, Store } from 'lucide-react'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
 import VentureCard from '../components/ui/VentureCard'
@@ -58,6 +58,7 @@ export default function Browse() {
   }, [ventures.data, categories.data])
 
   const total = ventures.data?.length ?? 0
+  const isFiltered = query.trim() !== '' || categoryId !== null
 
   return (
     <div className="space-y-4">
@@ -106,15 +107,35 @@ export default function Browse() {
         </p>
       )}
 
+      {/* Two different nothings. "No results" tells you to change your search;
+          an empty directory has no search to change, and saying otherwise
+          sends people hunting for a filter that is not set. */}
       {ventures.data && total === 0 && (
         <div className="liquid-glass-panel flex flex-col items-center rounded-3xl px-6 py-14 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/35">
-            <SearchX size={22} aria-hidden="true" />
+            {isFiltered ? (
+              <SearchX size={22} aria-hidden="true" />
+            ) : (
+              <Store size={22} aria-hidden="true" />
+            )}
           </span>
-          <p className="mt-5 text-[17px] font-extrabold text-white">Nothing matches that</p>
-          <p className="mt-2 max-w-sm text-[14px] text-white/45">
-            Try a different word, or clear the category filter to see everything on campus.
+          <p className="mt-5 text-[17px] font-extrabold text-white">
+            {isFiltered ? 'Nothing matches that' : 'No ventures yet'}
           </p>
+          <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">
+            {isFiltered
+              ? 'Try a different word, or clear the category filter to see everything on campus.'
+              : 'Nobody has listed anything yet. If you make or sell something, you could be first.'}
+          </p>
+          {!isFiltered && (
+            <Link
+              to="/add"
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/15 px-5 py-2.5 font-mono text-[11px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
+            >
+              <Plus size={13} aria-hidden="true" />
+              List your venture
+            </Link>
+          )}
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { MessageSquare, SearchX } from 'lucide-react'
+import { SearchX } from 'lucide-react'
 import AtmosphereBackdrop from './components/AtmosphereBackdrop'
 import AppShell from './components/layout/AppShell'
 import Placeholder from './components/ui/Placeholder'
@@ -7,6 +7,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import Browse from './pages/Browse'
 import Categories from './pages/Categories'
 import VentureDetail from './pages/VentureDetail'
+import Chat from './pages/Chat'
 import AddVenture from './pages/AddVenture'
 import EditVenture from './pages/EditVenture'
 import Moderator from './pages/Moderator'
@@ -29,15 +30,7 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="add" element={<AddVenture />} />
           <Route path="moderator" element={<Moderator />} />
-          <Route
-            path="chat"
-            element={
-              <Placeholder step="Step 4" icon={MessageSquare} title="All Chat">
-                One shared room for feedback about the site. Ships with the delete button, not
-                after it.
-              </Placeholder>
-            }
-          />
+          <Route path="chat" element={<Chat />} />
           <Route path="design" element={<DesignDemo />} />
           <Route
             path="*"
