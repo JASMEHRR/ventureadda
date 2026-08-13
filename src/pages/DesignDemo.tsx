@@ -72,7 +72,8 @@ export default function DesignDemo() {
   const reduce = useReducedMotion()
 
   return (
-    <main className="mx-auto max-w-5xl space-y-8 p-3 pb-20 sm:p-4 md:p-6">
+    // No padding or max-width here — AppShell owns the page container now.
+    <div className="space-y-8">
       {/* Wordmark */}
       <motion.header
         initial={reduce ? false : { opacity: 0, y: 16 }}
@@ -83,9 +84,11 @@ export default function DesignDemo() {
         <p className="font-mono text-[9px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
           Design system · Step 0
         </p>
-        <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+        {/* Deliberately not an h1 — TopBar owns the page heading now, and the
+            document should only ever have one. This is a wordmark. */}
+        <p className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
           VentureAdda
-        </h1>
+        </p>
         <p className="mt-2 max-w-md text-[14px] text-white/55">
           Every venture on campus, one adda. This page exists to prove the visual system before
           any feature is built on top of it.
@@ -351,6 +354,6 @@ export default function DesignDemo() {
       <p className="px-1 pt-2 text-center font-mono text-[9px] tracking-[0.22em] text-white/25 uppercase">
         Backdrop · Joshua Woroniecki / Unsplash
       </p>
-    </main>
+    </div>
   )
 }
