@@ -80,6 +80,14 @@ export default function Profile() {
           </Link>
         </div>
 
+        {mine.error && (
+          <p role="alert" className="text-[14px] text-red-400">
+            Could not load your ventures: {mine.error.message}
+          </p>
+        )}
+
+        {!mine.data && !mine.error && <LoadingLine label="Loading your ventures…" inset={false} />}
+
         {mine.data?.length === 0 && (
           <p className="text-[14px] leading-relaxed text-white/45">
             You have not listed anything yet. Anything you submit shows up here, including while it

@@ -38,7 +38,10 @@ export default function Categories() {
   return (
     <div className="liquid-glass-panel divide-y divide-white/8 rounded-3xl p-2">
       {categories.data.map((category) => {
-        const count = counts.data?.[category.id] ?? 0
+        // Undefined while the counts are still in flight, not 0. Rendering a
+        // confident "0" that turns into "7" a moment later is a wrong number,
+        // which is worse than no number.
+        const count = counts.data?.[category.id]
         return (
           <Link
             key={category.id}
@@ -55,8 +58,8 @@ export default function Categories() {
             </span>
 
             <span className="shrink-0 font-mono text-[11px] font-bold text-white/30">
-              {count}
-              <span className="sr-only"> ventures</span>
+              {count === undefined ? '·' : count}
+              {count !== undefined && <span className="sr-only"> ventures</span>}
             </span>
             <ChevronRight
               size={16}

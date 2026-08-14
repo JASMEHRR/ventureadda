@@ -4,6 +4,7 @@ import Avatar from './ui/Avatar'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
 import Textarea from './ui/Textarea'
+import LoadingLine from './ui/LoadingLine'
 import ChooseUsername from '../pages/ChooseUsername'
 import { StarDisplay, StarInput } from './ui/StarRating'
 import { useAuth } from '../auth/AuthProvider'
@@ -168,6 +169,10 @@ export default function ReviewSection({
         <p className="liquid-glass-panel rounded-2xl px-5 py-4 text-[14px] text-red-400">
           Could not load reviews: {reviews.error.message}
         </p>
+      )}
+
+      {!reviews.data && !reviews.error && (
+        <LoadingLine label="Loading reviews…" inset={false} />
       )}
 
       {reviews.data && all.length === 0 && (

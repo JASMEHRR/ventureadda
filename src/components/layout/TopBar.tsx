@@ -92,10 +92,14 @@ export default function TopBar({
         VentureAdda
       </Link>
 
+      {/* Hidden below `sm`. At 390px the wordmark, All, the category select and
+          the account button do not fit on one line, and this is the one of the
+          four that is already reachable another way — the bottom bar's Browse
+          goes to the same unfiltered route. */}
       <Button
         variant="secondary"
         to={BROWSE_PATH}
-        className="shrink-0 font-mono"
+        className="hidden shrink-0 font-mono sm:inline-flex"
         title="Clear filters and show everything"
       >
         All

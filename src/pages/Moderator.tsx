@@ -213,6 +213,9 @@ export default function Moderator() {
               {pending.error.message}
             </p>
           )}
+          {!pending.data && !pending.error && (
+            <LoadingLine label="Loading the queue…" inset={false} />
+          )}
           {pending.data?.length === 0 && (
             <p className="liquid-glass-panel rounded-3xl px-6 py-12 text-center text-[14px] text-white/45">
               Nothing waiting. New submissions land here.
@@ -251,6 +254,14 @@ export default function Moderator() {
 
       {tab === 'live' && (
         <div className="space-y-2.5">
+          {live.error && (
+            <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[14px] text-red-400">
+              {live.error.message}
+            </p>
+          )}
+          {!live.data && !live.error && (
+            <LoadingLine label="Loading listings…" inset={false} />
+          )}
           {live.data?.length === 0 && (
             <EmptyState
               icon={Sprout}
