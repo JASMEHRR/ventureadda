@@ -6,6 +6,7 @@ import {
   increment,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
   writeBatch,
@@ -178,8 +179,31 @@ export type MenuItemInput = {
 }
 
 /**
- * Creates a venture and its menu in one batch, so a submission never lands
- * half-written if the connection drops between the two.
+ * Creates a venture, then its menu. Two writes, deliberately not one batch.
+ *
+ * This used to be a single writeBatch, and that was why nothing could be
+ * listed. The menuItems create rule ends in:
+ *
+ *   get(/databases/$(db)/documents/ventures/$(request.resource.data.ventureId))
+ *     .data.ownerId == request.auth.uid
+ *
+ * Rules `get()` resolves against *committed* state. A document written earlier
+ * in the same batch is not visible to a rule evaluating another document in
+ * that batch, so the get() found nothing, the rule errored, and Firestore
+ * rejected the whole batch — venture included. Every submission carrying at
+ * least one menu item failed, which is every submission the form permits: it
+ * refuses to submit with an empty menu.
+ *
+ * So the venture is committed first and its items follow, by which point the
+ * parent exists and the rule can see it.
+ *
+ * WHAT THIS COSTS. The old docblock promised a submission never lands
+ * half-written. It cannot promise that any more. If the connection drops
+ * between the two calls, the venture exists with no menu. That is the right
+ * trade — the venture is the useful unit, a missing menu is editable, and the
+ * alternative is a transaction whose read would hit the same committed-state
+ * problem. The owner's own listing view flags a venture with no items so the
+ * failure is visible and fixable rather than silent.
  *
  * Status is always 'pending' — the rules reject anything else on create, which
  * is what stops an owner publishing straight past the approval queue.
@@ -189,10 +213,9 @@ export async function createVenture(
   input: VentureInput,
   items: MenuItemInput[],
 ): Promise<string> {
-  const batch = writeBatch(db)
   const ventureRef = doc(venturesRef)
 
-  batch.set(ventureRef, {
+  await setDoc(ventureRef, {
     ownerId: owner.uid,
     ownerUsername: owner.username,
     ...input,
@@ -201,6 +224,9 @@ export async function createVenture(
     createdAt: serverTimestamp(),
   })
 
+  // The items still go together: they are all children of a venture that now
+  // exists, so the get() above resolves for every one of them.
+  const batch = writeBatch(db)
   for (const item of items) {
     batch.set(doc(menuItemsRef), {
       ventureId: ventureRef.id,

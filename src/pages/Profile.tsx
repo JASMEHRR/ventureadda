@@ -1,11 +1,11 @@
 import { Link, Navigate } from 'react-router-dom'
-import { LogOut, Plus, Shield } from 'lucide-react'
+import { AlertTriangle, LogOut, Plus, Shield } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { listVenturesByOwner } from '../data/ventures'
+import { listMenuItems, listVenturesByOwner } from '../data/ventures'
 import { categoryName } from '../data/types'
 
 const STATUS_STYLE: Record<string, string> = {
@@ -20,6 +20,23 @@ export default function Profile() {
     () => (profile ? listVenturesByOwner(profile.uid) : Promise.resolve([])),
     [profile?.uid],
   )
+
+  /**
+   * How many items each of your ventures has.
+   *
+   * This exists because createVenture is no longer atomic: the venture is
+   * committed first and the menu follows, so a connection dropping in between
+   * leaves a venture with nothing to tap. That is a fair trade only if the
+   * result is visible to the person who can fix it, which is here.
+   */
+  const itemCounts = useAsyncData(async () => {
+    const ventures = mine.data ?? []
+    const counts: Record<string, number> = {}
+    for (const venture of ventures) {
+      counts[venture.id] = (await listMenuItems(venture.id)).length
+    }
+    return counts
+  }, [mine.data])
 
   if (status === 'loading') {
     return (
@@ -82,6 +99,12 @@ export default function Profile() {
               </p>
               {venture.status === 'rejected' && venture.rejectionReason && (
                 <p className="mt-1 text-[12.5px] text-red-400">{venture.rejectionReason}</p>
+              )}
+              {itemCounts.data?.[venture.id] === 0 && (
+                <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-amber-400">
+                  <AlertTriangle size={11} aria-hidden="true" className="shrink-0" />
+                  No items yet — add them so buyers have something to tap.
+                </p>
               )}
             </div>
             <span
