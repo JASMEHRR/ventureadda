@@ -41,8 +41,19 @@ export default function VentureCard({
       )}
       <div className="px-2 pt-3.5 pb-1.5">
         <div className="flex items-center justify-between gap-3">
-          <span className="truncate font-mono text-[9px] tracking-[0.22em] text-white/30 uppercase">
-            {categoryName}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-mono text-[9px] tracking-[0.22em] text-white/30 uppercase">
+              {categoryName}
+            </span>
+            {/* Marked on the card, not only in the admin view. These carry
+                deliberately invalid phone numbers, so an unmarked one is a
+                student tapping WhatsApp and landing on an error with no idea
+                why. Amber rather than brand: this is a caveat, not a feature. */}
+            {venture.isDemo && (
+              <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 font-mono text-[8px] font-bold tracking-[0.18em] text-amber-400 uppercase">
+                Demo
+              </span>
+            )}
           </span>
           {rating && rating.count > 0 && (
             <span className="flex shrink-0 items-center gap-1.5 text-white/60">

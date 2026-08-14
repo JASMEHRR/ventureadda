@@ -29,6 +29,16 @@ export type Venture = {
   status: VentureStatus
   rejectionReason?: string
   clickCount: number
+  /**
+   * Placeholder content, not a real business.
+   *
+   * Stored on the document rather than inferred from the owner, because the
+   * moderator who imports demo data is also the person with real listings of
+   * their own — "owned by the owner" cannot tell the two apart. It is what
+   * makes "remove all demo data" a single action, and what puts the badge on
+   * the card so a visitor never messages a venture that does not exist.
+   */
+  isDemo?: boolean
   // No rating or reviewCount here on purpose. A denormalised score would need
   // its own write path on this document, open to anyone signed in, and rules
   // cannot verify that a claimed delta matches a real review — so a rating

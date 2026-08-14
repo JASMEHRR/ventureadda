@@ -131,6 +131,17 @@ export default function VentureDetail() {
 
       <PhotoGallery venture={v} />
 
+      {/* Said before the menu, not after it. Someone who reads this only once
+          they have tapped an item has already tried to message a business that
+          does not exist. */}
+      {v.isDemo && (
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5 text-[13.5px] leading-relaxed text-amber-300">
+          <span className="font-bold">This is a demo listing.</span> It is placeholder content
+          showing what a complete entry looks like — the business is not real and the WhatsApp
+          number will not reach anyone.
+        </p>
+      )}
+
       <section className="liquid-glass-panel rounded-3xl p-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="flex items-center gap-1.5 text-white/40">

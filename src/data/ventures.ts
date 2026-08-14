@@ -63,6 +63,7 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
     status: (data.status ?? 'pending') as VentureStatus,
     rejectionReason: data.rejectionReason,
     clickCount: typeof data.clickCount === 'number' ? data.clickCount : 0,
+    isDemo: data.isDemo === true,
   }
 }
 
@@ -212,6 +213,7 @@ export async function createVenture(
   owner: { uid: string; username: string },
   input: VentureInput,
   items: MenuItemInput[],
+  options: { isDemo?: boolean } = {},
 ): Promise<string> {
   const ventureRef = doc(venturesRef)
 
@@ -221,6 +223,8 @@ export async function createVenture(
     ...input,
     status: 'pending',
     clickCount: 0,
+    // Only written when true, so real submissions carry no such field at all.
+    ...(options.isDemo ? { isDemo: true } : {}),
     createdAt: serverTimestamp(),
   })
 
@@ -307,6 +311,24 @@ export async function deleteVenture(ventureId: string): Promise<void> {
   for (const item of items) batch.delete(doc(menuItemsRef, item.id))
   batch.delete(doc(venturesRef, ventureId))
   await batch.commit()
+}
+
+/**
+ * Removes every demo listing and its menu, in one action.
+ *
+ * Deliberately keyed on the isDemo flag rather than on a list of names or the
+ * importing account: demo data must be removable without touching a single
+ * real venture, including the moderator's own. Returns how many went, because
+ * "done" with no number is indistinguishable from "found nothing".
+ */
+export async function deleteDemoVentures(): Promise<number> {
+  const snapshot = await getDocs(query(venturesRef, where('isDemo', '==', true)))
+  // Sequential rather than parallel: each delete reads that venture's menu
+  // first, and firing thirty reads at once on campus wifi is how this times out.
+  for (const document of snapshot.docs) {
+    await deleteVenture(document.id)
+  }
+  return snapshot.size
 }
 
 /**

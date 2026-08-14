@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import {
   createVenture,
+  deleteDemoVentures,
   deleteVenture,
   listMenuItems,
   listVenturesByStatus,
@@ -128,12 +129,20 @@ export default function Moderator() {
           { uid: profile.uid, username: profile.username },
           entry.venture,
           entry.items,
+          { isDemo: true },
         )
         // Seeded listings skip the queue: you are the moderator and you just
         // asked for them.
         await setVentureStatus(id, 'live')
       }
     }, `Imported ${SEED_VENTURES.length} demo ventures.`)
+
+  /** The one action that undoes the import, keyed on the flag, not on names. */
+  const removeSeed = () =>
+    act(async () => {
+      const removed = await deleteDemoVentures()
+      if (removed === 0) throw new Error('There is no demo data to remove.')
+    }, 'Removed every demo venture.')
 
   const totalInquiries = Object.values(inquiries.data ?? {}).reduce((a, b) => a + b, 0)
 
@@ -256,6 +265,19 @@ export default function Moderator() {
               worth sharing, then replace them with real ones.
             </EmptyState>
           )}
+          {/* Demo data is a temporary crutch, so the way to remove it sits
+              next to the listings rather than buried in a settings page. */}
+          {live.data?.some((venture) => venture.isDemo) && (
+            <div className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
+              <p className="text-[13.5px] text-white/50">
+                {live.data.filter((venture) => venture.isDemo).length} of these are demo listings.
+              </p>
+              <Button variant="danger" loading={busy} onClick={removeSeed}>
+                Remove all demo data
+              </Button>
+            </div>
+          )}
+
           {live.data?.map((venture) => (
             <VentureRow
               key={venture.id}
