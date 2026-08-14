@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import Button from './ui/Button'
-import MenuScanner from './MenuScanner'
+import MenuImport from './MenuImport'
 import Select from './ui/Select'
 import PhotoUploader from './ui/PhotoUploader'
 import TextField, { inputClass } from './ui/TextField'
@@ -11,6 +11,7 @@ import { CATEGORIES } from '../data/types'
 import type { MenuItemDraft, StoredImage } from '../data/types'
 import type { MenuItemInput, VentureInput } from '../data/ventures'
 import { validateMenuDrafts } from '../data/menuDrafts'
+import type { ParsedRow } from '../data/menuParse'
 
 const CATEGORY_OPTIONS: SelectOption<string>[] = CATEGORIES.map((category) => ({
   value: category.id,
@@ -51,16 +52,21 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const [error, setError] = useState<string | null>(null)
 
   /**
-   * Scanned items land as ordinary drafts, so they are edited, validated and
-   * submitted through exactly the same path as typed ones — nothing here
-   * writes to Firestore.
+   * Imported items — scanned, pasted or dictated — land as ordinary drafts, so
+   * they are edited, validated and submitted through exactly the same path as
+   * typed ones. Nothing here writes to Firestore.
+   *
+   * A row whose price could not be read arrives with an empty price rather
+   * than a zero, and the submit validation refuses it until the owner fills it
+   * in. That is the point: a guessed price is the failure this whole feature
+   * has to avoid.
    *
    * Appended rather than replacing, so a second scan of page two of a menu
    * adds to the first. The one exception is a single untouched empty row,
    * which is the form's own starting state and would otherwise leave a blank
    * item sitting above the results.
    */
-  const addExtracted = (extracted: { name: string; price: number; description: string }[]) =>
+  const addExtracted = (extracted: ParsedRow[]) =>
     setItems((prev) => {
       const blank = prev.length === 1 && prev[0].name.trim() === '' && prev[0].price.trim() === ''
       return [
@@ -69,7 +75,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           ...newDraft(),
           name: item.name,
           description: item.description,
-          price: String(item.price),
+          price: item.price,
         })),
       ]
     })
@@ -198,7 +204,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           </span>
         </div>
 
-        <MenuScanner onExtracted={addExtracted} />
+        <MenuImport onAdd={addExtracted} />
 
         {items.map((item, index) => (
           <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
