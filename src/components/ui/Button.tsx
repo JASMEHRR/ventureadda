@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'whatsapp'
@@ -31,20 +32,66 @@ const variants: Record<ButtonVariant, string> = {
   whatsapp: 'bg-whatsapp text-black border border-whatsapp hover:bg-whatsapp/85',
 }
 
-type ButtonProps = {
+type CommonProps = {
   variant?: ButtonVariant
-  loading?: boolean
   children: ReactNode
+  className?: string
+}
+
+/**
+ * A call to action that navigates is a link, not a button — it has to work with
+ * middle-click, ctrl-click and "copy link address", and a button does none of
+ * those. Before this existed, four pages hand-rolled the pill classes onto a
+ * Link to get there, which is how they drifted apart.
+ *
+ * `to` is internal (React Router), `href` is external (a plain anchor). Neither
+ * takes `loading` or `disabled`: there is no such thing as a disabled link, and
+ * faking one with pointer-events leaves it in the tab order.
+ */
+type ButtonProps = CommonProps & {
+  to?: undefined
+  href?: undefined
+  loading?: boolean
 } & ButtonHTMLAttributes<HTMLButtonElement>
 
-export default function Button({
-  variant = 'primary',
-  loading = false,
-  disabled,
-  className = '',
-  children,
-  ...rest
-}: ButtonProps) {
+type LinkProps = CommonProps & {
+  to: string
+} & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>
+
+type ExternalProps = CommonProps & {
+  href: string
+} & AnchorHTMLAttributes<HTMLAnchorElement>
+
+export default function Button(props: ButtonProps | LinkProps | ExternalProps) {
+  const { variant = 'primary', className = '', children } = props
+
+  if ('to' in props && props.to !== undefined) {
+    const { to, variant: _variant, className: _className, children: _children, ...rest } = props
+    return (
+      <Link to={to} className={`${base} ${variants[variant]} ${className}`} {...rest}>
+        {children}
+      </Link>
+    )
+  }
+
+  if ('href' in props && props.href !== undefined) {
+    const { variant: _variant, className: _className, children: _children, ...rest } = props
+    return (
+      <a className={`${base} ${variants[variant]} ${className}`} {...rest}>
+        {children}
+      </a>
+    )
+  }
+
+  const {
+    variant: _variant,
+    className: _className,
+    children: _children,
+    loading = false,
+    disabled,
+    ...rest
+  } = props as ButtonProps
+
   return (
     <button
       type="button"

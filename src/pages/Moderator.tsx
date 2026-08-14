@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Check, Inbox, MessageCircle, MousePointerClick, Sprout, Store, X } from 'lucide-react'
 import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
 import StatCard from '../components/ui/StatCard'
 import LoadingLine from '../components/ui/LoadingLine'
@@ -242,19 +243,18 @@ export default function Moderator() {
       {tab === 'live' && (
         <div className="space-y-2.5">
           {live.data?.length === 0 && (
-            <div className="liquid-glass-panel flex flex-col items-center rounded-3xl px-6 py-12 text-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/35">
-                <Sprout size={22} aria-hidden="true" />
-              </span>
-              <p className="mt-5 text-[17px] font-extrabold text-white">The directory is empty</p>
-              <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">
-                An empty directory gets no submissions. Import the three demo ventures to have
-                something worth sharing, then replace them with real ones.
-              </p>
-              <Button variant="secondary" className="mt-5" loading={busy} onClick={importSeed}>
-                Import demo ventures
-              </Button>
-            </div>
+            <EmptyState
+              icon={Sprout}
+              title="The directory is empty"
+              action={
+                <Button variant="secondary" loading={busy} onClick={importSeed}>
+                  Import demo ventures
+                </Button>
+              }
+            >
+              An empty directory gets no submissions. Import the demo ventures to have something
+              worth sharing, then replace them with real ones.
+            </EmptyState>
           )}
           {live.data?.map((venture) => (
             <VentureRow
@@ -262,12 +262,9 @@ export default function Moderator() {
               venture={venture}
               inquiries={inquiries.data?.[venture.id]}
             >
-              <Link
-                to={`/venture/${venture.id}/edit`}
-                className="inline-flex items-center rounded-full border border-white/12 bg-white/5 px-5 py-2.5 text-[12px] font-bold tracking-wider text-white/80 uppercase transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.97]"
-              >
+              <Button variant="secondary" to={`/venture/${venture.id}/edit`}>
                 Edit
-              </Link>
+              </Button>
               <Button
                 variant="danger"
                 disabled={busy}

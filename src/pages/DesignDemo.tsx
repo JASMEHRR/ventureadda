@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 import {
+  ClipboardCheck,
   Clock,
   Cookie,
   Flame,
@@ -13,10 +14,13 @@ import {
   XCircle,
 } from 'lucide-react'
 import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
 import ListRow from '../components/ui/ListRow'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
 import StatCard from '../components/ui/StatCard'
+import TextField from '../components/ui/TextField'
+import Textarea from '../components/ui/Textarea'
 
 /** The six launch categories from the plan, Part 7. */
 type Category =
@@ -126,33 +130,15 @@ export default function DesignDemo() {
         note="Recessed rather than raised — an inset shadow and no top highlight, so a field reads as carved in. Tab to either one to see the focus ring."
       >
         <div className="liquid-glass-panel space-y-4 rounded-3xl p-5">
-          <div>
-            <label
-              htmlFor="demo-search"
-              className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
-            >
-              Search
-            </label>
-            <div className="relative">
-              <Search
-                size={14}
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-white/30"
-              />
-              <input
-                id="demo-search"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Brownies, prints, repairs…"
-                // No `outline-none` here. Tailwind's utilities layer outranks
-                // the base layer where the focus ring lives, so it would
-                // silently delete the ring on the one control most likely to
-                // be reached by keyboard.
-                className="liquid-glass-input w-full rounded-xl py-2.5 pr-4 pl-10 text-[13px] text-white placeholder-white/30"
-              />
-            </div>
-          </div>
+          <TextField
+            id="demo-search"
+            label="Search"
+            type="search"
+            icon={Search}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Brownies, prints, repairs…"
+          />
 
           <Select
             label="Category"
@@ -160,6 +146,20 @@ export default function DesignDemo() {
             options={CATEGORIES}
             onChange={setCategory}
             placeholder="All categories"
+          />
+
+          <Textarea
+            id="demo-note"
+            label="Description"
+            hint="Hint text sits here, at 35% white."
+            placeholder="What you make, and how people collect it."
+          />
+
+          <TextField
+            id="demo-error"
+            label="Price"
+            defaultValue="four hundred"
+            error="Prices are whole rupees — digits only."
           />
         </div>
       </Section>
@@ -179,6 +179,9 @@ export default function DesignDemo() {
           </Button>
           <Button variant="secondary" disabled>
             Disabled
+          </Button>
+          <Button variant="secondary" to="/design">
+            As a link
           </Button>
           <Button
             variant="primary"
@@ -336,6 +339,29 @@ export default function DesignDemo() {
               </span>
             </button>
           ))}
+        </div>
+      </Section>
+
+      <Section
+        eyebrow="Empty states"
+        note="One component behind every nothing-to-show panel: an empty directory, a dead link, a submission accepted. The glyph goes brand-tinted only when something went right."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EmptyState
+            icon={Store}
+            title="No ventures yet"
+            action={<Button to="/design">List your venture</Button>}
+          >
+            Nobody has listed anything yet. If you make or sell something, you could be first.
+          </EmptyState>
+          <EmptyState
+            icon={ClipboardCheck}
+            tone="brand"
+            eyebrow="Sent for review"
+            title="Your venture is in the queue"
+          >
+            Nothing goes live until it is approved, so it will not appear in the directory just yet.
+          </EmptyState>
         </div>
       </Section>
 

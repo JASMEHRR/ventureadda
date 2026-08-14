@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Clock, MessageCircle, SearchX, UtensilsCrossed } from 'lucide-react'
 import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
 import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
 import ReviewSection from '../components/ReviewSection'
@@ -97,21 +98,17 @@ export default function VentureDetail() {
 
   if (!venture.data) {
     return (
-      <div className="liquid-glass-panel flex flex-col items-center rounded-3xl px-6 py-14 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/35">
-          <SearchX size={22} aria-hidden="true" />
-        </span>
-        <p className="mt-5 text-[17px] font-extrabold text-white">No such venture</p>
-        <p className="mt-2 max-w-sm text-[14px] text-white/45">
-          It may have been removed, or the link is wrong.
-        </p>
-        <Link
-          to="/"
-          className="mt-5 rounded-full border border-white/12 bg-white/5 px-5 py-2.5 font-mono text-[11px] font-bold tracking-wider text-white/80 uppercase transition duration-150 hover:bg-white/10 hover:text-white"
-        >
-          Back to browse
-        </Link>
-      </div>
+      <EmptyState
+        icon={SearchX}
+        title="No such venture"
+        action={
+          <Button variant="secondary" to="/">
+            Back to browse
+          </Button>
+        }
+      >
+        It may have been removed, or the link is wrong.
+      </EmptyState>
     )
   }
 

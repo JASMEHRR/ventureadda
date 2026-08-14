@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
 import Avatar from './ui/Avatar'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
+import Textarea from './ui/Textarea'
 import { StarDisplay, StarInput } from './ui/StarRating'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
@@ -124,29 +124,15 @@ export default function ReviewSection({
                 <StarInput value={rating} onChange={setRating} />
               </div>
 
-              <div>
-                <label
-                  htmlFor="review-comment"
-                  className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
-                >
-                  Comment
-                </label>
-                <textarea
-                  id="review-comment"
-                  rows={3}
-                  maxLength={MAX_COMMENT_LENGTH}
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                  placeholder="Was it good? Did it turn up on time?"
-                  className="liquid-glass-input w-full resize-y rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30"
-                />
-              </div>
-
-              {error && (
-                <p role="alert" className="text-[13.5px] text-red-400">
-                  {error}
-                </p>
-              )}
+              <Textarea
+                id="review-comment"
+                label="Comment"
+                maxLength={MAX_COMMENT_LENGTH}
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Was it good? Did it turn up on time?"
+                error={error ?? undefined}
+              />
 
               <div className="flex flex-wrap gap-2.5">
                 <Button type="submit" variant="primary" loading={busy}>
@@ -164,12 +150,9 @@ export default function ReviewSection({
       {!isOwner && status !== 'loading' && !profile && (
         <div className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
           <p className="text-[13.5px] text-white/50">Sign in with a Thapar account to review.</p>
-          <Link
-            to="/signin"
-            className="rounded-full border border-white/12 bg-white/5 px-4 py-2 font-mono text-[10px] font-bold tracking-wider text-white/80 uppercase transition hover:bg-white/10 hover:text-white"
-          >
+          <Button variant="secondary" to="/signin">
             Sign in
-          </Link>
+          </Button>
         </div>
       )}
 

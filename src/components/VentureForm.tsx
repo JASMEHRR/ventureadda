@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import Button from './ui/Button'
 import Select from './ui/Select'
 import PhotoUploader from './ui/PhotoUploader'
+import TextField, { inputClass } from './ui/TextField'
+import Textarea from './ui/Textarea'
 import type { SelectOption } from './ui/Select'
 import { CATEGORIES } from '../data/types'
 import type { MenuItemDraft, StoredImage } from '../data/types'
@@ -31,34 +33,6 @@ type VentureFormProps = {
   submitLabel: string
   onSubmit: (values: VentureFormValues) => Promise<void>
 }
-
-function Field({
-  id,
-  label,
-  hint,
-  children,
-}: {
-  id: string
-  label: string
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
-      >
-        {label}
-      </label>
-      {children}
-      {hint && <p className="mt-1.5 text-[12.5px] text-white/35">{hint}</p>}
-    </div>
-  )
-}
-
-const inputClass =
-  'liquid-glass-input w-full rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30'
 
 export default function VentureForm({ initial, submitLabel, onSubmit }: VentureFormProps) {
   const [name, setName] = useState(initial?.name ?? '')
@@ -138,17 +112,15 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           The basics
         </h2>
 
-        <Field id="venture-name" label="Venture name">
-          <input
-            id="venture-name"
-            required
-            maxLength={60}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Hostel Bakes"
-            className={inputClass}
-          />
-        </Field>
+        <TextField
+          id="venture-name"
+          label="Venture name"
+          required
+          maxLength={60}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Hostel Bakes"
+        />
 
         <Select
           label="Category"
@@ -157,45 +129,36 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           onChange={setCategoryId}
         />
 
-        <Field id="venture-description" label="Description" hint="Two lines is plenty.">
-          <textarea
-            id="venture-description"
-            required
-            rows={3}
-            maxLength={600}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="What you make, and how people collect it."
-            className={`${inputClass} resize-y`}
-          />
-        </Field>
+        <Textarea
+          id="venture-description"
+          label="Description"
+          hint="Two lines is plenty."
+          required
+          maxLength={600}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="What you make, and how people collect it."
+        />
 
-        <Field id="venture-hours" label="Opening hours">
-          <input
-            id="venture-hours"
-            required
-            value={hours}
-            onChange={(event) => setHours(event.target.value)}
-            placeholder="4pm – 11pm, daily"
-            className={inputClass}
-          />
-        </Field>
+        <TextField
+          id="venture-hours"
+          label="Opening hours"
+          required
+          value={hours}
+          onChange={(event) => setHours(event.target.value)}
+          placeholder="4pm – 11pm, daily"
+        />
 
-        <Field
+        <TextField
           id="venture-phone"
           label="WhatsApp number"
           hint="With country code. This is where item enquiries land."
-        >
-          <input
-            id="venture-phone"
-            required
-            inputMode="tel"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="919876543210"
-            className={inputClass}
-          />
-        </Field>
+          required
+          inputMode="tel"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+          placeholder="919876543210"
+        />
 
         <PhotoUploader
           label="Photos"

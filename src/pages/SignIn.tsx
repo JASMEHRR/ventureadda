@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { MailCheck, ShieldCheck } from 'lucide-react'
 import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
+import TextField from '../components/ui/TextField'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from '../lib/firebase'
@@ -106,22 +108,20 @@ export default function SignIn() {
 
   if (mode === 'sent') {
     return (
-      <div className="liquid-glass-panel flex flex-col items-center rounded-3xl px-6 py-14 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/15 text-brand-300">
-          <MailCheck size={22} aria-hidden="true" />
-        </span>
-        <p className="mt-5 font-mono text-[9px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          Check your inbox
-        </p>
-        <h2 className="mt-2 text-[19px] font-extrabold text-white">Link sent to {email}</h2>
-        <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">
-          Open it on this device if you can — that keeps things quickest. If you open it elsewhere
-          you will just be asked for your address again.
-        </p>
-        <Button variant="ghost" className="mt-5" onClick={() => setMode('form')}>
-          Use a different address
-        </Button>
-      </div>
+      <EmptyState
+        icon={MailCheck}
+        tone="brand"
+        eyebrow="Check your inbox"
+        title={`Link sent to ${email}`}
+        action={
+          <Button variant="ghost" onClick={() => setMode('form')}>
+            Use a different address
+          </Button>
+        }
+      >
+        Open it on this device if you can — that keeps things quickest. If you open it elsewhere
+        you will just be asked for your address again.
+      </EmptyState>
     )
   }
 
@@ -146,33 +146,18 @@ export default function SignIn() {
           </p>
         </div>
 
-        <div>
-          <label
-            htmlFor="signin-email"
-            className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
-          >
-            Thapar email
-          </label>
-          <input
-            id="signin-email"
-            type="email"
-            required
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder={`you@${ALLOWED_EMAIL_DOMAIN}`}
-            aria-describedby={error ? 'signin-error' : undefined}
-            aria-invalid={error ? true : undefined}
-            className="liquid-glass-input w-full rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30"
-          />
-        </div>
-
-        {error && (
-          <p id="signin-error" role="alert" className="text-[13.5px] leading-relaxed text-red-400">
-            {error}
-          </p>
-        )}
+        <TextField
+          id="signin-email"
+          label="Thapar email"
+          type="email"
+          required
+          autoComplete="email"
+          autoFocus
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder={`you@${ALLOWED_EMAIL_DOMAIN}`}
+          error={error ?? undefined}
+        />
 
         <Button type="submit" variant="primary" loading={busy} className="w-full">
           {mode === 'needsEmail' ? 'Finish signing in' : 'Email me a link'}

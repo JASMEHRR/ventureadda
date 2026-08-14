@@ -2,7 +2,8 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { SearchX } from 'lucide-react'
 import AtmosphereBackdrop from './components/AtmosphereBackdrop'
 import AppShell from './components/layout/AppShell'
-import Placeholder from './components/ui/Placeholder'
+import Button from './components/ui/Button'
+import EmptyState from './components/ui/EmptyState'
 import { AuthProvider } from './auth/AuthProvider'
 import Browse from './pages/Browse'
 import Categories from './pages/Categories'
@@ -35,9 +36,18 @@ export default function App() {
           <Route
             path="*"
             element={
-              <Placeholder step="404" icon={SearchX} title="No such page">
+              <EmptyState
+                icon={SearchX}
+                eyebrow="404"
+                title="No such page"
+                action={
+                  <Button variant="secondary" to="/">
+                    Back to browse
+                  </Button>
+                }
+              >
                 That link does not point anywhere on VentureAdda.
-              </Placeholder>
+              </EmptyState>
             }
           />
           </Route>

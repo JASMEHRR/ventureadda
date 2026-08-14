@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Search, SearchX, Store } from 'lucide-react'
+import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
+import TextField from '../components/ui/TextField'
 import VentureCard from '../components/ui/VentureCard'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAsyncData } from '../hooks/useAsyncData'
@@ -67,29 +70,15 @@ export default function Browse() {
   return (
     <div className="space-y-4">
       <section className="liquid-glass-panel space-y-4 rounded-3xl p-4 sm:p-5">
-        <div>
-          <label
-            htmlFor="venture-search"
-            className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
-          >
-            Search
-          </label>
-          <div className="relative">
-            <Search
-              size={14}
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-white/30"
-            />
-            <input
-              id="venture-search"
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Brownies, earrings, embroidery…"
-              className="liquid-glass-input w-full rounded-xl py-2.5 pr-4 pl-10 text-[14px] text-white placeholder-white/30"
-            />
-          </div>
-        </div>
+        <TextField
+          id="venture-search"
+          label="Search"
+          type="search"
+          icon={Search}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Brownies, earrings, embroidery…"
+        />
 
         <Select
           label="Category"
@@ -113,32 +102,22 @@ export default function Browse() {
           an empty directory has no search to change, and saying otherwise
           sends people hunting for a filter that is not set. */}
       {ventures.data && total === 0 && (
-        <div className="liquid-glass-panel flex flex-col items-center rounded-3xl px-6 py-14 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/35">
-            {isFiltered ? (
-              <SearchX size={22} aria-hidden="true" />
-            ) : (
-              <Store size={22} aria-hidden="true" />
-            )}
-          </span>
-          <p className="mt-5 text-[17px] font-extrabold text-white">
-            {isFiltered ? 'Nothing matches that' : 'No ventures yet'}
-          </p>
-          <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">
-            {isFiltered
-              ? 'Try a different word, or clear the category filter to see everything on campus.'
-              : 'Nobody has listed anything yet. If you make or sell something, you could be first.'}
-          </p>
-          {!isFiltered && (
-            <Link
-              to="/add"
-              className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/15 px-5 py-2.5 font-mono text-[11px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
-            >
-              <Plus size={13} aria-hidden="true" />
-              List your venture
-            </Link>
-          )}
-        </div>
+        <EmptyState
+          icon={isFiltered ? SearchX : Store}
+          title={isFiltered ? 'Nothing matches that' : 'No ventures yet'}
+          action={
+            !isFiltered && (
+              <Button to="/add">
+                <Plus size={13} aria-hidden="true" />
+                List your venture
+              </Button>
+            )
+          }
+        >
+          {isFiltered
+            ? 'Try a different word, or clear the category filter to see everything on campus.'
+            : 'Nobody has listed anything yet. If you make or sell something, you could be first.'}
+        </EmptyState>
       )}
 
       {grouped.map(({ category, items }) => (

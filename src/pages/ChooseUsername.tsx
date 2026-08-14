@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AtSign } from 'lucide-react'
 import Button from '../components/ui/Button'
+import TextField from '../components/ui/TextField'
 import { USERNAME_PATTERN, useAuth } from '../auth/AuthProvider'
 
 /**
@@ -48,35 +49,18 @@ export default function ChooseUsername() {
           </p>
         </div>
 
-        <div>
-          <label
-            htmlFor="username"
-            className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
-          >
-            Username
-          </label>
-          <input
-            id="username"
-            required
-            autoFocus
-            autoComplete="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="ananya_bakes"
-            aria-describedby="username-hint"
-            aria-invalid={error ? true : undefined}
-            className="liquid-glass-input w-full rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30"
-          />
-          <p id="username-hint" className="mt-1.5 text-[12.5px] text-white/35">
-            3 to 20 characters. Letters, numbers and underscores.
-          </p>
-        </div>
-
-        {error && (
-          <p role="alert" className="text-[13.5px] leading-relaxed text-red-400">
-            {error}
-          </p>
-        )}
+        <TextField
+          id="username"
+          label="Username"
+          required
+          autoFocus
+          autoComplete="username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder="ananya_bakes"
+          hint="3 to 20 characters. Letters, numbers and underscores."
+          error={error ?? undefined}
+        />
 
         <Button type="submit" variant="primary" loading={busy} disabled={!valid} className="w-full">
           Save and continue

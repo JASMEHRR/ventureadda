@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { ClipboardCheck } from 'lucide-react'
 import VentureForm from '../components/VentureForm'
 import type { VentureFormValues } from '../components/VentureForm'
 import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { createVenture } from '../data/ventures'
 
 export default function AddVenture() {
   const { profile, status } = useAuth()
-  const navigate = useNavigate()
   const [submitted, setSubmitted] = useState(false)
 
   if (status === 'loading') {
@@ -24,30 +24,26 @@ export default function AddVenture() {
 
   if (submitted) {
     return (
-      <div className="liquid-glass-panel mx-auto flex max-w-md flex-col items-center rounded-3xl px-6 py-14 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/15 text-brand-300">
-          <ClipboardCheck size={22} aria-hidden="true" />
-        </span>
-        <p className="mt-5 font-mono text-[9px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          Sent for review
-        </p>
-        <h2 className="mt-2 text-[19px] font-extrabold text-white">Your venture is in the queue</h2>
-        <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">
-          Nothing goes live until it is approved, so it will not appear in the directory just yet.
-          You can keep editing it from your profile in the meantime.
-        </p>
-        <div className="mt-5 flex flex-wrap justify-center gap-2.5">
-          <Button variant="secondary" onClick={() => navigate('/profile')}>
-            Go to profile
-          </Button>
-          <Link
-            to="/"
-            className="inline-flex items-center rounded-full px-5 py-2.5 text-[12px] font-bold tracking-wider text-white/55 uppercase transition hover:text-white"
-          >
-            Back to browse
-          </Link>
-        </div>
-      </div>
+      <EmptyState
+        icon={ClipboardCheck}
+        tone="brand"
+        eyebrow="Sent for review"
+        title="Your venture is in the queue"
+        className="mx-auto max-w-md"
+        action={
+          <>
+            <Button variant="secondary" to="/profile">
+              Go to profile
+            </Button>
+            <Button variant="ghost" to="/">
+              Back to browse
+            </Button>
+          </>
+        }
+      >
+        Nothing goes live until it is approved, so it will not appear in the directory just yet.
+        You can keep editing it from your profile in the meantime.
+      </EmptyState>
     )
   }
 

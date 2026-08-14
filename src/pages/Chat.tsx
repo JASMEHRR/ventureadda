@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { MessagesSquare, SendHorizontal, Trash2 } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
@@ -207,12 +206,7 @@ export default function Chat() {
           <p className="text-[13.5px] text-white/50">
             Reading is open to everyone. Posting needs a Thapar account.
           </p>
-          <Link
-            to="/signin"
-            className="rounded-full border border-brand-500/30 bg-brand-500/15 px-5 py-2.5 font-mono text-[11px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
-          >
-            Sign in
-          </Link>
+          <Button to="/signin">Sign in</Button>
         </div>
       )}
 
