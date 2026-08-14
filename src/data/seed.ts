@@ -10,6 +10,12 @@ import type { MenuItemInput, VentureInput } from './ventures'
  * Photos point at files in public/seed rather than Cloudinary, so they carry no
  * public id and render through their plain URL.
  *
+ * Lead photos are chosen against the order browse renders them in, which is
+ * alphabetical within a category. Seven images across nine photographed
+ * ventures means some are reused; the assignment below only ensures no two
+ * cards sitting next to each other lead with the same one, because that reads
+ * as a bug rather than as reuse.
+ *
  * FIVE OF THESE HAVE NO PHOTO, on purpose. There are seven stock images in
  * public/seed and none of them depicts a repair bench, a print shop or a
  * cycle. Putting a photograph of a tote bag on a phone-repair listing would
@@ -43,7 +49,7 @@ export const SEED_VENTURES: SeedVenture[] = [
         'Fresh brownies, jar desserts and celebration cakes, baked in H-block. Order by 6pm for same-day pickup.',
       hours: '4pm – 11pm, daily',
       phone: '910000000001',
-      photos: [photo('pastries.jpg'), photo('cake.jpg'), photo('brownies.jpg')],
+      photos: [photo('cake.jpg'), photo('brownies.jpg'), photo('pastries.jpg')],
     },
     items: [
       {
@@ -69,7 +75,7 @@ export const SEED_VENTURES: SeedVenture[] = [
         'Thrifted and upcycled pieces, plus custom embroidery on anything you already own. Pickup from the main gate.',
       hours: '6pm – 10pm, Mon to Sat',
       phone: '910000000002',
-      photos: [photo('rack.jpg'), photo('tote.jpg')],
+      photos: [photo('tote.jpg'), photo('rack.jpg')],
     },
     items: [
       {
@@ -121,7 +127,7 @@ export const SEED_VENTURES: SeedVenture[] = [
         'Cake slices, mug cakes and cold coffee, after the mess shuts. Delivers to all hostels until 2am.',
       hours: '9pm – 2am, daily',
       phone: '910000000004',
-      photos: [photo('cake.jpg')],
+      photos: [photo('brownies.jpg')],
     },
     items: [
       { name: 'Cake Slice', description: 'Chocolate, red velvet or vanilla', price: 90 },
@@ -153,7 +159,7 @@ export const SEED_VENTURES: SeedVenture[] = [
         'Dessert jars, cheesecakes and festival mithai boxes, made to order with a day of notice.',
       hours: '5pm – 10pm, order a day ahead',
       phone: '910000000006',
-      photos: [photo('brownies.jpg'), photo('cake.jpg')],
+      photos: [photo('cake.jpg'), photo('brownies.jpg')],
     },
     items: [
       { name: 'Biscoff Jar', description: 'Layered, 200ml', price: 180 },

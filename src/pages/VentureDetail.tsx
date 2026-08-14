@@ -24,7 +24,11 @@ function PhotoGallery({ venture }: { venture: Venture }) {
       <img
         src={displayUrl(photo, 800)}
         alt={`${venture.name}, photo ${active + 1} of ${venture.photos.length}`}
-        className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
+        // max-h wins over the aspect ratio once the container is wide. Without
+        // it, removing the page's max-width turned this into a 1140px-tall
+        // photo you had to scroll past to reach the menu -- on a page whose
+        // whole purpose is tapping a menu item.
+        className="aspect-4/3 max-h-[60vh] w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
       />
       {venture.photos.length > 1 && (
         <div className="mt-3 flex gap-2 px-1 pb-1">
@@ -129,8 +133,6 @@ export default function VentureDetail() {
         All ventures
       </Link>
 
-      <PhotoGallery venture={v} />
-
       {/* Said before the menu, not after it. Someone who reads this only once
           they have tapped an item has already tried to message a business that
           does not exist. */}
@@ -142,7 +144,19 @@ export default function VentureDetail() {
         </p>
       )}
 
-      <section className="liquid-glass-panel rounded-3xl p-5">
+      {/* Side by side from lg. Stacked, the photo pushed the menu below the
+          fold on the one page whose purpose is tapping a menu item; this seats
+          the details in the width the layout change reclaimed. */}
+      <div
+        className={
+          v.photos.length > 0
+            ? 'grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start'
+            : ''
+        }
+      >
+        <PhotoGallery venture={v} />
+
+        <section className="liquid-glass-panel rounded-3xl p-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="flex items-center gap-1.5 text-white/40">
             <Clock size={12} aria-hidden="true" />
@@ -154,7 +168,8 @@ export default function VentureDetail() {
         <p className="mt-3 font-mono text-[10px] tracking-[0.18em] text-white/30 uppercase">
           Run by {v.ownerUsername}
         </p>
-      </section>
+        </section>
+      </div>
 
       <section className="space-y-3">
         <header className="flex items-baseline justify-between gap-3 px-1">

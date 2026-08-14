@@ -35,7 +35,14 @@ export default function Browse() {
     return categories.data
       .map((category) => ({
         category,
-        items: ventures.data!.filter((venture) => venture.categoryId === category.id),
+        // Sorted by name, not left in Firestore's document order. That order
+        // is effectively arbitrary and changes between reads, so the same
+        // category could deal its cards differently on each visit. It also
+        // makes the sequence within a category predictable, which is what
+        // lets the seed photos be assigned so no two neighbours match.
+        items: ventures
+          .data!.filter((venture) => venture.categoryId === category.id)
+          .sort((a, b) => a.name.localeCompare(b.name)),
       }))
       .filter((group) => group.items.length > 0)
   }, [ventures.data, categories.data])

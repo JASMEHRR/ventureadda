@@ -88,10 +88,10 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
     }
     const filled = menu.items
 
-    if (photos.length === 0) {
-      setError('Add at least one photo. A listing without one gets skipped past.')
-      return
-    }
+    // No photo check. A listing without one is worse than a listing with one,
+    // but it is far better than the venture nobody lists because they have not
+    // photographed their stock yet. VentureCard and the venture page both
+    // render the no-photo case already.
     // wa.me needs digits only; anything shorter is a typo, not a number.
     const digits = phone.replace(/\D/g, '')
     if (digits.length < 10) {
@@ -182,7 +182,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
 
         <PhotoUploader
           label="Photos"
-          hint="Up to four. JPG, PNG or WebP, 5MB each."
+          hint="Optional, but a listing with photos gets opened far more. Up to four, JPG, PNG or WebP, 5MB each."
           photos={photos}
           onChange={setPhotos}
         />
