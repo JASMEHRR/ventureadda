@@ -80,10 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // owner's own document says false while the rules say true. Without
         // this line the owner is refused the moderator page by the client
         // while Firestore would happily serve them every query on it.
-        setProfile({
-          ...stored,
-          isModerator: stored.isModerator || stored.email.toLowerCase() === OWNER_EMAIL,
-        })
+        //
+        // Read from the auth token rather than the document, because that is
+        // what the rules read — request.auth.token.email. A document field
+        // could be absent or stale; the token cannot, and the two agreeing is
+        // the whole point of mirroring.
+        const isOwner = (user.email ?? '').toLowerCase() === OWNER_EMAIL
+        setProfile({ ...stored, isModerator: stored.isModerator || isOwner })
         setProfileResolved(true)
       },
       () => {
