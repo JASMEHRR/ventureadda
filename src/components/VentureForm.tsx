@@ -10,6 +10,7 @@ import type { SelectOption } from './ui/Select'
 import { CATEGORIES } from '../data/types'
 import type { MenuItemDraft, StoredImage } from '../data/types'
 import type { MenuItemInput, VentureInput } from '../data/ventures'
+import { validateMenuDrafts } from '../data/menuDrafts'
 
 const CATEGORY_OPTIONS: SelectOption<string>[] = CATEGORIES.map((category) => ({
   value: category.id,
@@ -80,19 +81,13 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
     event.preventDefault()
     setError(null)
 
-    const filled = items.filter((item) => item.name.trim() !== '')
-    if (filled.length === 0) {
-      setError('Add at least one item to your menu — that is what buyers tap.')
+    const menu = validateMenuDrafts(items)
+    if (!menu.ok) {
+      setError(menu.error)
       return
     }
-    const badPrice = filled.find((item) => {
-      const value = Number(item.price)
-      return !Number.isFinite(value) || value < 0
-    })
-    if (badPrice) {
-      setError(`"${badPrice.name}" needs a price in whole rupees.`)
-      return
-    }
+    const filled = menu.items
+
     if (photos.length === 0) {
       setError('Add at least one photo. A listing without one gets skipped past.')
       return
