@@ -50,8 +50,22 @@ function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
+/**
+ * A token with three dot-separated parts that are not base64url JSON is
+ * malformed, not a JSON syntax problem. Left unhandled, JSON.parse's own
+ * message reaches the client verbatim — "Unexpected token '?', ... is not
+ * valid JSON" — which describes our parser rather than their token.
+ */
 function decodeJson(segment: string): Record<string, unknown> {
-  return JSON.parse(new TextDecoder().decode(base64UrlToBytes(segment))) as Record<string, unknown>
+  try {
+    const decoded = JSON.parse(new TextDecoder().decode(base64UrlToBytes(segment))) as unknown
+    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
+      throw new Error('not an object')
+    }
+    return decoded as Record<string, unknown>
+  } catch {
+    throw new Error('Malformed token.')
+  }
 }
 
 type VerifiedUser = {

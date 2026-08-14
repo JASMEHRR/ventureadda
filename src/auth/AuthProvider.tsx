@@ -13,6 +13,7 @@ import {
 import type { User } from 'firebase/auth'
 import { doc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore'
 import { OWNER_EMAIL, auth, db, isThaparEmail } from '../lib/firebase'
+import { reportError } from '../lib/errors'
 
 export type Profile = {
   uid: string
@@ -68,6 +69,9 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 const EMAIL_KEY = 'ventureadda.signInEmail'
 
 export const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,20}$/
+
+/** Sentinel so the "taken" case survives the error wrapper below unrelabelled. */
+const TAKEN = 'That username is taken.'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -200,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (username: string) => {
       const current = auth.currentUser
       if (!current?.email) throw new Error('You are not signed in.')
+      const email = current.email
 
       const trimmed = username.trim()
       if (!USERNAME_PATTERN.test(trimmed)) {
@@ -207,22 +212,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const key = trimmed.toLowerCase()
-      await runTransaction(db, async (tx) => {
-        const usernameRef = doc(db, 'usernames', key)
-        const existing = await tx.get(usernameRef)
-        if (existing.exists()) throw new Error('That username is taken.')
+      try {
+        await runTransaction(db, async (tx) => {
+          const usernameRef = doc(db, 'usernames', key)
+          const existing = await tx.get(usernameRef)
+          if (existing.exists()) throw new Error(TAKEN)
 
-        tx.set(usernameRef, { uid: current.uid })
-        tx.set(doc(db, 'users', current.uid), {
-          uid: current.uid,
-          email: current.email,
-          username: trimmed,
-          // Never set from the client. Flip it by hand in the Firebase console;
-          // the rules forbid a user changing their own.
-          isModerator: false,
-          createdAt: serverTimestamp(),
+          tx.set(usernameRef, { uid: current.uid })
+          tx.set(doc(db, 'users', current.uid), {
+            uid: current.uid,
+            email,
+            username: trimmed,
+            // Never set from the client. Flip it by hand in the Firebase
+            // console; the rules forbid a user changing their own.
+            isModerator: false,
+            createdAt: serverTimestamp(),
+          })
         })
-      })
+      } catch (cause) {
+        // A taken name is a legitimate answer, not a fault, so it keeps its own
+        // wording instead of being relabelled as a database error.
+        if (cause instanceof Error && cause.message === TAKEN) throw cause
+        throw new Error(reportError('claimUsername', cause))
+      }
     },
     [],
   )

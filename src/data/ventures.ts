@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { reportError } from '../lib/errors'
 import { CATEGORIES } from './types'
 import type { Category, MenuItem, StoredImage, Venture, VentureStatus } from './types'
 
@@ -217,7 +218,7 @@ export async function createVenture(
 ): Promise<string> {
   const ventureRef = doc(venturesRef)
 
-  await setDoc(ventureRef, {
+  const payload = {
     ownerId: owner.uid,
     ownerUsername: owner.username,
     ...input,
@@ -226,7 +227,17 @@ export async function createVenture(
     // Only written when true, so real submissions carry no such field at all.
     ...(options.isDemo ? { isDemo: true } : {}),
     createdAt: serverTimestamp(),
-  })
+  }
+
+  try {
+    await setDoc(ventureRef, payload)
+  } catch (cause) {
+    // The payload goes in the log too. Half of diagnosing a rules rejection is
+    // knowing exactly which fields were sent, and reconstructing that from the
+    // form afterwards is guesswork.
+    console.error('[ventureadda] venture payload that was refused', payload)
+    throw new Error(reportError('createVenture: venture document', cause))
+  }
 
   // The items still go together: they are all children of a venture that now
   // exists, so the get() above resolves for every one of them.
@@ -242,7 +253,15 @@ export async function createVenture(
     })
   }
 
-  await batch.commit()
+  try {
+    await batch.commit()
+  } catch (cause) {
+    // The venture is already committed at this point, so this is the
+    // half-written case the docblock warns about, not a total failure.
+    throw new Error(
+      reportError(`createVenture: ${items.length} menu items for ${ventureRef.id}`, cause),
+    )
+  }
   return ventureRef.id
 }
 
