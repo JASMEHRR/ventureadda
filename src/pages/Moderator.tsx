@@ -105,7 +105,7 @@ export default function Moderator() {
       <LoadingLine label="Loading…" />
     )
   }
-  if (!profile?.isModerator) return <Navigate to="/" replace />
+  if (!profile?.isModerator) return <Navigate to="/browse" replace />
 
   const act = async (fn: () => Promise<void>, message: string) => {
     setBusy(true)

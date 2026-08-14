@@ -15,7 +15,7 @@ import { useAuth } from '../../auth/AuthProvider'
  * tree and leaves the screen.
  */
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'Browse ventures',
+  '/browse': 'Browse ventures',
   '/categories': 'Categories',
   '/chat': 'All Chat',
   '/add': 'List a venture',

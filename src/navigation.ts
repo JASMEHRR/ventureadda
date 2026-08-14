@@ -22,9 +22,7 @@ export type NavItem = {
  * nav bar is not reading; they are looking for the word they already want.
  */
 export const PRIMARY_NAV: NavItem[] = [
-  // Browse still lives at '/'. The landing page moves it to '/browse', and this
-  // is the one line that has to change with it.
-  { to: '/', label: 'Browse', icon: Store },
+  { to: '/browse', label: 'Browse', icon: Store },
   { to: '/categories', label: 'Categories', icon: LayoutGrid },
   { to: '/chat', label: 'All Chat', icon: MessageSquare },
 ]

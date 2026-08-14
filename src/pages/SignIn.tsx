@@ -60,7 +60,7 @@ export default function SignIn() {
         // Strip the credential out of the address bar so it is not left in
         // history or copied out of the URL.
         window.history.replaceState({}, '', '/signin')
-        navigate('/', { replace: true })
+        navigate('/browse', { replace: true })
       },
       (cause: unknown) => {
         setError(errorMessage(cause))
@@ -69,7 +69,7 @@ export default function SignIn() {
     )
   }, [completeSignInFromLink, navigate])
 
-  if (status === 'ready') return <Navigate to="/" replace />
+  if (status === 'ready') return <Navigate to="/browse" replace />
 
   const submitEmail = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -86,7 +86,7 @@ export default function SignIn() {
         const result = await completeSignInFromLink(window.location.href, email)
         if (result === 'done') {
           window.history.replaceState({}, '', '/signin')
-          navigate('/', { replace: true })
+          navigate('/browse', { replace: true })
           return
         }
       } else {

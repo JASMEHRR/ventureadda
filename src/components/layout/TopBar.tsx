@@ -7,8 +7,8 @@ import Select from '../ui/Select'
 import type { SelectOption } from '../ui/Select'
 import { CATEGORIES } from '../../data/types'
 
-/** Where the browse controls point. Moves with browse when the landing page lands. */
-const BROWSE_PATH = '/'
+/** Where the browse controls point. '/' is the landing page. */
+const BROWSE_PATH = '/browse'
 
 const CATEGORY_OPTIONS: SelectOption<string>[] = [
   { value: 'all', label: 'All categories' },

@@ -15,6 +15,7 @@ import Moderator from './pages/Moderator'
 import SignIn from './pages/SignIn'
 import Profile from './pages/Profile'
 import DesignDemo from './pages/DesignDemo'
+import Landing from './pages/Landing'
 
 export default function App() {
   return (
@@ -22,8 +23,13 @@ export default function App() {
       <BrowserRouter>
         <AtmosphereBackdrop />
         <Routes>
+        {/* Outside AppShell on purpose. The shell is the tool — sidebar,
+            filters, account — and none of it means anything to someone who does
+            not yet know what the site is. */}
+        <Route index element={<Landing />} />
+
         <Route element={<AppShell />}>
-          <Route index element={<Browse />} />
+          <Route path="browse" element={<Browse />} />
           <Route path="categories" element={<Categories />} />
           <Route path="venture/:ventureId" element={<VentureDetail />} />
           <Route path="venture/:ventureId/edit" element={<EditVenture />} />
@@ -41,7 +47,7 @@ export default function App() {
                 eyebrow="404"
                 title="No such page"
                 action={
-                  <Button variant="secondary" to="/">
+                  <Button variant="secondary" to="/browse">
                     Back to browse
                   </Button>
                 }

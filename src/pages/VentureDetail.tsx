@@ -102,7 +102,7 @@ export default function VentureDetail() {
         icon={SearchX}
         title="No such venture"
         action={
-          <Button variant="secondary" to="/">
+          <Button variant="secondary" to="/browse">
             Back to browse
           </Button>
         }
@@ -122,7 +122,7 @@ export default function VentureDetail() {
   return (
     <div className="space-y-4">
       <Link
-        to="/"
+        to="/browse"
         className="inline-flex items-center gap-2 rounded-full px-1 py-1 font-mono text-[10px] font-bold tracking-[0.18em] text-white/40 uppercase transition-colors hover:text-white"
       >
         <ArrowLeft size={13} aria-hidden="true" />

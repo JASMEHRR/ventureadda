@@ -35,7 +35,7 @@ export default function AddVenture() {
             <Button variant="secondary" to="/profile">
               Go to profile
             </Button>
-            <Button variant="ghost" to="/">
+            <Button variant="ghost" to="/browse">
               Back to browse
             </Button>
           </>

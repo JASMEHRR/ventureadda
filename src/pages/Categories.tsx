@@ -44,7 +44,7 @@ export default function Categories() {
             key={category.id}
             // Filters Browse rather than opening a separate page: one listing
             // surface, and the filtered view is a shareable URL.
-            to={`/?category=${category.id}`}
+            to={`/browse?category=${category.id}`}
             className="group flex w-full items-center gap-3.5 rounded-2xl px-3 py-4 text-left transition duration-150 hover:bg-white/[0.05] active:scale-[0.99]"
           >
             <span className="min-w-0 flex-1">
