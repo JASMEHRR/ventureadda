@@ -4,6 +4,7 @@ import Avatar from './ui/Avatar'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
 import Textarea from './ui/Textarea'
+import ChooseUsername from '../pages/ChooseUsername'
 import { StarDisplay, StarInput } from './ui/StarRating'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
@@ -22,7 +23,7 @@ export default function ReviewSection({
   ventureId: string
   ownerId: string
 }) {
-  const { profile, status } = useAuth()
+  const { profile, status, needsUsername } = useAuth()
   const [refreshToken, setRefreshToken] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState<Review | null>(null)
   const [rating, setRating] = useState(0)
@@ -96,6 +97,13 @@ export default function ReviewSection({
         </p>
       )}
 
+      {/* Reviewing is open to any signed-in account, Thapar or not — the rules
+          gate it on isVerifiedUser, not isThaparUser. The name is claimed here
+          rather than at sign-up, because this is the first place it is shown. */}
+      {!isOwner && status === 'ready' && needsUsername && (
+        <ChooseUsername reason="This is the name shown next to your review." />
+      )}
+
       {!isOwner && status === 'ready' && profile && (
         <div className="liquid-glass-panel rounded-2xl p-5">
           {!started ? (
@@ -149,7 +157,7 @@ export default function ReviewSection({
 
       {!isOwner && status !== 'loading' && !profile && (
         <div className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
-          <p className="text-[13.5px] text-white/50">Sign in with a Thapar account to review.</p>
+          <p className="text-[13.5px] text-white/50">Sign in to leave a review. Any account works.</p>
           <Button variant="secondary" to="/signin">
             Sign in
           </Button>

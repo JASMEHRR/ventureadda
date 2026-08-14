@@ -1,15 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
+  GoogleAuthProvider,
   isSignInWithEmailLink,
   onAuthStateChanged,
   sendSignInLinkToEmail,
   signInWithEmailLink,
+  signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 import { doc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore'
-import { ALLOWED_EMAIL_DOMAIN, OWNER_EMAIL, auth, db, isAllowedEmail } from '../lib/firebase'
+import { OWNER_EMAIL, auth, db, isThaparEmail } from '../lib/firebase'
 
 export type Profile = {
   uid: string
@@ -18,12 +21,35 @@ export type Profile = {
   isModerator: boolean
 }
 
-export type AuthStatus = 'loading' | 'signedOut' | 'needsUsername' | 'ready'
+/**
+ * 'needsUsername' is gone on purpose.
+ *
+ * It used to sit between 'signedOut' and 'ready' and gated the entire app: no
+ * username, no site. That was defensible when only Thapar students could get
+ * an account. Now anyone with a Google address can sign in, and usernames are
+ * permanent and can never be released — so an app-wide gate would let every
+ * passer-by burn a name a classmate wanted, on the way to reading one page.
+ *
+ * A signed-in account with no profile is simply 'ready' with `profile: null`.
+ * The name is asked for at the first action that attaches one to content —
+ * posting in chat, listing a venture, leaving a review — via `needsUsername`
+ * below, which is a fact about the session rather than a state of the app.
+ */
+export type AuthStatus = 'loading' | 'signedOut' | 'ready'
 
 type AuthContextValue = {
   user: User | null
   profile: Profile | null
   status: AuthStatus
+  /** Signed in, but has not claimed a name yet. Prompt at the point of action. */
+  needsUsername: boolean
+  /**
+   * May post in chat and list a venture — @thapar.edu or the owner. Mirrors
+   * isThaparUser() in firestore.rules, for hiding an action rather than
+   * letting someone fill in a form and eat a permission-denied.
+   */
+  canPost: boolean
+  signInWithGoogle: () => Promise<void>
   sendLink: (email: string) => Promise<void>
   /** Returns 'needsEmail' when the link was opened in a different browser. */
   completeSignInFromLink: (href: string, fallbackEmail?: string) => Promise<'done' | 'needsEmail'>
@@ -98,11 +124,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }, [user])
 
+  /**
+   * The primary way in. Thapar runs on Google Workspace, so a student is
+   * already signed into Google as their @thapar.edu address — this is one tap,
+   * sends no mail, and sidesteps the spam folder and the cross-device problem
+   * that the email link has.
+   *
+   * No domain check anywhere in here. Anyone with a verified Google address
+   * may hold an account now; what they may *do* is gated at the action.
+   */
+  const signInWithGoogle = useCallback(async () => {
+    const provider = new GoogleAuthProvider()
+    // Always show the chooser. Without this, anyone signed into a personal
+    // Google account is silently signed in with it, which on a shared campus
+    // machine is both wrong and confusing.
+    provider.setCustomParameters({ prompt: 'select_account' })
+    try {
+      await signInWithPopup(auth, provider)
+    } catch (cause) {
+      const code = (cause as { code?: string })?.code
+      // A blocked popup is the normal case in an in-app browser (opening the
+      // site from WhatsApp does exactly this), so fall back rather than
+      // reporting a failure the person cannot act on.
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        await signInWithRedirect(auth, provider)
+        return
+      }
+      // Closing the popup yourself is not an error worth showing.
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return
+      throw cause
+    }
+  }, [])
+
   const sendLink = useCallback(async (email: string) => {
     const address = email.trim().toLowerCase()
-    if (!isAllowedEmail(address)) {
-      throw new Error(`Use your @${ALLOWED_EMAIL_DOMAIN} address.`)
-    }
     await sendSignInLinkToEmail(auth, address, {
       // Must be listed under Authentication → Settings → Authorized domains,
       // or Firebase rejects the request.
@@ -122,20 +177,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // storage, so the address has to be asked for again.
       if (!address) return 'needsEmail'
 
-      if (!isAllowedEmail(address)) {
-        throw new Error(`Use your @${ALLOWED_EMAIL_DOMAIN} address.`)
-      }
-
-      const credential = await signInWithEmailLink(auth, address, href)
+      // No domain check, on either side of this call. It used to reject here
+      // and then sign the session back out if the returned address was not a
+      // Thapar one; both would now lock out precisely the accounts the rules
+      // have started allowing.
+      await signInWithEmailLink(auth, address, href)
       window.localStorage.removeItem(EMAIL_KEY)
-
-      // Belt and braces: the check above runs in the browser and the Auth REST
-      // API can be called directly, so verify what actually came back before
-      // letting the session stand.
-      if (!credential.user.email || !isAllowedEmail(credential.user.email)) {
-        await firebaseSignOut(auth)
-        throw new Error(`Only @${ALLOWED_EMAIL_DOMAIN} accounts can sign in.`)
-      }
       return 'done'
     },
     [],
@@ -188,13 +235,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ? 'loading'
     : !user
       ? 'signedOut'
-      : !profile
-        ? 'needsUsername'
-        : 'ready'
+      : 'ready'
+
+  const needsUsername = status === 'ready' && !profile
+  const canPost = status === 'ready' && isThaparEmail(user?.email)
 
   const value = useMemo(
-    () => ({ user, profile, status, sendLink, completeSignInFromLink, claimUsername, signOut }),
-    [user, profile, status, sendLink, completeSignInFromLink, claimUsername, signOut],
+    () => ({
+      user,
+      profile,
+      status,
+      needsUsername,
+      canPost,
+      signInWithGoogle,
+      sendLink,
+      completeSignInFromLink,
+      claimUsername,
+      signOut,
+    }),
+    [
+      user,
+      profile,
+      status,
+      needsUsername,
+      canPost,
+      signInWithGoogle,
+      sendLink,
+      completeSignInFromLink,
+      claimUsername,
+      signOut,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

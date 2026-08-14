@@ -2,7 +2,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import MobileNav from './MobileNav'
-import ChooseUsername from '../../pages/ChooseUsername'
 import { useAuth } from '../../auth/AuthProvider'
 
 /**
@@ -53,7 +52,7 @@ function pageTitle(pathname: string): string {
  */
 export default function AppShell() {
   const { pathname } = useLocation()
-  const { profile, status } = useAuth()
+  const { profile } = useAuth()
   const isModerator = profile?.isModerator ?? false
 
   return (
@@ -64,12 +63,13 @@ export default function AppShell() {
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <TopBar user={profile} />
           <main className="min-w-0 flex-1">
-            <h1 className="sr-only">
-              {status === 'needsUsername' ? 'Pick a username' : pageTitle(pathname)}
-            </h1>
-            {/* A signed-in account with no profile yet gets the username gate
-                wherever it lands, including on a deep link. */}
-            {status === 'needsUsername' ? <ChooseUsername /> : <Outlet />}
+            <h1 className="sr-only">{pageTitle(pathname)}</h1>
+            {/* No username gate here any more. Usernames are permanent, and
+                anyone with a Google address can now sign in, so demanding one
+                before the site will render let a passer-by burn a name on the
+                way to reading a page. It is asked for at the first action that
+                puts a name on content instead. */}
+            <Outlet />
           </main>
         </div>
       </div>

@@ -4,7 +4,9 @@ import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import LoadingLine from '../components/ui/LoadingLine'
+import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
+import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
 import { MAX_MESSAGE_LENGTH, deleteMessage, sendMessage, subscribeToMessages } from '../data/chat'
 import type { ChatMessage } from '../data/chat'
 
@@ -23,7 +25,7 @@ function timeLabel(date: Date | null): string {
 }
 
 export default function Chat() {
-  const { profile, status } = useAuth()
+  const { profile, status, canPost, needsUsername } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -157,7 +159,11 @@ export default function Chat() {
         ))}
       </div>
 
-      {status === 'ready' && profile ? (
+      {status === 'ready' && canPost && needsUsername ? (
+        <div className="shrink-0">
+          <ChooseUsername reason="This is the name shown next to your messages here." />
+        </div>
+      ) : status === 'ready' && canPost && profile ? (
         <form onSubmit={send} className="liquid-glass-panel shrink-0 rounded-2xl p-2.5">
           <div className="flex items-end gap-2.5">
             <label htmlFor="chat-input" className="sr-only">
@@ -204,9 +210,13 @@ export default function Chat() {
       ) : (
         <div className="liquid-glass-panel flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
           <p className="text-[13.5px] text-white/50">
-            Reading is open to everyone. Posting needs a Thapar account.
+            {status === 'ready'
+              ? // Signed in, but not on a Thapar address. Say which account
+                // would work rather than only that this one does not.
+                `Reading is open to everyone. Posting here needs an @${ALLOWED_EMAIL_DOMAIN} account.`
+              : 'Reading is open to everyone. Posting needs a Thapar account.'}
           </p>
-          <Button to="/signin">Sign in</Button>
+          {status !== 'ready' && <Button to="/signin">Sign in</Button>}
         </div>
       )}
 

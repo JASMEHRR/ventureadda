@@ -43,25 +43,34 @@ export const auth = getAuth(app)
 export const db = getFirestore(app)
 
 /**
- * The only domain allowed to sign in.
+ * The domain that may post and list. NOT the domain that may sign in.
  *
- * Enforced here for the user's benefit — a clear message before an email is
- * ever sent — and enforced again in firestore.rules, which is the copy that
- * actually counts. This check runs in the browser and anyone can skip it by
- * calling the Firebase Auth REST API directly, so it must never be the only
- * thing standing between a stranger and the database.
+ * That distinction is the whole shape of the access model now. Anyone with a
+ * verified Google address can hold an account, browse and review. Posting in
+ * All Chat and listing a venture stay behind this domain, matching
+ * isThaparUser() in firestore.rules — which is the copy that actually enforces
+ * it. Everything here runs in the browser and can be skipped by calling the
+ * Firebase Auth REST API directly, so it exists to explain a restriction
+ * before someone hits it, never to impose one.
  */
 export const ALLOWED_EMAIL_DOMAIN = 'thapar.edu'
 
 /**
  * The site owner, who is not a Thapar address and would otherwise be unable to
- * sign in at all. Mirrors isOwner() in firestore.rules — that copy is the one
- * that actually grants anything; this one only avoids a confusing rejection
- * before the email is ever sent.
+ * post or moderate. Mirrors isOwner() in firestore.rules.
  */
 export const OWNER_EMAIL = 'jasmehr2005@gmail.com'
 
-export function isAllowedEmail(email: string): boolean {
+/**
+ * May this address post in chat and list a venture?
+ *
+ * Named for what it now gates. It used to be isAllowedEmail and was checked at
+ * the door; with Google Sign-In the door is open to everyone, and the same test
+ * moved to guarding actions. Keeping the old name would have left every call
+ * site reading like an entry check when none of them is one any more.
+ */
+export function isThaparEmail(email: string | null | undefined): boolean {
+  if (!email) return false
   const normalised = email.trim().toLowerCase()
   return normalised === OWNER_EMAIL || normalised.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)
 }

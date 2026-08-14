@@ -5,12 +5,24 @@ import TextField from '../components/ui/TextField'
 import { USERNAME_PATTERN, useAuth } from '../auth/AuthProvider'
 
 /**
- * First-run gate. Shown instead of page content while a signed-in account has
- * no profile yet, rather than letting someone browse half-registered — a chat
- * message or a venture owned by an account with no username is a mess to
- * untangle afterwards.
+ * Claims the name that will appear next to whatever you are about to post.
+ *
+ * No longer a first-run gate over the whole app. Usernames are permanent and
+ * can never be released, and with Google Sign-In anybody can hold an account —
+ * so asking at sign-up would let a passer-by burn the name a classmate wanted
+ * on the way to reading one page. It is asked for at the first action that
+ * attaches a name to content, and nowhere else.
+ *
+ * `reason` is what that action was. Someone who came here by pressing "post" is
+ * owed a sentence explaining why they are suddenly being asked for a name.
  */
-export default function ChooseUsername() {
+export default function ChooseUsername({
+  reason = 'This is what everyone sees next to anything you post.',
+  onDone,
+}: {
+  reason?: string
+  onDone?: () => void
+} = {}) {
   const { user, claimUsername, signOut } = useAuth()
   const [username, setUsername] = useState('')
   const [busy, setBusy] = useState(false)
@@ -24,6 +36,7 @@ export default function ChooseUsername() {
     setBusy(true)
     try {
       await claimUsername(username)
+      onDone?.()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save that username.')
     } finally {
@@ -32,20 +45,24 @@ export default function ChooseUsername() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4">
+    <div className="mx-auto w-full max-w-md space-y-4">
       <form onSubmit={submit} className="liquid-glass-panel space-y-4 rounded-3xl p-5 sm:p-6">
         <div className="flex items-center gap-2 text-brand-400">
           <AtSign size={13} aria-hidden="true" />
           <span className="font-mono text-[9px] font-extrabold tracking-[0.22em] uppercase">
-            One last step
+            Pick a name first
           </span>
         </div>
 
         <div>
-          <h2 className="text-[19px] font-extrabold text-white">Pick a username</h2>
+          <h2 className="text-[19px] font-extrabold text-white">Choose a username</h2>
           <p className="mt-1.5 text-[14px] leading-relaxed text-white/50">
-            This is what everyone sees in chat and on your venture. Signed in as{' '}
-            <span className="text-white/80">{user?.email}</span>.
+            {reason} Signed in as <span className="text-white/80">{user?.email}</span>.
+          </p>
+          {/* Said before the choice, not after. It cannot be changed later and
+              nobody reads a warning that arrives with the confirmation. */}
+          <p className="mt-1.5 text-[13px] leading-relaxed text-white/40">
+            Usernames are permanent — they cannot be changed or released later.
           </p>
         </div>
 

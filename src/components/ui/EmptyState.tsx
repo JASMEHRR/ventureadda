@@ -24,6 +24,7 @@ export default function EmptyState({
   title,
   children,
   action,
+  extra,
   tone = 'neutral',
   className = '',
 }: {
@@ -36,6 +37,12 @@ export default function EmptyState({
   children: ReactNode
   /** Usually one Button. Omitted when there is genuinely nothing to do. */
   action?: ReactNode
+  /**
+   * Block content between the description and the action — a panel, a list.
+   * Separate from `children` because that renders inside a paragraph, and a
+   * div inside a p is invalid markup the browser silently reparents.
+   */
+  extra?: ReactNode
   className?: string
 }) {
   return (
@@ -54,6 +61,7 @@ export default function EmptyState({
       )}
       <p className={`${eyebrow ? 'mt-2' : 'mt-5'} text-[19px] font-extrabold text-white`}>{title}</p>
       <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">{children}</p>
+      {extra && <div className="flex w-full justify-center">{extra}</div>}
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2.5">{action}</div>}
     </div>
   )

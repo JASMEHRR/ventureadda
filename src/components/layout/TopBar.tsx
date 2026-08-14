@@ -6,6 +6,7 @@ import Button from '../ui/Button'
 import Select from '../ui/Select'
 import type { SelectOption } from '../ui/Select'
 import { CATEGORIES } from '../../data/types'
+import { useAuth } from '../../auth/AuthProvider'
 
 /** Where the browse controls point. '/' is the landing page. */
 const BROWSE_PATH = '/browse'
@@ -36,6 +37,10 @@ export default function TopBar({
 }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  // Signed in on a non-Thapar address: listing is not available to them, so
+  // the button goes rather than leading to a page that turns them away.
+  const { status, canPost } = useAuth()
+  const showAddVenture = status !== 'ready' || canPost
   const [searchParams, setSearchParams] = useSearchParams()
 
   const category = searchParams.get('category') ?? 'all'
@@ -124,10 +129,12 @@ export default function TopBar({
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <Button to="/add" className="hidden sm:inline-flex">
-          <Plus size={13} aria-hidden="true" />
-          Add venture
-        </Button>
+        {showAddVenture && (
+          <Button to="/add" className="hidden sm:inline-flex">
+            <Plus size={13} aria-hidden="true" />
+            Add venture
+          </Button>
+        )}
 
         {user ? (
           <Link
