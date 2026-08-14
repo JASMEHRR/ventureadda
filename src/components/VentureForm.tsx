@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import Button from './ui/Button'
+import MenuScanner from './MenuScanner'
 import Select from './ui/Select'
 import PhotoUploader from './ui/PhotoUploader'
 import TextField, { inputClass } from './ui/TextField'
@@ -47,6 +48,30 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  /**
+   * Scanned items land as ordinary drafts, so they are edited, validated and
+   * submitted through exactly the same path as typed ones — nothing here
+   * writes to Firestore.
+   *
+   * Appended rather than replacing, so a second scan of page two of a menu
+   * adds to the first. The one exception is a single untouched empty row,
+   * which is the form's own starting state and would otherwise leave a blank
+   * item sitting above the results.
+   */
+  const addExtracted = (extracted: { name: string; price: number; description: string }[]) =>
+    setItems((prev) => {
+      const blank = prev.length === 1 && prev[0].name.trim() === '' && prev[0].price.trim() === ''
+      return [
+        ...(blank ? [] : prev),
+        ...extracted.map((item) => ({
+          ...newDraft(),
+          name: item.name,
+          description: item.description,
+          price: String(item.price),
+        })),
+      ]
+    })
 
   const patchItem = (key: string, patch: Partial<MenuItemDraft>) =>
     setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
@@ -177,6 +202,8 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
             {items.length} {items.length === 1 ? 'item' : 'items'}
           </span>
         </div>
+
+        <MenuScanner onExtracted={addExtracted} />
 
         {items.map((item, index) => (
           <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
