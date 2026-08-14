@@ -40,10 +40,23 @@ service cloud.firestore {
         && request.auth.token.email.lower() == 'jasmehr2005@gmail.com';
     }
 
-    // The whole trust boundary. Full-string match, so an address like
-    // someone@thapar.edu.example.com does not slip through. The owner is
-    // exempt — the address above is not a Thapar one and would otherwise be
-    // unable to sign in at all.
+    // Anyone signed in with a verified address, Thapar or not. Google Sign-In
+    // means outsiders can hold an account: they can pick a username, browse,
+    // and leave reviews. They cannot post in chat or list a venture — those
+    // stay behind isThaparUser below.
+    //
+    // email_verified matters even with Google, because the Email/Password
+    // provider is also enabled and an unverified account can exist.
+    function isVerifiedUser() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+
+    // The privileged boundary: posting in All Chat and listing a venture.
+    // Full-string match, so an address like someone@thapar.edu.example.com does
+    // not slip through. The owner is exempt — the address above is not a Thapar
+    // one and would otherwise be unable to moderate at all.
     function isThaparUser() {
       return isOwner()
         || (request.auth != null
@@ -62,7 +75,7 @@ service cloud.firestore {
       // students; tighten it when chat lands if that turns out to matter.
       allow read: if request.auth != null;
 
-      allow create: if isThaparUser()
+      allow create: if isVerifiedUser()
                     && isSelf(uid)
                     && request.resource.data.uid == uid
                     && request.resource.data.email == request.auth.token.email
@@ -73,7 +86,7 @@ service cloud.firestore {
                     && request.resource.data.username.size() >= 3
                     && request.resource.data.username.size() <= 20;
 
-      allow update: if isThaparUser()
+      allow update: if isVerifiedUser()
                     && isSelf(uid)
                     && request.resource.data.isModerator == resource.data.isModerator
                     && request.resource.data.email == resource.data.email
@@ -89,7 +102,7 @@ service cloud.firestore {
     // cannot both succeed.
     match /usernames/{username} {
       allow read: if request.auth != null;
-      allow create: if isThaparUser() && request.resource.data.uid == request.auth.uid;
+      allow create: if isVerifiedUser() && request.resource.data.uid == request.auth.uid;
       // Immutable — releasing a name would let someone impersonate a past owner.
       allow update, delete: if false;
     }
@@ -216,7 +229,7 @@ service cloud.firestore {
       // person per venture a structural fact rather than something the app
       // remembers to check. A second review lands on the same id and is an
       // edit, not a duplicate.
-      allow create: if isThaparUser()
+      allow create: if isVerifiedUser()
                     && reviewId == request.resource.data.ventureId + '_' + request.auth.uid
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.rating is int
@@ -245,7 +258,7 @@ service cloud.firestore {
                     // The author revising, while it still stands. Changing your
                     // mind about a venture is legitimate; resurrecting a removed
                     // review is not, hence the check on the existing flag.
-                    || (isThaparUser()
+                    || (isVerifiedUser()
                         && resource.data.userId == request.auth.uid
                         && resource.data.deleted == false
                         && request.resource.data.deleted == false
