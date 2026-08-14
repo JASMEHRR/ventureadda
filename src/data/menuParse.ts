@@ -35,6 +35,29 @@ export function normalisePrice(raw: string): string {
 const HEADER_WORDS = new Set(['name', 'item', 'product', 'title'])
 
 /**
+ * Repairs a price split apart by its own thousands separator.
+ *
+ * "Walnut Brownie Box, Rs. 1,200, Six pieces" splits on commas into four cells,
+ * not three: the price becomes "Rs. 1" and "200" is read as the description.
+ * That produced an item priced at ₹1 -- silently, and plausibly enough that
+ * nobody would question it.
+ *
+ * Only merged when the price cell ends in a digit and the next cell is nothing
+ * but two or three digits. Two as well as three because Indian grouping is
+ * 1,20,000 rather than 120,000, and prices here are written the Indian way.
+ * A description is essentially never bare digits, which is what keeps
+ * "Cake, 450, 500g serves four" intact.
+ */
+function mergeThousands(cells: string[], separator: string): string[] {
+  if (separator !== ',' || cells.length < 3) return cells
+  const merged = [...cells]
+  while (merged.length >= 3 && /\d\s*$/.test(merged[1]) && /^\s*\d{2,3}\s*$/.test(merged[2])) {
+    merged.splice(1, 2, `${merged[1]}${merged[2].trim()}`)
+  }
+  return merged
+}
+
+/**
  * Parses a pasted list, one item per line.
  *
  * Tab-separated is checked before comma, because pasting a column out of Excel
@@ -49,7 +72,7 @@ export function parseMenuList(text: string): ParsedRow[] {
     if (!line.trim()) continue
 
     const separator = line.includes('\t') ? '\t' : ','
-    const cells = line.split(separator)
+    const cells = mergeThousands(line.split(separator), separator)
     const name = (cells[0] ?? '').trim()
     if (!name) continue
 

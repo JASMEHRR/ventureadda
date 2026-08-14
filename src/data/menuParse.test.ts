@@ -37,6 +37,21 @@ assert.deepEqual(parseMenuList('Cake\t450\tDark chocolate, 500g'), [
   { name: 'Cake', price: '450', description: 'Dark chocolate, 500g' },
 ])
 
+// A thousands separator splits the line on its own comma. Caught on production
+// with a real paste, not by the unit test above -- normalisePrice('Rs. 1,200')
+// was correct in isolation while the LINE containing it was not, which is the
+// difference between testing a unit and testing the thing the user does.
+assert.deepEqual(parseMenuList('Walnut Brownie Box, Rs. 1,200, Six pieces'), [
+  { name: 'Walnut Brownie Box', price: '1200', description: 'Six pieces' },
+])
+assert.deepEqual(parseMenuList('Big Order, 1,20,000, Wedding cake'), [
+  { name: 'Big Order', price: '120000', description: 'Wedding cake' },
+])
+// A description that merely starts with three digits must NOT be eaten.
+assert.deepEqual(parseMenuList('Cake, 450, 500g serves four'), [
+  { name: 'Cake', price: '450', description: '500g serves four' },
+])
+
 // Spreadsheet pastes bring their header.
 assert.deepEqual(parseMenuList('Name, Price, Description\nTea, 20, Cutting'), [
   { name: 'Tea', price: '20', description: 'Cutting' },
