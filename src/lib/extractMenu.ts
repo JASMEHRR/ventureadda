@@ -11,8 +11,13 @@ import { auth } from './firebase'
 
 export type ExtractedItem = { name: string; price: number; description: string }
 
-/** Groq's own limit is 20MB; this is the browser-side courtesy check. */
-const MAX_BYTES = 20 * 1024 * 1024
+/**
+ * Groq's 20MB ceiling is for a hosted image URL. This goes as a base64 data
+ * URL instead, which Groq caps at 4MB -- match that here so a normal phone
+ * photo gets a clean message instead of sailing past this check only to have
+ * Groq reset the connection on the server. See api/extract-menu.ts.
+ */
+const MAX_BYTES = 4 * 1024 * 1024
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
 export const SCAN_ACCEPT = ACCEPTED.join(',')
@@ -34,7 +39,7 @@ export async function extractMenu(file: File): Promise<ExtractedItem[]> {
     throw new Error('Photos must be JPG, PNG or WebP.')
   }
   if (file.size > MAX_BYTES) {
-    throw new Error(`That photo is ${(file.size / 1_000_000).toFixed(1)}MB. The limit is 20MB.`)
+    throw new Error(`That photo is ${(file.size / 1_000_000).toFixed(1)}MB. The limit is 4MB.`)
   }
 
   const user = auth.currentUser

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import Avatar from '../ui/Avatar'
+import Logo from '../ui/Logo'
 import Button from '../ui/Button'
 import Select from '../ui/Select'
 import type { SelectOption } from '../ui/Select'
@@ -29,17 +30,27 @@ const CATEGORY_OPTIONS: SelectOption<string>[] = [
  * filtered directory a link someone can paste into the group chat, which is
  * where every visitor to this site is coming from anyway.
  */
-export default function TopBar({
-  user,
-}: {
-  /** Null while signed out, or before the profile has loaded. */
-  user: { username: string } | null
-}) {
+export default function TopBar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   // Signed in on a non-Thapar address: listing is not available to them, so
   // the button goes rather than leading to a page that turns them away.
-  const { status, canPost } = useAuth()
+  const { status, canPost, profile, user } = useAuth()
+
+  /**
+   * What the account button says, and whether there is one at all.
+   *
+   * Keyed on the session rather than on the profile. A signed-in account that
+   * has not claimed a username has no profile document — showing it "Sign in"
+   * sent it to /signin, which bounces a ready session to /browse, so there was
+   * no route to the profile page and no way to sign out at all.
+   *
+   * The address is cut at the @ before it is shown or announced. The whole
+   * thing would otherwise sit in the button's accessible name — read aloud, and
+   * exposed on a shared campus machine — to label a tile showing one letter.
+   */
+  const account =
+    profile?.username ?? (status === 'ready' ? (user?.email?.split('@')[0] ?? null) : null)
   const showAddVenture = status !== 'ready' || canPost
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -85,11 +96,11 @@ export default function TopBar({
     <header className="liquid-glass-panel flex flex-wrap items-center gap-2 rounded-[1.5rem] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
       {/* Wordmark only below `md`, where the sidebar that carries it is hidden.
           On desktop it would be on screen twice. */}
-      <Link
-        to={BROWSE_PATH}
-        className="shrink-0 px-1 text-[17px] font-extrabold tracking-tight text-white md:hidden"
-      >
-        VentureAdda
+      {/* The mark without the wordmark, deliberately. The note above is about a
+          row that already does not fit at 390px, and the word costs ~100px that
+          the search field needs more. The name stays in the accessible tree. */}
+      <Link to={BROWSE_PATH} className="shrink-0 px-1 md:hidden">
+        <Logo markOnly size={21} />
       </Link>
 
       {/* Hidden below `sm`. At 390px the wordmark, All, the category select and
@@ -140,13 +151,13 @@ export default function TopBar({
           </Button>
         )}
 
-        {user ? (
+        {account ? (
           <Link
             to="/profile"
             className="rounded-full transition duration-150 active:scale-[0.94]"
-            aria-label={`Profile, signed in as ${user.username}`}
+            aria-label={`Profile, signed in as ${account}`}
           >
-            <Avatar name={user.username} />
+            <Avatar name={account} />
           </Link>
         ) : (
           <Button variant="secondary" to="/signin">

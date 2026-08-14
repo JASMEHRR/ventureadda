@@ -58,6 +58,15 @@ function mergeThousands(cells: string[], separator: string): string[] {
 }
 
 /**
+ * A menu photographed off a wall, not a spreadsheet, has no comma or tab at
+ * all -- just a name, a dash, and a price: "Kurkure Masala Munch — ₹23".
+ * Without this, that whole line became the name and the price stayed empty.
+ * Only matched when there is no other separator on the line, so a real
+ * three-cell paste is never touched by it.
+ */
+const TRAILING_DASH_PRICE = /^(.+?)\s+[-–—]\s*(?:₹|rs\.?|rupees?)?\s*(\d[\d,]*(?:\.\d+)?)\s*\/?-?\s*$/i
+
+/**
  * Parses a pasted list, one item per line.
  *
  * Tab-separated is checked before comma, because pasting a column out of Excel
@@ -70,6 +79,15 @@ export function parseMenuList(text: string): ParsedRow[] {
 
   for (const line of text.split(/\r?\n/)) {
     if (!line.trim()) continue
+
+    const hasSeparator = line.includes('\t') || line.includes(',')
+    if (!hasSeparator) {
+      const dashed = line.trim().match(TRAILING_DASH_PRICE)
+      if (dashed) {
+        rows.push({ name: dashed[1].trim().slice(0, 120), price: normalisePrice(dashed[2]), description: '' })
+        continue
+      }
+    }
 
     const separator = line.includes('\t') ? '\t' : ','
     const cells = mergeThousands(line.split(separator), separator)

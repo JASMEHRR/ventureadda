@@ -65,6 +65,21 @@ assert.deepEqual(parseMenuList('Tea, 20\n\n\nMaggi, 60\n'), [
   { name: 'Maggi', price: '60', description: '' },
 ])
 assert.deepEqual(parseMenuList('Chai'), [{ name: 'Chai', price: '', description: '' }])
+
+// A menu with no spreadsheet structure at all -- name, em dash, price -- must
+// not dump the whole line into the name. Caught on a real paste from Butter &
+// Bloom's hostel-room menu.
+assert.deepEqual(parseMenuList('Kurkure Masala Munch — ₹23'), [
+  { name: 'Kurkure Masala Munch', price: '23', description: '' },
+])
+assert.deepEqual(
+  parseMenuList('RiteBite Max Protein Grain Cookies 55g — ₹50'),
+  [{ name: 'RiteBite Max Protein Grain Cookies 55g', price: '50', description: '' }],
+)
+// A bare category header with no price fragment is still just a nameless row
+// with no price -- not this bug, and not something this parser can tell apart
+// from a genuinely priceless item.
+assert.deepEqual(parseMenuList('SNACKS'), [{ name: 'SNACKS', price: '', description: '' }])
 assert.deepEqual(parseMenuList(', 20, no name'), [])
 assert.deepEqual(parseMenuList(''), [])
 

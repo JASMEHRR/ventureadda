@@ -189,8 +189,14 @@ export const config = { runtime: 'edge' }
  */
 const MODEL = 'qwen/qwen3.6-27b'
 
-/** Groq's documented ceiling for an image request. */
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024
+/**
+ * Groq's documented ceiling for an image request -- but that 20MB figure is
+ * for a hosted image URL. A base64 data URL, which is what this endpoint
+ * always sends, is capped at 4MB. Past that Groq resets the connection while
+ * we're still writing the request body rather than returning a clean error,
+ * which surfaces here as ECONNRESET, not as a 4xx.
+ */
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 /** A menu photo that yields more than this is almost certainly a misread. */
 const MAX_ITEMS = 60
@@ -305,7 +311,7 @@ export default async function handler(request: Request): Promise<Response> {
   // Rough byte count of the base64 payload, without decoding it.
   const base64Length = image.length - (image.indexOf(',') + 1)
   if (base64Length * 0.75 > MAX_IMAGE_BYTES) {
-    return fail('That photo is too large. Try one under 20MB.', 413, 'too_large')
+    return fail('That photo is too large. Try one under 4MB.', 413, 'too_large')
   }
 
   let response: Response

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import Logo, { LogoMark } from '../ui/Logo'
 import type { NavItem } from '../../navigation'
 import { DEV_NAV, MODERATOR_NAV, PRIMARY_NAV } from '../../navigation'
 
@@ -109,16 +110,24 @@ export default function Sidebar({ isModerator = false }: { isModerator?: boolean
       }`}
     >
       <div
-        className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between gap-2 px-2 pt-1 pb-3'}`}
+        className={`flex items-center ${collapsed ? 'flex-col gap-2' : 'justify-between gap-2 px-2 pt-1 pb-3'}`}
       >
-        {!collapsed && (
+        {collapsed ? (
+          // The mark alone, above the collapse control rather than beside it:
+          // at rail width there is only room for one thing per row. Into the
+          // directory, not out to the marketing page — the same destination
+          // the mobile top bar's mark has.
+          <Link to="/browse" aria-label="VentureAdda, browse ventures" className="pt-1">
+            <LogoMark size={22} className="text-brand-400" />
+          </Link>
+        ) : (
           <div className="min-w-0">
             <p className="font-mono text-[9px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
               Thapar
             </p>
-            <p className="mt-1 truncate text-[19px] font-extrabold tracking-tight text-white">
-              VentureAdda
-            </p>
+            <Link to="/browse" className="mt-1 block">
+              <Logo />
+            </Link>
           </div>
         )}
 
