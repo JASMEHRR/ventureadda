@@ -1,61 +1,148 @@
-import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Plus, Search } from 'lucide-react'
 import Avatar from '../ui/Avatar'
+import Button from '../ui/Button'
+import Select from '../ui/Select'
+import type { SelectOption } from '../ui/Select'
+import { CATEGORIES } from '../../data/types'
 
-type TopBarProps = {
-  /** Mono eyebrow above the title. */
-  eyebrow: string
-  title: string
-  /** Null while signed out, or before the profile has loaded. */
-  user: { username: string } | null
-}
+/** Where the browse controls point. Moves with browse when the landing page lands. */
+const BROWSE_PATH = '/'
+
+const CATEGORY_OPTIONS: SelectOption<string>[] = [
+  { value: 'all', label: 'All categories' },
+  ...CATEGORIES.map((category) => ({ value: category.id, label: category.name })),
+]
 
 /**
- * Sits above the routed content, inside the right-hand column, so the sidebar
- * runs full height beside it rather than under it.
+ * The browse controls, lifted out of the page and into the chrome.
  *
- * The wordmark only appears below `md`, where the sidebar that normally carries
- * it is hidden — otherwise it would be on screen twice.
+ * The split with Sidebar is the whole point: the sidebar is where you can go,
+ * this is what you are looking at. Neither repeats the other, so there is only
+ * ever one control for any given job.
+ *
+ * Search and category both live in the URL rather than in local state. They
+ * have to: the controls are in the shell and the results are in the page, and
+ * the URL is the one piece of state both already share. It also makes a
+ * filtered directory a link someone can paste into the group chat, which is
+ * where every visitor to this site is coming from anyway.
  */
-export default function TopBar({ eyebrow, title, user }: TopBarProps) {
-  return (
-    <header className="liquid-glass-panel flex items-center gap-3 rounded-[1.5rem] px-4 py-3 sm:px-5 sm:py-3.5">
-      <div className="min-w-0 flex-1">
-        <p className="font-mono text-[9px] font-extrabold tracking-[0.22em] text-white/40 uppercase md:hidden">
-          VentureAdda
-        </p>
-        <p className="hidden font-mono text-[9px] font-extrabold tracking-[0.22em] text-brand-400 uppercase md:block">
-          {eyebrow}
-        </p>
-        <h1 className="mt-0.5 truncate text-[17px] font-extrabold text-white sm:text-[19px]">
-          {title}
-        </h1>
-      </div>
+export default function TopBar({
+  user,
+}: {
+  /** Null while signed out, or before the profile has loaded. */
+  user: { username: string } | null
+}) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
 
+  const category = searchParams.get('category') ?? 'all'
+  const urlQuery = searchParams.get('q') ?? ''
+
+  // Typing is local and the URL follows on a debounce. Writing every keystroke
+  // straight to the URL re-runs the Firestore read per character.
+  const [draft, setDraft] = useState(urlQuery)
+
+  // Keeps the field honest when the URL changes underneath it — the back
+  // button, or a category link that clears the search.
+  useEffect(() => setDraft(urlQuery), [urlQuery])
+
+  useEffect(() => {
+    if (draft === urlQuery) return
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(searchParams)
+      if (draft.trim()) params.set('q', draft)
+      else params.delete('q')
+      // Searching from a venture page searches the directory. Doing this on
+      // typing rather than on focus matters: navigating the moment the field is
+      // focused would throw away the page someone had merely clicked into.
+      if (pathname === BROWSE_PATH) {
+        // replace, so a search does not stack one history entry per keystroke
+        // for the back button to walk through.
+        setSearchParams(params, { replace: true })
+      } else {
+        navigate({ pathname: BROWSE_PATH, search: params.toString() })
+      }
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [draft, urlQuery, pathname, navigate, searchParams, setSearchParams])
+
+  const setCategory = (value: string) => {
+    const params = new URLSearchParams(searchParams)
+    if (value === 'all') params.delete('category')
+    else params.set('category', value)
+    navigate({ pathname: BROWSE_PATH, search: params.toString() })
+  }
+
+  return (
+    <header className="liquid-glass-panel flex flex-wrap items-center gap-2 rounded-[1.5rem] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      {/* Wordmark only below `md`, where the sidebar that carries it is hidden.
+          On desktop it would be on screen twice. */}
       <Link
-        to="/add"
-        className="hidden items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/15 px-5 py-2.5 font-mono text-[11px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.97] sm:inline-flex"
+        to={BROWSE_PATH}
+        className="shrink-0 px-1 text-[17px] font-extrabold tracking-tight text-white md:hidden"
       >
-        <Plus size={13} aria-hidden="true" />
-        Add venture
+        VentureAdda
       </Link>
 
-      {user ? (
-        <Link
-          to="/profile"
-          className="rounded-full transition duration-150 active:scale-[0.94]"
-          aria-label={`Profile, signed in as ${user.username}`}
-        >
-          <Avatar name={user.username} />
-        </Link>
-      ) : (
-        <Link
-          to="/signin"
-          className="rounded-full border border-white/12 bg-white/5 px-4 py-2.5 font-mono text-[11px] font-bold tracking-wider text-white/80 uppercase transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.97]"
-        >
-          Sign in
-        </Link>
-      )}
+      <Button
+        variant="secondary"
+        to={BROWSE_PATH}
+        className="shrink-0 font-mono"
+        title="Clear filters and show everything"
+      >
+        All
+      </Button>
+
+      <Select
+        label="Category"
+        labelHidden
+        value={category}
+        options={CATEGORY_OPTIONS}
+        onChange={setCategory}
+        className="w-40 shrink-0 sm:w-48"
+        triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[11px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
+      />
+
+      {/* The primary action on a directory, so it gets the room that is left. */}
+      <div className="relative order-last w-full min-w-40 flex-1 sm:order-none sm:w-auto">
+        <Search
+          size={14}
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-white/30"
+        />
+        <input
+          type="search"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Brownies, earrings, embroidery…"
+          aria-label="Search ventures"
+          className="liquid-glass-input w-full rounded-full py-2 pr-4 pl-10 text-[13px] text-white placeholder-white/30"
+        />
+      </div>
+
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Button to="/add" className="hidden sm:inline-flex">
+          <Plus size={13} aria-hidden="true" />
+          Add venture
+        </Button>
+
+        {user ? (
+          <Link
+            to="/profile"
+            className="rounded-full transition duration-150 active:scale-[0.94]"
+            aria-label={`Profile, signed in as ${user.username}`}
+          >
+            <Avatar name={user.username} />
+          </Link>
+        ) : (
+          <Button variant="secondary" to="/signin">
+            Sign in
+          </Button>
+        )}
+      </div>
     </header>
   )
 }

@@ -1,11 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus, Search, SearchX, Store } from 'lucide-react'
+import { Plus, SearchX, Store } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
-import Select from '../components/ui/Select'
-import type { SelectOption } from '../components/ui/Select'
-import TextField from '../components/ui/TextField'
 import VentureCard from '../components/ui/VentureCard'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAsyncData } from '../hooks/useAsyncData'
@@ -13,22 +10,12 @@ import { listCategories, listVentures } from '../data/ventures'
 import { listRatingSummaries } from '../data/reviews'
 
 export default function Browse() {
-  const [query, setQuery] = useState('')
-
-  // Category lives in the URL so a filtered view can be shared, and so the
-  // Categories page can link straight into it. Search stays local — putting
-  // every keystroke in the URL is not worth the churn.
-  const [searchParams, setSearchParams] = useSearchParams()
+  // Both filters live in the URL and are driven by the controls in TopBar. The
+  // page reads them and does not own them: one control per job, and a filtered
+  // directory stays a shareable link.
+  const [searchParams] = useSearchParams()
   const categoryId = searchParams.get('category')
-
-  const setCategoryId = (next: string | null) => {
-    const params = new URLSearchParams(searchParams)
-    if (next) params.set('category', next)
-    else params.delete('category')
-    // replace, so filtering does not stack up entries the back button has to
-    // walk through one at a time.
-    setSearchParams(params, { replace: true })
-  }
+  const query = searchParams.get('q') ?? ''
 
   const categories = useAsyncData(() => listCategories(), [])
   // One read for every card's rating, rather than one per venture.
@@ -36,17 +23,6 @@ export default function Browse() {
   const ventures = useAsyncData(
     () => listVentures({ query, categoryId: categoryId ?? undefined }),
     [query, categoryId],
-  )
-
-  const categoryOptions = useMemo<SelectOption<string>[]>(
-    () => [
-      { value: 'all', label: 'All categories' },
-      ...(categories.data ?? []).map((category) => ({
-        value: category.id,
-        label: category.name,
-      })),
-    ],
-    [categories.data],
   )
 
   const categoryName = (id: string) =>
@@ -69,25 +45,6 @@ export default function Browse() {
 
   return (
     <div className="space-y-4">
-      <section className="liquid-glass-panel space-y-4 rounded-3xl p-4 sm:p-5">
-        <TextField
-          id="venture-search"
-          label="Search"
-          type="search"
-          icon={Search}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Brownies, earrings, embroidery…"
-        />
-
-        <Select
-          label="Category"
-          value={categoryId ?? 'all'}
-          options={categoryOptions}
-          onChange={(value) => setCategoryId(value === 'all' ? null : value)}
-        />
-      </section>
-
       {ventures.error && (
         <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[14px] text-red-400">
           Could not load ventures: {ventures.error.message}
@@ -130,7 +87,11 @@ export default function Browse() {
               {items.length} {items.length === 1 ? 'venture' : 'ventures'}
             </span>
           </header>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {/* Column count follows the viewport rather than stopping at three.
+              A card stays readable down to about 280px, so the grid keeps
+              adding columns as the screen allows instead of stretching four
+              cards across a 2560px monitor. */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1900px]:grid-cols-6">
             {items.map((venture) => (
               <VentureCard
                 key={venture.id}

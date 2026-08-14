@@ -9,11 +9,15 @@ export type SelectOption<T extends string> = { value: T; label: string }
 type SelectProps<T extends string> = {
   /** Visible mono eyebrow, and the accessible name of the control. */
   label: string
+  /** Keeps the label as the accessible name but takes it off screen. */
+  labelHidden?: boolean
   value: T | null
   options: SelectOption<T>[]
   onChange: (value: T) => void
   placeholder?: string
   className?: string
+  /** Overrides the trigger's own classes, e.g. to size it for the top bar. */
+  triggerClassName?: string
 }
 
 /** Typeahead buffer lifetime, matching the usual native select behaviour. */
@@ -70,11 +74,13 @@ function popupPosition(rect: TriggerRect): CSSProperties {
  */
 export default function Select<T extends string>({
   label,
+  labelHidden = false,
   value,
   options,
   onChange,
   placeholder = 'Select…',
   className = '',
+  triggerClassName = 'liquid-glass-input flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-left text-[13px] font-bold transition duration-150 active:scale-[0.99]',
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -280,9 +286,17 @@ export default function Select<T extends string>({
 
   return (
     <div ref={wrapperRef} className={`relative ${className}`}>
+      {/* Never dropped, only hidden. The label is what makes the combobox
+          announce as "Category, Food & Snacks" rather than reading its current
+          value with no idea what it selects — so in the top bar, where there is
+          no room for it, it goes to screen readers only. */}
       <span
         id={labelId}
-        className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+        className={
+          labelHidden
+            ? 'sr-only'
+            : 'mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase'
+        }
       >
         {label}
       </span>
@@ -309,7 +323,7 @@ export default function Select<T extends string>({
         aria-activedescendant={open && activeIndex >= 0 ? optionId(activeIndex) : undefined}
         onClick={() => (open ? close() : openAt(selectedIndex >= 0 ? selectedIndex : 0))}
         onKeyDown={handleKeyDown}
-        className="liquid-glass-input flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-left text-[13px] font-bold transition duration-150 active:scale-[0.99]"
+        className={triggerClassName}
       >
         <span className={`truncate ${selectedLabel ? 'text-white' : 'text-white/30'}`}>
           {selectedLabel ?? placeholder}

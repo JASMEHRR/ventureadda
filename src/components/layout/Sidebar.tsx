@@ -1,22 +1,70 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import type { NavItem } from '../../navigation'
 import { DEV_NAV, MODERATOR_NAV, PRIMARY_NAV } from '../../navigation'
 
+const STORAGE_KEY = 'ventureadda:sidebar-collapsed'
+
 /**
- * Desktop sidebar. Hidden below `md`, where MobileNav takes over — the two
- * switch at the same breakpoint so exactly one nav pattern is ever on screen,
- * never both and never neither (spec §4).
+ * Collapsed by default below `lg`, expanded above, unless the reader has said
+ * otherwise — at which point their choice wins on every screen and survives
+ * reloads.
  *
- * Nav item states are Ascend's, verbatim from spec §5.
+ * Read once, lazily, rather than in an effect: initialising to a guess and
+ * correcting after mount makes the sidebar visibly snap open on every load for
+ * anyone who collapsed it.
  */
-function SidebarLink({ item, badge }: { item: NavItem; badge?: number }) {
+function useCollapsed(): [boolean, (next: boolean) => void] {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY)
+      if (stored !== null) return stored === 'true'
+    } catch {
+      // Private-browsing or a blocked storage partition. Fall through to the
+      // viewport default — a preference that cannot be saved is not an error
+      // worth showing anyone.
+    }
+    return !window.matchMedia('(min-width: 1024px)').matches
+  })
+
+  const update = (next: boolean) => {
+    setCollapsed(next)
+    try {
+      window.localStorage.setItem(STORAGE_KEY, String(next))
+    } catch {
+      // Same as above: the session still works, it just will not be remembered.
+    }
+  }
+
+  return [collapsed, update]
+}
+
+/**
+ * Nav item states are Ascend's, verbatim from spec §5.
+ *
+ * Collapsed, the label leaves the page but never the accessible tree — it moves
+ * into aria-label, and `title` supplies the hover tooltip. An icon rail whose
+ * buttons announce as nothing is not a smaller sidebar, it is a broken one.
+ *
+ * DEPARTURE, deliberate: these items no longer carry a sentence of description.
+ * That pairing is right for a dashboard one person opens daily and learns once;
+ * it is wrong for a directory a stranger opens once from a WhatsApp link, and
+ * it was most of why the panel needed 260px. Everything else — glass, radii,
+ * type, the opacity ladder, the collapse behaviour itself — is spec.
+ */
+function SidebarLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const Icon = item.icon
   return (
     <NavLink
       to={item.to}
       end={item.to === '/'}
+      aria-label={collapsed ? item.label : undefined}
+      title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
-        `group flex items-start gap-3 rounded-2xl border px-4 py-3 transition duration-150 active:scale-[0.98] ${
+        `group flex items-center rounded-2xl border transition duration-150 active:scale-[0.98] ${
+          collapsed ? 'justify-center p-2.5' : 'gap-3 px-4 py-2.5'
+        } ${
           isActive
             ? 'border-white/20 bg-white/15 shadow-sm backdrop-blur-md'
             : 'border-transparent bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.07]'
@@ -28,83 +76,79 @@ function SidebarLink({ item, badge }: { item: NavItem; badge?: number }) {
           <Icon
             size={16}
             aria-hidden="true"
-            className={`mt-0.5 shrink-0 transition-colors ${
+            className={`shrink-0 transition-colors ${
               isActive ? 'text-brand-400' : 'text-white/40 group-hover:text-white/85'
             }`}
           />
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2">
-              <span
-                className={`font-mono text-[11px] tracking-wider uppercase transition-colors ${
-                  isActive ? 'font-extrabold text-white' : 'font-bold text-white/40 group-hover:text-white/85'
-                }`}
-              >
-                {item.label}
-              </span>
-              {badge !== undefined && badge > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500/20 px-1.5 font-mono text-[9px] font-bold text-brand-400 ring-1 ring-brand-500/50">
-                  {badge}
-                </span>
-              )}
+          {!collapsed && (
+            <span
+              className={`truncate font-mono text-[11px] tracking-wider uppercase transition-colors ${
+                isActive
+                  ? 'font-extrabold text-white'
+                  : 'font-bold text-white/40 group-hover:text-white/85'
+              }`}
+            >
+              {item.label}
             </span>
-            <span className="mt-1 block text-[12px] leading-snug text-white/35">
-              {item.description}
-            </span>
-          </span>
+          )}
         </>
       )}
     </NavLink>
   )
 }
 
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <p className="px-4 pt-5 pb-2 font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
-      {children}
-    </p>
-  )
-}
-
 export default function Sidebar({ isModerator = false }: { isModerator?: boolean }) {
+  const [collapsed, setCollapsed] = useCollapsed()
+
+  const items = [...PRIMARY_NAV, ...(isModerator ? MODERATOR_NAV : []), ...DEV_NAV]
+
   return (
-    <aside className="liquid-glass-panel hidden w-64 shrink-0 flex-col self-start rounded-[2rem] p-4 md:sticky md:top-6 md:flex">
-      <div className="px-4 pt-2 pb-1">
-        <p className="font-mono text-[9px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
-          Thapar
-        </p>
-        <p className="mt-1 text-[19px] font-extrabold tracking-tight text-white">VentureAdda</p>
-      </div>
-
-      <nav aria-label="Primary">
-        <SectionLabel>Browse</SectionLabel>
-        <div className="space-y-1.5">
-          {PRIMARY_NAV.map((item) => (
-            <SidebarLink key={item.to} item={item} />
-          ))}
-        </div>
-
-        {isModerator && (
-          <>
-            <SectionLabel>Moderator</SectionLabel>
-            <div className="space-y-1.5">
-              {MODERATOR_NAV.map((item) => (
-                <SidebarLink key={item.to} item={item} />
-              ))}
-            </div>
-          </>
+    <aside
+      className={`liquid-glass-panel hidden shrink-0 flex-col self-start rounded-[2rem] transition-[width,padding] duration-200 md:sticky md:top-6 md:flex ${
+        collapsed ? 'w-auto p-2' : 'w-64 p-4'
+      }`}
+    >
+      <div
+        className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between gap-2 px-2 pt-1 pb-3'}`}
+      >
+        {!collapsed && (
+          <div className="min-w-0">
+            <p className="font-mono text-[9px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
+              Thapar
+            </p>
+            <p className="mt-1 truncate text-[19px] font-extrabold tracking-tight text-white">
+              VentureAdda
+            </p>
+          </div>
         )}
 
-        <SectionLabel>Reference</SectionLabel>
-        <div className="space-y-1.5">
-          {DEV_NAV.map((item) => (
-            <SidebarLink key={item.to} item={item} />
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/45 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={15} aria-hidden="true" />
+          ) : (
+            <PanelLeftClose size={15} aria-hidden="true" />
+          )}
+        </button>
+      </div>
+
+      <nav aria-label="Primary" className={`space-y-1.5 ${collapsed ? 'mt-1' : ''}`}>
+        {items.map((item) => (
+          <SidebarLink key={item.to} item={item} collapsed={collapsed} />
+        ))}
       </nav>
 
-      <p className="mt-6 px-4 pb-1 font-mono text-[9px] tracking-[0.18em] text-white/20 uppercase">
-        No payments on site
-      </p>
+      {!collapsed && (
+        <p className="mt-6 px-4 pb-1 font-mono text-[9px] tracking-[0.18em] text-white/20 uppercase">
+          No payments on site
+        </p>
+      )}
     </aside>
   )
 }

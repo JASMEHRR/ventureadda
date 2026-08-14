@@ -5,56 +5,34 @@ export type NavItem = {
   to: string
   label: string
   icon: LucideIcon
-  /** Sentence-case line shown under the title in the sidebar. */
-  description: string
   /** Hidden from the mobile bar, which only has room for four. */
   desktopOnly?: boolean
 }
 
 /**
- * One source of truth for both nav surfaces. The sidebar and the mobile bar
- * render the same items very differently, but they must never disagree about
- * what exists — that is how a route ends up reachable on a laptop and
+ * One source of truth for every nav surface. The top bar, the mobile menu and
+ * the bottom bar render these very differently, but they must never disagree
+ * about what exists — that is how a route ends up reachable on a laptop and
  * invisible on a phone.
+ *
+ * Labels are single words on purpose. These used to carry a sentence of
+ * description each ("Bugs, requests and feedback about the site"), which is
+ * right for a dashboard someone opens every day and learns, and wrong for a
+ * directory a stranger opens once from a WhatsApp link. A visitor scanning a
+ * nav bar is not reading; they are looking for the word they already want.
  */
 export const PRIMARY_NAV: NavItem[] = [
-  {
-    to: '/',
-    label: 'Browse',
-    icon: Store,
-    description: 'Every venture on campus, newest first.',
-  },
-  {
-    to: '/categories',
-    label: 'Categories',
-    icon: LayoutGrid,
-    description: 'Food, fashion, art, services and more.',
-  },
-  {
-    to: '/chat',
-    label: 'All Chat',
-    icon: MessageSquare,
-    description: 'Bugs, requests and feedback about the site.',
-  },
+  // Browse still lives at '/'. The landing page moves it to '/browse', and this
+  // is the one line that has to change with it.
+  { to: '/', label: 'Browse', icon: Store },
+  { to: '/categories', label: 'Categories', icon: LayoutGrid },
+  { to: '/chat', label: 'All Chat', icon: MessageSquare },
 ]
 
 /** Shown only to accounts flagged as moderators. */
-export const MODERATOR_NAV: NavItem[] = [
-  {
-    to: '/moderator',
-    label: 'Moderate',
-    icon: Shield,
-    description: 'Approvals, listings, chat and categories.',
-  },
-]
+export const MODERATOR_NAV: NavItem[] = [{ to: '/moderator', label: 'Moderate', icon: Shield }]
 
 /** Kept reachable so the design system stays inspectable while building. */
 export const DEV_NAV: NavItem[] = [
-  {
-    to: '/design',
-    label: 'Design system',
-    icon: Palette,
-    description: 'Tokens, glass, buttons and rows.',
-    desktopOnly: true,
-  },
+  { to: '/design', label: 'Design system', icon: Palette, desktopOnly: true },
 ]
