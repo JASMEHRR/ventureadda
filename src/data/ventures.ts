@@ -32,8 +32,23 @@ export { CATEGORIES, categoryName } from './types'
 const venturesRef = collection(db, 'ventures')
 const menuItemsRef = collection(db, 'menuItems')
 
+/**
+ * Malformed fields are coerced to a usable default rather than thrown, because
+ * one bad document should not take out the whole browse page. The trade is that
+ * it fails invisibly — a venture whose photos are not an array renders the
+ * ImageOff placeholder and says nothing — so in dev it says something.
+ */
+function warnMalformed(id: string, field: string, value: unknown): void {
+  if (import.meta.env.DEV) {
+    console.warn(`[ventures] ${id}: "${field}" is malformed, using a default.`, value)
+  }
+}
+
 function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
   const data = snapshot.data()
+  if (data.photos !== undefined && !Array.isArray(data.photos)) {
+    warnMalformed(snapshot.id, 'photos', data.photos)
+  }
   return {
     id: snapshot.id,
     ownerId: data.ownerId ?? '',
@@ -52,6 +67,9 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
 
 function toMenuItem(snapshot: QueryDocumentSnapshot<DocumentData>): MenuItem {
   const data = snapshot.data()
+  if (data.price !== undefined && typeof data.price !== 'number') {
+    warnMalformed(snapshot.id, 'price', data.price)
+  }
   return {
     id: snapshot.id,
     ventureId: data.ventureId ?? '',
