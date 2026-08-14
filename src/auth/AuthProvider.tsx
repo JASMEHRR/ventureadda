@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 import { doc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore'
-import { ALLOWED_EMAIL_DOMAIN, auth, db, isAllowedEmail } from '../lib/firebase'
+import { ALLOWED_EMAIL_DOMAIN, OWNER_EMAIL, auth, db, isAllowedEmail } from '../lib/firebase'
 
 export type Profile = {
   uid: string
@@ -68,7 +68,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return onSnapshot(
       doc(db, 'users', user.uid),
       (snapshot) => {
-        setProfile(snapshot.exists() ? (snapshot.data() as Profile) : null)
+        if (!snapshot.exists()) {
+          setProfile(null)
+          setProfileResolved(true)
+          return
+        }
+        const stored = snapshot.data() as Profile
+        // Mirrors isModerator() in firestore.rules, which grants the owner
+        // moderator rights by address. The stored flag cannot carry it: the
+        // users create rule forces isModerator to false for everyone, so the
+        // owner's own document says false while the rules say true. Without
+        // this line the owner is refused the moderator page by the client
+        // while Firestore would happily serve them every query on it.
+        setProfile({
+          ...stored,
+          isModerator: stored.isModerator || stored.email.toLowerCase() === OWNER_EMAIL,
+        })
         setProfileResolved(true)
       },
       () => {

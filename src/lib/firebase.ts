@@ -53,6 +53,15 @@ export const db = getFirestore(app)
  */
 export const ALLOWED_EMAIL_DOMAIN = 'thapar.edu'
 
+/**
+ * The site owner, who is not a Thapar address and would otherwise be unable to
+ * sign in at all. Mirrors isOwner() in firestore.rules — that copy is the one
+ * that actually grants anything; this one only avoids a confusing rejection
+ * before the email is ever sent.
+ */
+export const OWNER_EMAIL = 'jasmehr2005@gmail.com'
+
 export function isAllowedEmail(email: string): boolean {
-  return email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)
+  const normalised = email.trim().toLowerCase()
+  return normalised === OWNER_EMAIL || normalised.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)
 }

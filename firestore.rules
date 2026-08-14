@@ -25,13 +25,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // The whole trust boundary. Full-string match, so an address like
-    // someone@thapar.edu.example.com does not slip through.
-    function isThaparUser() {
+    // The site owner. Identified by address rather than by a flag on a
+    // document, so it cannot be revoked by anything that goes wrong in the
+    // users collection and does not depend on a manual console step.
+    //
+    // email_verified is what makes this safe. Enabling email-link sign-in also
+    // enabled the Email/Password provider, so an account with this address
+    // could in principle be created outside our UI — but not verified without
+    // access to the inbox, and an unverified token fails here.
+    function isOwner() {
       return request.auth != null
         && request.auth.token.email != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email.lower().matches('.*@thapar[.]edu');
+        && request.auth.token.email.lower() == 'jasmehr2005@gmail.com';
+    }
+
+    // The whole trust boundary. Full-string match, so an address like
+    // someone@thapar.edu.example.com does not slip through. The owner is
+    // exempt — the address above is not a Thapar one and would otherwise be
+    // unable to sign in at all.
+    function isThaparUser() {
+      return isOwner()
+        || (request.auth != null
+            && request.auth.token.email != null
+            && request.auth.token.email_verified == true
+            && request.auth.token.email.lower().matches('.*@thapar[.]edu'));
     }
 
     function isSelf(uid) {
@@ -76,10 +94,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // The owner is always a moderator, checked first so it costs no document
+    // read and works before any user document exists. Other moderators are
+    // still promoted by hand in the console.
     function isModerator() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true;
+      return isOwner()
+        || (request.auth != null
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true);
     }
 
     match /ventures/{ventureId} {
