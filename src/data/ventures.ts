@@ -61,6 +61,9 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
     hours: data.hours ?? '',
     phone: data.phone ?? '',
     photos: Array.isArray(data.photos) ? (data.photos as StoredImage[]) : [],
+    // Cleared logos are stored as null by updateVenture, so absent and cleared
+    // both have to come back as undefined rather than as a falsy StoredImage.
+    logo: (data.logo as StoredImage | null | undefined) ?? undefined,
     status: (data.status ?? 'pending') as VentureStatus,
     rejectionReason: data.rejectionReason,
     clickCount: typeof data.clickCount === 'number' ? data.clickCount : 0,
@@ -170,6 +173,7 @@ export type VentureInput = {
   hours: string
   phone: string
   photos: StoredImage[]
+  logo?: StoredImage
 }
 
 export type MenuItemInput = {
@@ -218,10 +222,15 @@ export async function createVenture(
 ): Promise<string> {
   const ventureRef = doc(venturesRef)
 
+  // Pulled out of the spread because Firestore rejects an undefined field
+  // value outright, and a venture with no logo is the common case.
+  const { logo, ...details } = input
+
   const payload = {
     ownerId: owner.uid,
     ownerUsername: owner.username,
-    ...input,
+    ...details,
+    ...(logo ? { logo } : {}),
     status: 'pending',
     clickCount: 0,
     // Only written when true, so real submissions carry no such field at all.
@@ -281,7 +290,9 @@ export async function updateVenture(
   const keptIds = new Set(items.map((item) => item.id).filter(Boolean) as string[])
 
   const batch = writeBatch(db)
-  batch.update(doc(venturesRef, ventureId), { ...input })
+  // null rather than an omitted key, so removing a logo actually removes it —
+  // an update that leaves the field out keeps whatever was there before.
+  batch.update(doc(venturesRef, ventureId), { ...input, logo: input.logo ?? null })
 
   for (const item of items) {
     const payload = {

@@ -7,6 +7,7 @@ import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
 import ReviewSection from '../components/ReviewSection'
 import LoadingLine from '../components/ui/LoadingLine'
+import VentureLogo from '../components/ui/VentureLogo'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
@@ -157,6 +158,20 @@ export default function VentureDetail() {
         <PhotoGallery venture={v} />
 
         <section className="liquid-glass-panel rounded-3xl p-5">
+        {/* The name, which this page did not show anywhere before — the only
+            h1 is the shell's visually-hidden one, so a visitor arriving from a
+            shared link had to infer whose menu they were reading. The logo sits
+            with it, which is the one place a venture's own mark belongs. */}
+        <div className="mb-3.5 flex items-center gap-3">
+          <VentureLogo name={v.name} logo={v.logo} size={44} />
+          {/* A heading, not a paragraph: the shell's only h1 is the static
+              "Venture", so navigating this page by headings would otherwise
+              never reach the name of the venture it is about. */}
+          <h2 className="min-w-0 flex-1 text-[21px] leading-tight font-extrabold text-white">
+            {v.name}
+          </h2>
+        </div>
+
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="flex items-center gap-1.5 text-white/40">
             <Clock size={12} aria-hidden="true" />

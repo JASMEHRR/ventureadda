@@ -26,6 +26,12 @@ export type Venture = {
   /** International format, no plus sign — the shape wa.me expects. */
   phone: string
   photos: StoredImage[]
+  /**
+   * Optional, and separate from photos: this is the venture's identity, shown
+   * small and square wherever the name appears, while photos are what it sells.
+   * Absent is the normal case — VentureLogo falls back to an initial tile.
+   */
+  logo?: StoredImage
   status: VentureStatus
   rejectionReason?: string
   clickCount: number

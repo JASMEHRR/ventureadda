@@ -61,7 +61,7 @@ export default function AppShell() {
         <Sidebar isModerator={isModerator} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <TopBar user={profile} />
+          <TopBar />
           <main className="min-w-0 flex-1">
             <h1 className="sr-only">{pageTitle(pathname)}</h1>
             {/* No username gate here any more. Usernames are permanent, and

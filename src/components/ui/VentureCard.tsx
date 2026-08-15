@@ -3,6 +3,7 @@ import { Clock, ImageOff } from 'lucide-react'
 import type { Venture } from '../../data/ventures'
 import type { RatingSummary } from '../../data/reviews'
 import { StarDisplay } from './StarRating'
+import VentureLogo from './VentureLogo'
 import { displayUrl } from '../../lib/cloudinary'
 
 /**
@@ -66,8 +67,11 @@ export default function VentureCard({
           )}
         </div>
 
-        <h3 className="mt-1.5 text-[17px] font-extrabold text-white">{venture.name}</h3>
-        <p className="mt-1 line-clamp-2 text-[13.5px] leading-snug text-white/55">
+        <div className="mt-1.5 flex items-center gap-2.5">
+          <VentureLogo name={venture.name} logo={venture.logo} size={34} />
+          <h3 className="min-w-0 truncate text-[17px] font-extrabold text-white">{venture.name}</h3>
+        </div>
+        <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-snug text-white/55">
           {venture.description}
         </p>
 

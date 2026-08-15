@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import VentureForm from '../components/VentureForm'
 import type { VentureFormValues } from '../components/VentureForm'
 import LoadingLine from '../components/ui/LoadingLine'
+import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, updateVenture } from '../data/ventures'
@@ -26,7 +27,13 @@ export default function EditVenture() {
       <LoadingLine label="Loading…" />
     )
   }
-  if (status === 'signedOut' || !profile) return <Navigate to="/signin" replace />
+  if (status === 'signedOut') return <Navigate to="/signin" replace />
+  // Signed in without a username. Sending them to /signin would bounce them to
+  // /browse with no explanation, same dead end Profile had; AddVenture already
+  // does it this way.
+  if (!profile) {
+    return <ChooseUsername reason="Your listings are filed under a username, so pick one first." />
+  }
 
   if (!venture.data) {
     return (

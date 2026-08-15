@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Button from '../components/ui/Button'
+import Logo from '../components/ui/Logo'
 import Reveal from '../components/ui/Reveal'
 import VentureCard from '../components/ui/VentureCard'
 import { categoryName } from '../data/types'
@@ -148,21 +149,23 @@ function Eyebrow({ children }: { children: string }) {
 }
 
 export default function Landing() {
-  const { profile } = useAuth()
+  const { status } = useAuth()
 
   return (
     <div className="min-h-screen">
       {/* Marketing header, not the app shell's. Three things only: who this is,
           the way in, and the way to sign in. */}
       <header className="flex items-center gap-3 px-6 py-5">
-        <Link to="/" className="text-[19px] font-extrabold tracking-tight text-white">
-          VentureAdda
+        <Link to="/">
+          <Logo />
         </Link>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="ghost" to="/browse">
             Browse
           </Button>
-          {profile ? (
+          {/* Keyed on the session, not the profile: an account with no username
+              yet still needs its way in, and /signin only bounces it back. */}
+          {status === 'ready' ? (
             <Button variant="secondary" to="/profile">
               Your profile
             </Button>

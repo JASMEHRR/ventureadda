@@ -44,6 +44,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const [hours, setHours] = useState(initial?.hours ?? '')
   const [phone, setPhone] = useState(initial?.phone ?? '')
   const [photos, setPhotos] = useState<StoredImage[]>(initial?.photos ?? [])
+  const [logo, setLogo] = useState<StoredImage | undefined>(initial?.logo)
   const [items, setItems] = useState<MenuItemDraft[]>(
     initial?.items?.length ? initial.items : [newDraft()],
   )
@@ -115,6 +116,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           hours: hours.trim(),
           phone: digits,
           photos,
+          logo,
         },
         items: filled.map((item) => ({
           id: item.id,
@@ -184,6 +186,14 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
           placeholder="919876543210"
+        />
+
+        <PhotoUploader
+          label="Logo"
+          hint="Optional. A square image shown next to your name. Without one, your initial is used."
+          photos={logo ? [logo] : []}
+          onChange={(next) => setLogo(next[0])}
+          max={1}
         />
 
         <PhotoUploader
