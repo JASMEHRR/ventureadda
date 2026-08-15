@@ -268,6 +268,13 @@ export function parseItems(raw: string): ExtractedItem[] | null {
 }
 
 export default async function handler(request: Request): Promise<Response> {
+  // TEMPORARY DIAGNOSTIC: the crash logs for this function show Node internals
+  // (node:net, node:internal/stream_base_commons), which do not exist in the
+  // Edge runtime this file declares via `config.runtime`. This line confirms
+  // which runtime Vercel is actually invoking before any real fix goes in.
+  // Remove once confirmed either way.
+  console.log('runtime check', typeof (globalThis as Record<string, unknown>).EdgeRuntime, typeof process)
+
   if (request.method !== 'POST') {
     return fail('Use POST.', 405, 'method_not_allowed')
   }
