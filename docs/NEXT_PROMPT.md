@@ -15,46 +15,82 @@ Paste everything below the line into Claude Code.
 
 ---
 
-## Code-fixed, not yet live — verify before touching anything else
+## Done, don't redo (this round)
 
-- **Item 1, paste-list column-shift** — root cause found: separator-less lines (`Kurkure Masala Munch — ₹23`) fell through to the spreadsheet path and the name swallowed the price. Fixed in `src/data/menuParse.ts`, pinned with your exact line plus a digits-in-name case and a bare-header case. All 21 real items now parse correctly.
-- **Item 2, Scan Photo ECONNRESET** — root cause found: Groq caps base64 data-URL images at 4MB (the 20MB limit is for hosted URLs only); past that it resets the connection mid-write instead of returning an error, which matches the trace exactly. Both ceilings dropped to 4MB in `api/extract-menu.ts` (server) and `src/lib/extractMenu.ts` (client courtesy check). Flagged, not fixed: real phone photos are often 3–8MB so this will legitimately reject plenty of them — client-side compression is the likely next move if that bites in practice, don't build it speculatively yet.
-
-Neither is verified live. Both need a real deploy and a real test against production, same bar as every round before this.
+- Sidebar/TopBar build break — resolved by committing the rest of the uncommitted logo work alongside the syntax fix, so `Logo` module and the `AppShell` `user: Profile | null` prop are no longer dangling. Deploy `28678c8` ("Ship logo work, paste-list column-shift fix, and Scan Photo size...") is live and green — confirmed in the Vercel dashboard, not just page-load.
+- Logos shipped in this deploy. Not yet visually verified live — check the wordmark renders correctly (sidebar, top bar, favicon) and per-venture logo field works, same pass as the two bugs below.
 
 ---
 
-## 1. BLOCKER — commit e2d4499 failed on Vercel, real cause found
+## 1. BLOCKER — paste-list still fails on real input: 24/24 items, no price
 
-The syntax fix to Sidebar.tsx/TopBar.tsx built clean locally but failed on Vercel:
+The `Kurkure Masala Munch — ₹23` case you pinned passed, but the actual list a real owner pastes looks like this (exact text, tested live on `28678c8`):
 
 ```
-src/components/layout/AppShell.tsx(64,19): error TS2322: Type '{ user: Profile | null; }' is not assignable to type 'IntrinsicAttributes'.
-src/components/layout/Sidebar.tsx(4,32): error TS2307: Cannot find module '../ui/Logo'.
-src/components/layout/TopBar.tsx(5,18): error TS2307: Cannot find module '../ui/Logo'.
+SNACKS
+
+* Kurkure Masala Munch — ₹23
+* Lays — ₹23
+* Uncle Chips — ₹23
+* Lotte Choco Pie — ₹15
+
+INSTANT MEALS
+
+* Maggi Cup Noodles Chilly — ₹60
+* Maggi Cup Noodles Masala — ₹60
+* Maggi Masala Noodles — ₹40
+* Wai Wai Cup Noodles — ₹60
+
+PROTEIN BITES
+
+* RiteBite Max Protein Grain Cookies 55g — ₹50
+* RiteBite Max Protein Choco Almond Cookies 60g — ₹65
+* RiteBite Max Protein Cheese & Jalapeno Chips 60g — ₹50
+* RiteBite Max Protein Cream & Onion 60g — ₹50
+* RiteBite Max Protein Peri Peri 60g — ₹50
+
+DRINKS
+
+* Water Bottle 1 L — ₹15
+* Diet Coke — ₹55
+* Monster Energy Drink — ₹115
+* Red Bull — ₹115
+
+BOYS HOSTEL ROOM NO. 311
+GIRLS HOSTEL ROOM NO. 211
+YOUR NEW CAMPUS CRAVING IS COMING
 ```
 
-Cause: Sidebar.tsx and TopBar.tsx already had uncommitted logo-work edits in them (importing `../ui/Logo`, AppShell passing a `user: Profile | null` prop) from before this session. Committing only the syntax fix left those two files referencing a `Logo` component and a prop type that only exist in the uncommitted tree — built fine locally where those files were still on disk, dangling reference once pushed to a repo that doesn't have them.
+Result: "Added 24 items. 24 had no price I could read — fill those in." 24 is every line (4 category headers + 17 real items + 3 footer lines) — meaning the 17 real items with clean `Name — ₹NN` pricing failed too, not just the headers/footer that are correctly supposed to fail.
 
-Decision: commit everything now, including the rest of the logo work and whatever else was sitting uncommitted (Profile changes, etc.), so the repo is self-consistent. This means the logo work ships in the same deploy as paste-list and Scan Photo, untested. Once green, live verification covers all three — not just the two originally planned.
-
----
-
-## 2. Logos
-
-**a. VentureAdda wordmark.** Inline SVG, cyan on dark, geometric, legible at 16px. No external image, nothing AI-generated. Use it in the sidebar header, the landing page header, and as favicon/apple-touch-icon.
-
-**b. Per-venture logo field.** Optional, separate from photos — small square shown on the card and beside the venture name. Falls back to an initial on a tinted circle, same pattern as user avatars.
+The one difference from your pinned test case: every real line here starts with `* ` (markdown bullet). Strong suspicion, not confirmed — the trailing-em-dash-price detection is anchored to the start of the line and the leading `* ` isn't being stripped before it runs, so it never matches. Confirm against the code before fixing, and add this exact block as a pinned test once you know why — a single-line fix that doesn't survive a real bulleted paste isn't done.
 
 ---
 
-## 3. Sign out
+## 2. BLOCKER — Scan Photo hangs 5 minutes, then 504s
+
+Different failure from before (that one failed fast at 1.9s on ECONNRESET — the 4MB fix for that is presumably fine, this is downstream of it). Real log, `28678c8`, today:
+
+```
+POST /api/extract-menu → 504
+Vercel Runtime Timeout Error: Task timed out after 300 seconds
+```
+
+Matches what was reported live: the UI sits on "READING... READING" indefinitely — it's not a cosmetic stuck spinner, the function is actually hanging for the full 5 minutes before Vercel kills it. Most likely candidate: the outbound call to Groq has no timeout of its own and is hanging rather than erroring. Get the real cause from the code — same rule as always — before changing anything.
+
+---
+
+## 3. Logos — already shipped, see "Done" above; verify visually only
+
+---
+
+## 4. Sign out
 
 Add a reachable **Sign out** action (profile menu). `/signin` redirects when already authenticated, so right now there's no way to switch accounts without clearing storage.
 
 ---
 
-## 4. Small cleanup, low priority
+## 5. Small cleanup, low priority
 
 No way to delete a pending or rejected venture from the UI — they accumulate forever. Add a delete button on pending/rejected rows in the owner's own listing view. Not urgent; the one live rejected test venture is fine to leave or delete by hand in the Firestore console.
 
@@ -70,4 +106,4 @@ No way to delete a pending or rejected venture from the UI — they accumulate f
 
 ---
 
-Before testing anything: confirm the deploy is GREEN in the Vercel dashboard, not just that the page loads. Fix the Sidebar/TopBar build break first — it blocks everything else from being verifiable.
+Before testing anything: confirm the deploy is GREEN in the Vercel dashboard, not just that the page loads. Both blockers above are on the current live deploy — get the real cause from the code before changing anything, same as always.

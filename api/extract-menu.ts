@@ -314,30 +314,48 @@ export default async function handler(request: Request): Promise<Response> {
     return fail('That photo is too large. Try one under 4MB.', 413, 'too_large')
   }
 
+  // Groq has no documented request timeout of its own, and a hung connection
+  // otherwise rides all the way to Vercel's 300s function ceiling before the
+  // platform kills it with a bare 504 — the UI just sits on "Reading" for five
+  // minutes. 25s is generously above a normal vision-model response and well
+  // under the 300s ceiling, so a genuine hang surfaces as a clear, fast error
+  // instead of a five-minute stall.
+  const UPSTREAM_TIMEOUT_MS = 25_000
+
   let response: Response
   try {
-    response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0,
-        max_completion_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: PROMPT },
-              { type: 'image_url', image_url: { url: image } },
-            ],
-          },
-        ],
-      }),
-    })
-  } catch {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+    try {
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          temperature: 0,
+          max_completion_tokens: 4096,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: PROMPT },
+                { type: 'image_url', image_url: { url: image } },
+              ],
+            },
+          ],
+        }),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timer)
+    }
+  } catch (cause) {
+    if (cause instanceof Error && cause.name === 'AbortError') {
+      return fail('Scanning is taking too long. Try again, or type the items in.', 504, 'upstream_timeout')
+    }
     return fail('Could not reach the scanning service. Type the items in for now.', 502, 'upstream_unreachable')
   }
 
