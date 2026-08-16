@@ -275,6 +275,18 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /settings/{settingId} {
+      // One global backdrop image, shown to every visitor including
+      // signed-out ones, so the read has to be open. Only a moderator can
+      // change it; an empty write resets to the default baked into the app.
+      allow read: if true;
+
+      allow write: if isModerator()
+                   && (!('backdrop' in request.resource.data)
+                       || (request.resource.data.backdrop.url is string
+                           && request.resource.data.backdrop.publicId is string));
+    }
+
     // Everything else stays closed. Any new collection needs its own rules
     // written alongside the feature, not retrofitted afterwards.
     match /{document=**} {

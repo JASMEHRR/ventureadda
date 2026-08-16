@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react'
+import { getSiteSettings } from '../data/settings'
+import { displayUrl } from '../lib/cloudinary'
+
 /**
  * Full-bleed photographic backdrop sitting behind the entire app.
  *
@@ -23,13 +27,38 @@
  * device in Ascend (§2), and a runtime filter would cost a full-screen pass.
  * A flat multiply keeps the stars proportionally brighter than the sky, so
  * none of the texture the blur needs is lost.
+ *
+ * A moderator can replace this from /moderator, stored in settings/site in
+ * Firestore. Starts on the file above and swaps in whatever is there once the
+ * one-document read resolves, rather than blocking first paint on it — a
+ * flash from default to custom is far cheaper than a blank screen while
+ * every visitor, signed in or not, waits on a network round trip.
  */
+const DEFAULT_BACKDROP = '/atmosphere.jpg'
+
 export default function AtmosphereBackdrop() {
+  const [url, setUrl] = useState(DEFAULT_BACKDROP)
+
+  useEffect(() => {
+    let cancelled = false
+    getSiteSettings()
+      .then((settings) => {
+        if (!cancelled && settings.backdrop) setUrl(displayUrl(settings.backdrop, 1200))
+      })
+      .catch(() => {
+        // The default backdrop is already showing. Nobody sees a broken page
+        // over a failed read of an optional override.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <div
       aria-hidden="true"
       className="fixed inset-0 -z-10 bg-app bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: 'url(/atmosphere.jpg)' }}
+      style={{ backgroundImage: `url(${url})` }}
     />
   )
 }

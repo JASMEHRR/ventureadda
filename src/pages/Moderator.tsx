@@ -4,6 +4,7 @@ import { Check, Inbox, MessageCircle, MousePointerClick, Sprout, Store, X } from
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
+import PhotoUploader from '../components/ui/PhotoUploader'
 import StatCard from '../components/ui/StatCard'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
@@ -20,6 +21,7 @@ import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
 import { SEED_VENTURES } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
+import { getSiteSettings, setBackdrop } from '../data/settings'
 
 type Tab = 'pending' | 'live'
 
@@ -88,6 +90,7 @@ export default function Moderator() {
 
   const pending = useAsyncData(() => listVenturesByStatus('pending'), [refreshToken])
   const live = useAsyncData(() => listVenturesByStatus('live'), [refreshToken])
+  const settings = useAsyncData(() => getSiteSettings(), [refreshToken])
 
   // Enquiry totals per venture, for the live tab. One read of the whole menu
   // collection is cheaper than one per venture at this size.
@@ -176,6 +179,23 @@ export default function Moderator() {
           unit="views"
           icon={MousePointerClick}
           accent="neutral"
+        />
+      </div>
+
+      <div className="liquid-glass-panel space-y-2 rounded-2xl p-4">
+        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Site backdrop
+        </h2>
+        <p className="text-[12.5px] text-white/45">
+          Shown behind the whole app, to every visitor. Leave empty for the default.
+        </p>
+        <PhotoUploader
+          label="Backdrop image"
+          photos={settings.data?.backdrop ? [settings.data.backdrop] : []}
+          onChange={(next) =>
+            void act(() => setBackdrop(next[0] ?? null), next[0] ? 'Backdrop updated.' : 'Backdrop reset to default.')
+          }
+          max={1}
         />
       </div>
 
