@@ -175,16 +175,18 @@ async function verifyFirebaseToken(
  * prices wrong, and a wrong price is worse than no price because somebody acts
  * on it.
  *
- * RUNTIME. Not pinned to Edge. Three crashes in production (write ECONNRESET,
- * an out-of-memory kill, and a 300s timeout) all showed Node-internal stack
- * frames (node:net, node:internal/stream_base_commons) that do not exist in
- * Vercel's actual Edge V8 isolate, and a diagnostic log placed as the first
- * line of the handler never printed before any of them — meaning whatever was
- * crashing did so before our code ran at all. That pointed at a runtime
- * mismatch rather than a bug in this file, so this now runs as a plain
- * Node.js serverless function, which is what the crashes were actually
- * behaving like.
+ * RUNTIME. Pinned to Edge deliberately: this handler uses the Fetch API
+ * signature, `(request: Request) => Response`, which Vercel's Node.js
+ * serverless functions do not support (they expect the Express-style
+ * `(req, res)` signature instead). Dropping `config.runtime` here once, to
+ * chase a set of Node-internal stack frames turning up in crash logs, broke
+ * every request outright with `request.headers.get is not a function` —
+ * those frames are from Vercel's own Node-based edge proxy layer, not proof
+ * this function wasn't really running on Edge. Whatever was behind the
+ * ECONNRESET/OOM/timeout crashes is still open; it is not this.
  */
+
+export const config = { runtime: 'edge' }
 
 /**
  * Groq's vision model, confirmed against console.groq.com/docs/vision rather
