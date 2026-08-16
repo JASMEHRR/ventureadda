@@ -11,7 +11,7 @@ import {
   signOut as firebaseSignOut,
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
-import { doc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { OWNER_EMAIL, auth, db, isThaparEmail } from '../lib/firebase'
 import { reportError } from '../lib/errors'
 
@@ -78,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [authResolved, setAuthResolved] = useState(false)
   const [profileResolved, setProfileResolved] = useState(false)
+  /**
+   * The signed-in address's own pre-approval entry, or null if there isn't
+   * one. Read once per session rather than exposed as a hook elsewhere,
+   * because the two things it decides — posting rights and an automatic
+   * moderator grant below — both live here already.
+   */
+  const [preApproved, setPreApproved] = useState<{ moderator: boolean } | null>(null)
 
   useEffect(() => {
     return onAuthStateChanged(auth, (next) => {
@@ -127,6 +134,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     )
   }, [user])
+
+  // A one-off read, not a subscription: this only has to catch the moment
+  // someone signs in for the first time after being pre-approved. The rules
+  // let anyone read their own entry here — see firestore.rules on
+  // approvedEmails/{emailId} — so this never touches another account's.
+  useEffect(() => {
+    if (!user?.email) {
+      setPreApproved(null)
+      return
+    }
+    let cancelled = false
+    getDoc(doc(db, 'approvedEmails', user.email.toLowerCase()))
+      .then((snapshot) => {
+        if (cancelled) return
+        setPreApproved(snapshot.exists() ? { moderator: snapshot.data().moderator === true } : null)
+      })
+      .catch(() => {
+        if (!cancelled) setPreApproved(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  // Applies a moderator pre-approval the moment both pieces are in: the
+  // profile document exists (claimUsername has run) and the pre-approval
+  // read above has resolved. Stops itself once profile.isModerator flips to
+  // true, because the write that does that re-fires the onSnapshot above and
+  // this effect re-runs with a profile that no longer needs it.
+  useEffect(() => {
+    if (!user || !profile || profile.isModerator || !preApproved?.moderator) return
+    void updateDoc(doc(db, 'users', user.uid), { isModerator: true }).catch(() => {
+      // Pre-approval is a convenience, not a promise. If this fails, the
+      // owner's existing username-lookup panel is still there as a fallback.
+    })
+  }, [user, profile, preApproved])
 
   /**
    * The primary way in. Thapar runs on Google Workspace, so a student is
@@ -250,7 +293,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : 'ready'
 
   const needsUsername = status === 'ready' && !profile
-  const canPost = status === 'ready' && isThaparEmail(user?.email)
+  // A pre-approved outside address gets the same posting rights a Thapar
+  // address has by default — that is the entire point of approving one.
+  const canPost = status === 'ready' && (isThaparEmail(user?.email) || preApproved !== null)
 
   const value = useMemo(
     () => ({

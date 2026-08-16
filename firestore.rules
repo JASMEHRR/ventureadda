@@ -57,12 +57,20 @@ service cloud.firestore {
     // Full-string match, so an address like someone@thapar.edu.example.com does
     // not slip through. The owner is exempt — the address above is not a Thapar
     // one and would otherwise be unable to moderate at all.
+    //
+    // The third clause is the pre-approval list: an outside address the owner
+    // has explicitly added to approvedEmails gets the same standing as a
+    // Thapar one, checked by existence alone — see that collection below.
     function isThaparUser() {
       return isOwner()
         || (request.auth != null
             && request.auth.token.email != null
             && request.auth.token.email_verified == true
-            && request.auth.token.email.lower().matches('.*@thapar[.]edu'));
+            && request.auth.token.email.lower().matches('.*@thapar[.]edu'))
+        || (request.auth != null
+            && request.auth.token.email != null
+            && request.auth.token.email_verified == true
+            && exists(/databases/$(database)/documents/approvedEmails/$(request.auth.token.email.lower())));
     }
 
     function isSelf(uid) {
@@ -97,10 +105,42 @@ service cloud.firestore {
                     // which forbids touching isModerator at all.
                     || (isOwner()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isModerator'])
-                        && request.resource.data.isModerator is bool);
+                        && request.resource.data.isModerator is bool)
+                    // Self-promotion on first sign-in, and only in that exact
+                    // direction: false to true, gated on a matching
+                    // approvedEmails entry with moderator == true. This is how
+                    // a pre-approval actually takes effect without the owner
+                    // having to come back and flip it by hand afterwards.
+                    || (isVerifiedUser()
+                        && isSelf(uid)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isModerator'])
+                        && resource.data.isModerator == false
+                        && request.resource.data.isModerator == true
+                        && request.auth.token.email != null
+                        // exists() first: get() on a document that is not
+                        // there errors the whole rule instead of just failing
+                        // it, and the overwhelming majority of accounts have
+                        // no approvedEmails entry at all.
+                        && exists(/databases/$(database)/documents/approvedEmails/$(request.auth.token.email.lower()))
+                        && get(/databases/$(database)/documents/approvedEmails/$(request.auth.token.email.lower())).data.moderator == true);
 
       // Deleting a user would orphan their username claim and their ventures.
       allow delete: if false;
+    }
+
+    match /approvedEmails/{emailId} {
+      // A signed-in user may read their own entry, so the client can tell
+      // whether to grant posting rights and whether to self-promote to
+      // moderator on first sign-in (see users/{uid} update and isThaparUser
+      // above). A moderator may read the whole collection, to manage it.
+      allow read: if isModerator()
+                  || (request.auth != null
+                      && request.auth.token.email != null
+                      && request.auth.token.email.lower() == emailId);
+
+      // Only the actual owner decides who gets standing before they have
+      // even signed up — this is a step above ordinary moderation.
+      allow write: if isOwner() && request.resource.data.moderator is bool;
     }
 
     // Username uniqueness. The document id IS the claim: ids are unique by

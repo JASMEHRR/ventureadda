@@ -1,6 +1,18 @@
 import { useCallback, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Check, Inbox, MessageCircle, MousePointerClick, Search, Shield, Sprout, Store, X } from 'lucide-react'
+import {
+  Check,
+  Inbox,
+  MessageCircle,
+  MousePointerClick,
+  Search,
+  Shield,
+  Sprout,
+  Store,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
@@ -24,7 +36,13 @@ import { SEED_VENTURES } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL } from '../lib/firebase'
 import { getSiteSettings, setBackdrop } from '../data/settings'
-import { findUserByUsername, setModerator } from '../data/moderators'
+import {
+  approveEmail,
+  findUserByUsername,
+  listApprovedEmails,
+  revokeApprovedEmail,
+  setModerator,
+} from '../data/moderators'
 import type { ModeratorCandidate } from '../data/moderators'
 
 type Tab = 'pending' | 'live'
@@ -94,12 +112,15 @@ export default function Moderator() {
   const [moderatorResult, setModeratorResult] = useState<ModeratorCandidate | 'not-found' | null>(
     null,
   )
+  const [approveEmailInput, setApproveEmailInput] = useState('')
+  const [approveAsModerator, setApproveAsModerator] = useState(false)
 
   const refresh = useCallback(() => setRefreshToken((n) => n + 1), [])
 
   const pending = useAsyncData(() => listVenturesByStatus('pending'), [refreshToken])
   const live = useAsyncData(() => listVenturesByStatus('live'), [refreshToken])
   const settings = useAsyncData(() => getSiteSettings(), [refreshToken])
+  const approved = useAsyncData(() => listApprovedEmails(), [refreshToken])
 
   // Enquiry totals per venture, for the live tab. One read of the whole menu
   // collection is cheaper than one per venture at this size.
@@ -154,6 +175,16 @@ export default function Moderator() {
       await setModerator(candidate.uid, !candidate.isModerator)
       setModeratorResult({ ...candidate, isModerator: !candidate.isModerator })
     }, `${candidate.username} is ${!candidate.isModerator ? 'now' : 'no longer'} a moderator.`)
+
+  const approveEmailAction = () =>
+    act(async () => {
+      await approveEmail(approveEmailInput, approveAsModerator)
+      setApproveEmailInput('')
+      setApproveAsModerator(false)
+    }, `${approveEmailInput.trim()} can now sign in and post. ${approveAsModerator ? 'They will be made a moderator the moment they do.' : ''}`)
+
+  const revokeEmailAction = (email: string) =>
+    act(() => revokeApprovedEmail(email), `${email} is no longer pre-approved.`)
 
   const importSeed = () =>
     act(async () => {
@@ -296,6 +327,73 @@ export default function Moderator() {
               )}
             </div>
           )}
+
+          <div className="space-y-3 border-t border-white/8 pt-3.5">
+            <p className="text-[12.5px] text-white/45">
+              Pre-approve an address that has not signed up yet. It can then sign in and post like
+              a Thapar account — and if you also check "make moderator", it becomes one the moment
+              it first signs in.
+            </p>
+
+            <div className="flex items-end gap-2">
+              <TextField
+                id="approve-email"
+                label="Email address"
+                wrapperClassName="flex-1"
+                type="email"
+                value={approveEmailInput}
+                onChange={(event) => setApproveEmailInput(event.target.value)}
+                placeholder="someone@gmail.com"
+              />
+              <Button
+                variant="primary"
+                loading={busy}
+                disabled={!approveEmailInput.trim()}
+                onClick={() => void approveEmailAction()}
+              >
+                <UserPlus size={13} aria-hidden="true" />
+                Approve
+              </Button>
+            </div>
+            <label className="flex items-center gap-2 text-[13px] text-white/60">
+              <input
+                type="checkbox"
+                checked={approveAsModerator}
+                onChange={(event) => setApproveAsModerator(event.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand-500"
+              />
+              Also make this a moderator on sign-up
+            </label>
+
+            {approved.data && approved.data.length > 0 && (
+              <div className="space-y-2">
+                {approved.data.map((entry) => (
+                  <div
+                    key={entry.email}
+                    className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-white/80">
+                      {entry.email}
+                    </span>
+                    {entry.moderator && (
+                      <span className="shrink-0 font-mono text-[9px] font-bold tracking-wider text-brand-400 uppercase">
+                        Moderator
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void revokeEmailAction(entry.email)}
+                      disabled={busy}
+                      aria-label={`Revoke pre-approval for ${entry.email}`}
+                      className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                    >
+                      <Trash2 size={12} aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export type ModeratorCandidate = {
@@ -41,4 +41,36 @@ export async function findUserByUsername(username: string): Promise<ModeratorCan
  */
 export async function setModerator(uid: string, isModerator: boolean): Promise<void> {
   await updateDoc(doc(db, 'users', uid), { isModerator })
+}
+
+export type ApprovedEmail = { email: string; moderator: boolean }
+
+const approvedEmailsRef = collection(db, 'approvedEmails')
+
+/**
+ * Pre-approves an address before it has an account. Two things follow from a
+ * document existing here at all: isThaparUser() in the rules treats it as
+ * Thapar-equivalent (can post in chat, list a venture), and if `moderator` is
+ * true, the account is promoted to moderator itself the moment it first signs
+ * in — see AuthProvider's self-promotion effect.
+ *
+ * The document id is the lowercased address, same pattern as usernames: the
+ * id alone enforces "one entry per address" without a query.
+ */
+export async function approveEmail(email: string, moderator: boolean): Promise<void> {
+  const key = email.trim().toLowerCase()
+  if (!key) throw new Error('Enter an email address.')
+  await setDoc(doc(approvedEmailsRef, key), { moderator })
+}
+
+export async function revokeApprovedEmail(email: string): Promise<void> {
+  await deleteDoc(doc(approvedEmailsRef, email.trim().toLowerCase()))
+}
+
+/** Moderator-only, per the rules — the panel that manages this list. */
+export async function listApprovedEmails(): Promise<ApprovedEmail[]> {
+  const snapshot = await getDocs(approvedEmailsRef)
+  return snapshot.docs
+    .map((entry) => ({ email: entry.id, moderator: entry.data().moderator === true }))
+    .sort((a, b) => a.email.localeCompare(b.email))
 }
