@@ -1,16 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  ChevronDown,
-  Clock,
-  MessageCircle,
-  Minus,
-  Plus,
-  SearchX,
-  ShoppingCart,
-  UtensilsCrossed,
-} from 'lucide-react'
+import { ArrowLeft, ChevronDown, Clock, MessageCircle, Minus, Plus, SearchX, ShoppingCart } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
@@ -18,6 +8,7 @@ import TextField from '../components/ui/TextField'
 import ReviewSection from '../components/ReviewSection'
 import LoadingLine from '../components/ui/LoadingLine'
 import VentureLogo from '../components/ui/VentureLogo'
+import { LogoMark } from '../components/ui/Logo'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
@@ -96,19 +87,19 @@ function ItemCard({
           aria-hidden="true"
           className="flex aspect-square w-full items-center justify-center bg-white/[0.04] text-white/25"
         >
-          <UtensilsCrossed size={24} />
+          <LogoMark size={24} />
         </span>
       )}
 
-      <span className="flex min-w-0 flex-1 flex-col gap-1 p-3">
+      <span className="flex min-w-0 flex-1 flex-col gap-2 p-3">
         <span className="line-clamp-2 text-[13.5px] font-bold text-white">{item.name}</span>
-        <span className="mt-auto flex items-center justify-between gap-2">
-          <span className="font-mono text-[13px] font-bold text-white/90">₹{item.price}</span>
-          <Plus
-            size={14}
-            aria-hidden="true"
-            className="shrink-0 rounded-full bg-white/10 p-0.5 text-white/50 transition-colors group-hover:bg-brand-500/25 group-hover:text-brand-300"
-          />
+        <span className="mt-auto font-mono text-[13px] font-bold text-white/90">₹{item.price}</span>
+        <span
+          aria-hidden="true"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-1.5 text-[11px] font-bold tracking-wide text-white/70 uppercase transition-colors group-hover:bg-brand-500/25 group-hover:text-brand-300"
+        >
+          <Plus size={12} />
+          Add
         </span>
         {showAsked && (
           <span className="font-mono text-[9px] font-bold text-brand-400">
@@ -137,6 +128,8 @@ export default function VentureDetail() {
   /** Category name -> collapsed. Absent means expanded — the default, so a
    *  venture with one section never opens on a page that looks empty. */
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({})
+  /** Category name -> its heading element, so the chip row can jump to it. */
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
   const menu = useAsyncData(() => listMenuItems(ventureId), [ventureId])
@@ -154,6 +147,13 @@ export default function VentureDetail() {
 
   const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [category]: !prev[category] }))
+  }, [])
+
+  // Expands the section too, in case the chip was tapped while it was
+  // folded — landing on a heading with nothing under it defeats the point.
+  const jumpToCategory = useCallback((category: string) => {
+    setCollapsedCategories((prev) => ({ ...prev, [category]: false }))
+    sectionRefs.current[category]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
   const setQuantity = useCallback((itemId: string, quantity: number) => {
@@ -338,27 +338,51 @@ export default function VentureDetail() {
           </p>
         )}
 
-        <div className="space-y-5">
+        {/* Only when there is more than one named section — a single section
+            has nowhere else to jump to. Horizontally scrollable rather than
+            wrapped, so six categories stay one reachable row instead of
+            pushing the grid down before a visitor has seen any items. */}
+        {menuGroups.filter((group) => group.category !== '').length > 1 && (
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {menuGroups
+              .filter((group) => group.category !== '')
+              .map((group) => (
+                <button
+                  key={group.category}
+                  type="button"
+                  onClick={() => jumpToCategory(group.category)}
+                  className="shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[13px] font-bold whitespace-nowrap text-white/80 transition duration-150 hover:border-brand-400/40 hover:bg-brand-500/15 hover:text-brand-300 active:scale-[0.96]"
+                >
+                  {group.category}
+                </button>
+              ))}
+          </div>
+        )}
+
+        <div className="space-y-6">
           {menuGroups.map((group) => {
             const collapsed = group.category !== '' && collapsedCategories[group.category]
             return (
-              <div key={group.category || ' uncategorised'}>
+              <div
+                key={group.category || ' uncategorised'}
+                ref={(el) => {
+                  sectionRefs.current[group.category] = el
+                }}
+              >
                 {group.category !== '' && (
                   <button
                     type="button"
                     onClick={() => toggleCategory(group.category)}
                     aria-expanded={!collapsed}
-                    className="mb-2.5 flex w-full items-center gap-2 px-1 text-left"
+                    className="mb-3 flex w-full items-center gap-2 px-1 text-left"
                   >
                     <ChevronDown
-                      size={13}
+                      size={18}
                       aria-hidden="true"
-                      className={`text-white/40 transition-transform duration-150 ${collapsed ? '-rotate-90' : ''}`}
+                      className={`shrink-0 text-brand-400 transition-transform duration-150 ${collapsed ? '-rotate-90' : ''}`}
                     />
-                    <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
-                      {group.category}
-                    </span>
-                    <span className="font-mono text-[9px] text-white/25">
+                    <span className="text-[17px] font-extrabold text-white">{group.category}</span>
+                    <span className="font-mono text-[11px] font-bold text-white/35">
                       {group.items.length}
                     </span>
                   </button>
