@@ -130,6 +130,11 @@ async function verifyFirebaseToken(
     throw new Error('Token is not valid yet.')
   }
   if (claims.aud !== options.projectId) {
+    // TEMPORARY DIAGNOSTIC: every request is hitting this branch, which means
+    // FIREBASE_PROJECT_ID (server) and VITE_FIREBASE_PROJECT_ID (client) have
+    // drifted apart. Logging both server-side only, never to the client, so
+    // the actual values can be compared. Remove once fixed.
+    console.error('extract-menu: project id mismatch', { tokenAud: claims.aud, serverProjectId: options.projectId })
     throw new Error('Token was issued for a different project.')
   }
   if (claims.iss !== `https://securetoken.google.com/${options.projectId}`) {
