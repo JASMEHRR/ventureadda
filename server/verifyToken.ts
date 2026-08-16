@@ -1,12 +1,16 @@
 /**
  * Firebase ID token verification against Google's public JWKS.
  *
- * Shared by every endpoint under api/. NOT underscore-prefixed — Vercel's
- * Edge bundler excludes underscore-prefixed files from a function's dependency
- * trace entirely rather than just from routing, so `_verify-token.ts` shipped
- * as a 404 at runtime while building without a single error. It has no
- * default export, which is what actually keeps Vercel from routing it as a
- * function of its own; the filename carries none of that weight.
+ * Shared by every endpoint under api/, but lives OUTSIDE api/ — this took two
+ * wrong turns to get right. Underscore-prefixing it (`api/_verify-token.ts`)
+ * made Vercel's Edge bundler exclude it from the function's dependency trace
+ * entirely, so the build succeeded and the deployed function 404'd on every
+ * call. Dropping the underscore (`api/verifyToken.ts`) fixed that but
+ * resurrected the exact problem the underscore was for: Vercel's zero-config
+ * routing turns every file directly under api/ into its own callable
+ * endpoint, default export or not, so this helper was live at
+ * /api/verifyToken. Moving the file out of api/ is the only thing that is
+ * both traced into the bundle and never independently routable.
  *
  * Written by hand rather than pulling in firebase-admin or jose. firebase-admin
  * is a large dependency that wants a service account key we would then have to

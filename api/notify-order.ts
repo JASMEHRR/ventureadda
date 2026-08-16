@@ -1,6 +1,6 @@
-import { verifyFirebaseToken } from './verifyToken.ts'
-import { getAccessToken, readServiceAccount } from './googleAuth.ts'
-import type { ServiceAccount } from './googleAuth.ts'
+import { verifyFirebaseToken } from '../server/verifyToken'
+import { getAccessToken, readServiceAccount } from '../server/googleAuth'
+import type { ServiceAccount } from '../server/googleAuth'
 
 /**
  * Pushes "you have an order" to the seller's devices.
