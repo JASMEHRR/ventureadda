@@ -241,6 +241,12 @@ export default function Moderator() {
                 <X size={13} aria-hidden="true" />
                 Reject
               </Button>
+              <Button variant="secondary" to={`/venture/${venture.id}/edit`}>
+                Edit
+              </Button>
+              <Button variant="danger" disabled={busy} onClick={() => setConfirmDelete(venture)}>
+                Remove
+              </Button>
               <Link
                 to={`/venture/${venture.id}`}
                 className="ml-auto font-mono text-[10px] tracking-wider text-white/40 uppercase transition hover:text-white"
