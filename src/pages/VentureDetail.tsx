@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MessageCircle, SearchX, UtensilsCrossed } from 'lucide-react'
+import { ArrowLeft, Clock, MessageCircle, Minus, Plus, SearchX, ShoppingCart, UtensilsCrossed } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
+import TextField from '../components/ui/TextField'
 import ReviewSection from '../components/ReviewSection'
 import LoadingLine from '../components/ui/LoadingLine'
 import VentureLogo from '../components/ui/VentureLogo'
@@ -12,7 +13,8 @@ import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
 import type { MenuItem, Venture } from '../data/ventures'
-import { inquiryLink, inquiryMessage } from '../lib/whatsapp'
+import { cartLink } from '../lib/whatsapp'
+import type { Buyer } from '../lib/whatsapp'
 import { displayUrl } from '../lib/cloudinary'
 
 function PhotoGallery({ venture }: { venture: Venture }) {
@@ -56,7 +58,13 @@ function PhotoGallery({ venture }: { venture: Venture }) {
 export default function VentureDetail() {
   const { ventureId = '' } = useParams()
   const { profile } = useAuth()
-  const [pending, setPending] = useState<MenuItem | null>(null)
+  /** itemId -> quantity. Page-local: a cart is for one checkout, not a thing
+   *  to resume days later, and this app keeps no account state to hang it on
+   *  even if it were. */
+  const [cart, setCart] = useState<Record<string, number>>({})
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [buyerName, setBuyerName] = useState('')
+  const [buyerPhone, setBuyerPhone] = useState('')
   const [localCounts, setLocalCounts] = useState<Record<string, number>>({})
 
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
@@ -69,22 +77,37 @@ export default function VentureDetail() {
     void recordVentureView(ventureId)
   }, [ventureId])
 
+  const addToCart = useCallback((item: MenuItem) => {
+    setCart((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))
+  }, [])
+
+  const setQuantity = useCallback((itemId: string, quantity: number) => {
+    setCart((prev) => {
+      if (quantity <= 0) {
+        const rest = { ...prev }
+        delete rest[itemId]
+        return rest
+      }
+      return { ...prev, [itemId]: quantity }
+    })
+  }, [])
+
   /**
    * Counting on confirm rather than on the WhatsApp tap: the anchor navigates
    * away the moment it is activated, so anything queued behind it is a race.
    * Confirming is also the honest signal — it is the point the buyer decided.
    *
-   * The rules let signed-out visitors do this, capped at exactly plus one, so
-   * the count reflects everyone rather than only people with accounts.
+   * The rules let signed-out visitors do this, capped at exactly plus one per
+   * call, so one item added twice to the cart still counts as one ask, not
+   * two — the count tracks interest in the item, not units ordered.
    */
-  const confirmInquiry = useCallback(async (item: MenuItem) => {
-    setLocalCounts((prev) => ({ ...prev, [item.id]: item.inquiryCount + 1 }))
-    try {
-      await recordInquiry(item.id)
-    } catch {
-      // The WhatsApp handoff already happened. A lost count is not worth an
-      // error message over the top of it.
-    }
+  const confirmInquiries = useCallback(async (items: MenuItem[]) => {
+    setLocalCounts((prev) => {
+      const next = { ...prev }
+      for (const item of items) next[item.id] = (prev[item.id] ?? item.inquiryCount) + 1
+      return next
+    })
+    await Promise.allSettled(items.map((item) => recordInquiry(item.id)))
   }, [])
 
   if (venture.error || menu.error) {
@@ -118,11 +141,37 @@ export default function VentureDetail() {
   }
 
   const v = venture.data
-  const waLink = pending ? inquiryLink(v.phone, v.name, pending.name) : null
 
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
   const showItemStats = Boolean(profile && (profile.uid === v.ownerId || profile.isModerator))
+
+  const cartLines = (menu.data ?? [])
+    .filter((item) => cart[item.id] > 0)
+    .map((item) => ({ item, quantity: cart[item.id] }))
+  const cartTotal = cartLines.reduce((sum, { item, quantity }) => sum + item.price * quantity, 0)
+  const buyer: Buyer = { name: buyerName.trim(), phone: buyerPhone.trim() }
+  const waLink =
+    cartLines.length > 0
+      ? cartLink(
+          v.phone,
+          v.name,
+          cartLines.map(({ item, quantity }) => ({ name: item.name, price: item.price, quantity })),
+          buyer,
+        )
+      : null
+
+  const canCheckout = waLink !== null && buyer.name !== ''
+
+  // The anchor's own href + target="_blank" does the actual navigation; this
+  // only runs the side effects that go with it, so the tab doesn't open twice.
+  const afterCheckout = () => {
+    void confirmInquiries(cartLines.map(({ item }) => item))
+    setCart({})
+    setCheckoutOpen(false)
+    setBuyerName('')
+    setBuyerPhone('')
+  }
 
   return (
     <div className="space-y-4">
@@ -192,7 +241,7 @@ export default function VentureDetail() {
             Menu
           </h2>
           <span className="font-mono text-[10px] font-bold text-white/30">
-            Tap an item to ask about it
+            Tap an item to add it to your order
           </span>
         </header>
 
@@ -203,30 +252,36 @@ export default function VentureDetail() {
         )}
 
         <div className="space-y-2.5">
-          {menu.data?.map((item) => (
-            <ListRow
-              key={item.id}
-              title={item.name}
-              description={item.description}
-              meta={
-                showItemStats ? (
+          {menu.data?.map((item) => {
+            const quantity = cart[item.id] ?? 0
+            return (
+              <ListRow
+                key={item.id}
+                title={item.name}
+                description={item.description}
+                meta={
                   <span className="flex flex-col items-end gap-0.5">
                     <span>₹{item.price}</span>
-                    <span className="text-[10px] font-bold text-brand-400">
-                      {(localCounts[item.id] ?? item.inquiryCount).toLocaleString('en-IN')} asked
-                    </span>
+                    {showItemStats && (
+                      <span className="text-[10px] font-bold text-brand-400">
+                        {(localCounts[item.id] ?? item.inquiryCount).toLocaleString('en-IN')} asked
+                      </span>
+                    )}
+                    {quantity > 0 && (
+                      <span className="text-[10px] font-bold text-brand-400">
+                        {quantity} in order
+                      </span>
+                    )}
                   </span>
-                ) : (
-                  `₹${item.price}`
-                )
-              }
-              thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
-              icon={item.photo ? undefined : UtensilsCrossed}
-              actionIcon={MessageCircle}
-              actionLabel={`Ask ${v.name} about this on WhatsApp`}
-              onClick={() => setPending(item)}
-            />
-          ))}
+                }
+                thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
+                icon={item.photo ? undefined : UtensilsCrossed}
+                actionIcon={Plus}
+                actionLabel={`Add ${item.name} to your order`}
+                onClick={() => addToCart(item)}
+              />
+            )
+          })}
         </div>
       </section>
 
@@ -237,13 +292,39 @@ export default function VentureDetail() {
         Payment is settled directly with the seller
       </p>
 
+      {/* Fixed rather than sticky-in-flow: the review section below the menu
+          would otherwise scroll the bar out of reach on a long page, right
+          when someone has finally decided what they want. */}
+      {cartLines.length > 0 && (
+        // bottom-24 clears MobileNav, which is fixed at bottom-3 below md;
+        // above md there is no bottom nav, so it sits flush with the edge.
+        <div className="fixed inset-x-0 bottom-24 z-40 flex justify-center p-3 sm:p-4 md:bottom-0">
+          <button
+            type="button"
+            onClick={() => setCheckoutOpen(true)}
+            className="liquid-glass-panel flex w-full max-w-md items-center gap-3 rounded-2xl px-5 py-3.5 text-left shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition duration-150 active:scale-[0.98]"
+          >
+            <ShoppingCart size={18} className="shrink-0 text-brand-400" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-bold text-white">
+                {cartLines.length} {cartLines.length === 1 ? 'item' : 'items'}
+              </span>
+              <span className="block text-[11px] text-white/50">Tap to review and order</span>
+            </span>
+            <span className="shrink-0 font-mono text-[15px] font-extrabold text-brand-400">
+              ₹{cartTotal}
+            </span>
+          </button>
+        </div>
+      )}
+
       <Modal
-        open={pending !== null}
-        onClose={() => setPending(null)}
-        title={`Message ${v.name} on WhatsApp?`}
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        title={`Order from ${v.name}`}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setPending(null)}>
+            <Button variant="ghost" onClick={() => setCheckoutOpen(false)}>
               Cancel
             </Button>
             {waLink ? (
@@ -251,38 +332,89 @@ export default function VentureDetail() {
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => {
-                  if (pending) void confirmInquiry(pending)
-                  setPending(null)
+                onClick={(event) => {
+                  if (!canCheckout) {
+                    event.preventDefault()
+                    return
+                  }
+                  afterCheckout()
                 }}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-whatsapp bg-whatsapp px-5 py-2.5 text-[12px] font-bold tracking-wider text-black uppercase transition duration-150 hover:bg-whatsapp/85 active:scale-[0.97]"
               >
                 <MessageCircle size={13} aria-hidden="true" />
-                Open WhatsApp
+                Continue on WhatsApp
               </a>
             ) : (
               <Button variant="secondary" disabled>
-                No number on file
+                {v.phone ? 'Add your details' : 'No number on file'}
               </Button>
             )}
           </>
         }
       >
-        {pending && (
-          <div className="space-y-3">
-            <p className="text-[14px] leading-relaxed text-white/70">
-              This opens WhatsApp with a message already written about{' '}
-              <span className="font-bold text-white">{pending.name}</span>.
-            </p>
-            <p className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-[13.5px] leading-relaxed text-white/55 italic">
-              {inquiryMessage(v.name, pending.name)}
-            </p>
-            <p className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
-              {(localCounts[pending.id] ?? pending.inquiryCount).toLocaleString('en-IN')} people have
-              asked about this
-            </p>
+        <div className="space-y-4">
+          <div className="space-y-2.5">
+            {cartLines.map(({ item, quantity }) => (
+              <div key={item.id} className="flex items-center gap-3">
+                <span className="min-w-0 flex-1 truncate text-[14px] text-white">{item.name}</span>
+                <span className="shrink-0 font-mono text-[13px] text-white/50">
+                  ₹{item.price * quantity}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(item.id, quantity - 1)}
+                    aria-label={`Remove one ${item.name}`}
+                    className="rounded-full border border-white/10 bg-white/5 p-1 text-white/60 transition duration-150 hover:bg-white/15 active:scale-[0.94]"
+                  >
+                    <Minus size={12} aria-hidden="true" />
+                  </button>
+                  <span className="w-4 text-center font-mono text-[12px] text-white">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(item.id, quantity + 1)}
+                    aria-label={`Add one more ${item.name}`}
+                    className="rounded-full border border-white/10 bg-white/5 p-1 text-white/60 transition duration-150 hover:bg-white/15 active:scale-[0.94]"
+                  >
+                    <Plus size={12} aria-hidden="true" />
+                  </button>
+                </span>
+              </div>
+            ))}
           </div>
-        )}
+
+          <div className="flex items-center justify-between border-t border-white/8 pt-3">
+            <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-white/40 uppercase">
+              Total
+            </span>
+            <span className="font-mono text-[16px] font-extrabold text-brand-400">₹{cartTotal}</span>
+          </div>
+
+          <div className="space-y-3 border-t border-white/8 pt-3.5">
+            <p className="text-[12.5px] leading-relaxed text-white/50">
+              This opens WhatsApp with your order written out, sent from your own number — the seller
+              can reply there or call you on it directly.
+            </p>
+            <TextField
+              id="checkout-name"
+              label="Your name"
+              required
+              value={buyerName}
+              onChange={(event) => setBuyerName(event.target.value)}
+              placeholder="Aarav"
+            />
+            <TextField
+              id="checkout-phone"
+              label="Your number"
+              hint="With country code, so the seller can call you back."
+              required
+              inputMode="tel"
+              value={buyerPhone}
+              onChange={(event) => setBuyerPhone(event.target.value)}
+              placeholder="919876543210"
+            />
+          </div>
+        </div>
       </Modal>
     </div>
   )
