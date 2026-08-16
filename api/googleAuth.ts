@@ -9,7 +9,7 @@
  * same place: a service account key, exchanged for a short-lived access token
  * using the JWT bearer grant.
  *
- * The mirror image of _verify-token.ts — that file verifies an RS256 signature
+ * The mirror image of verifyToken.ts — that file verifies an RS256 signature
  * Google made, this one produces an RS256 signature Google will verify. Same
  * Web Crypto primitives, opposite direction. firebase-admin would do this too,
  * and would also pull a Node-only dependency tree into an Edge function that

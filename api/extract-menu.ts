@@ -1,4 +1,4 @@
-import { verifyFirebaseToken } from './_verify-token.ts'
+import { verifyFirebaseToken } from './verifyToken.ts'
 
 /**
  * Reads a photographed menu or price list and returns structured items.
