@@ -1,4 +1,4 @@
-import { LayoutGrid, MessageSquare, Palette, Shield, Store } from 'lucide-react'
+import { ClipboardList, LayoutGrid, MessageSquare, Palette, Shield, Store } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type NavItem = {
@@ -25,6 +25,18 @@ export const PRIMARY_NAV: NavItem[] = [
   { to: '/browse', label: 'Browse', icon: Store },
   { to: '/categories', label: 'Categories', icon: LayoutGrid },
   { to: '/chat', label: 'All Chat', icon: MessageSquare },
+]
+
+/**
+ * Shown only to accounts that may list a venture, and only on desktop.
+ *
+ * `desktopOnly` is doing real work here rather than expressing a preference:
+ * the phone bar already holds four items plus the List button at 390px, and a
+ * fifth would shrink all of them. Sellers reach this from their profile on a
+ * phone, which is also where the unread count is repeated.
+ */
+export const SELLER_NAV: NavItem[] = [
+  { to: '/orders', label: 'Orders', icon: ClipboardList, desktopOnly: true },
 ]
 
 /** Shown only to accounts flagged as moderators. */

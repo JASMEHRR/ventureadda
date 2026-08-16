@@ -64,6 +64,13 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
     // Cleared logos are stored as null by updateVenture, so absent and cleared
     // both have to come back as undefined rather than as a falsy StoredImage.
     logo: (data.logo as StoredImage | null | undefined) ?? undefined,
+    // Absent on every venture written before slots existed, and an empty list
+    // is the honest reading of that: this seller has not published any.
+    deliverySlots: Array.isArray(data.deliverySlots)
+      ? (data.deliverySlots as unknown[]).filter(
+          (slot): slot is string => typeof slot === 'string' && slot.trim() !== '',
+        )
+      : [],
     status: (data.status ?? 'pending') as VentureStatus,
     rejectionReason: data.rejectionReason,
     clickCount: typeof data.clickCount === 'number' ? data.clickCount : 0,
@@ -84,6 +91,13 @@ function toMenuItem(snapshot: QueryDocumentSnapshot<DocumentData>): MenuItem {
     price: typeof data.price === 'number' ? data.price : 0,
     photo: data.photo ?? undefined,
     category: data.category || undefined,
+    // Absent means in stock. Every item written before this field existed has
+    // no value here, and defaulting those to false would empty every menu on
+    // the site the moment this deploys.
+    inStock: data.inStock !== false,
+    // Zero is meaningful — the seller counted and has none — so this cannot
+    // collapse to a falsy check.
+    stock: typeof data.stock === 'number' && data.stock >= 0 ? data.stock : undefined,
     inquiryCount: typeof data.inquiryCount === 'number' ? data.inquiryCount : 0,
   }
 }
@@ -183,6 +197,7 @@ export type VentureInput = {
   hours: string
   phone: string
   photos: StoredImage[]
+  deliverySlots: string[]
   logo?: StoredImage
 }
 
@@ -192,7 +207,34 @@ export type MenuItemInput = {
   description: string
   price: number
   category?: string
+  inStock: boolean
+  /** Undefined means the seller is not counting units. */
+  stock?: number
   photo?: StoredImage
+}
+
+/**
+ * The stored shape of one menu item, minus the counter.
+ *
+ * Shared by create and update so the two cannot drift — the previous pair of
+ * inline object literals differed only by `inquiryCount`, which is exactly the
+ * kind of duplication that lets a new field land on one path and not the other.
+ *
+ * `stock` is omitted rather than written as null when the seller is not
+ * counting, because on update an omitted key leaves the old value in place —
+ * so it is written as null there instead, and the reader treats a non-number
+ * as absent. Firestore rejects `undefined` outright either way.
+ */
+function menuItemPayload(ventureId: string, item: MenuItemInput) {
+  return {
+    ventureId,
+    name: item.name,
+    description: item.description,
+    price: item.price,
+    inStock: item.inStock,
+    ...(item.photo ? { photo: item.photo } : {}),
+    ...(item.category ? { category: item.category } : {}),
+  }
 }
 
 /**
@@ -264,12 +306,8 @@ export async function createVenture(
   const batch = writeBatch(db)
   for (const item of items) {
     batch.set(doc(menuItemsRef), {
-      ventureId: ventureRef.id,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      ...(item.photo ? { photo: item.photo } : {}),
-      ...(item.category ? { category: item.category } : {}),
+      ...menuItemPayload(ventureRef.id, item),
+      ...(item.stock === undefined ? {} : { stock: item.stock }),
       inquiryCount: 0,
     })
   }
@@ -307,18 +345,17 @@ export async function updateVenture(
   batch.update(doc(venturesRef, ventureId), { ...input, logo: input.logo ?? null })
 
   for (const item of items) {
-    const payload = {
-      ventureId,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      ...(item.photo ? { photo: item.photo } : {}),
-      ...(item.category ? { category: item.category } : {}),
-    }
+    const payload = menuItemPayload(ventureId, item)
     if (item.id) {
-      batch.update(doc(menuItemsRef, item.id), payload)
+      // null, not an omitted key: clearing a stock count has to actually clear
+      // it, and an update that leaves the field out keeps yesterday's number.
+      batch.update(doc(menuItemsRef, item.id), { ...payload, stock: item.stock ?? null })
     } else {
-      batch.set(doc(menuItemsRef), { ...payload, inquiryCount: 0 })
+      batch.set(doc(menuItemsRef), {
+        ...payload,
+        ...(item.stock === undefined ? {} : { stock: item.stock }),
+        inquiryCount: 0,
+      })
     }
   }
 

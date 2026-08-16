@@ -3,6 +3,8 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import MobileNav from './MobileNav'
 import { useAuth } from '../../auth/AuthProvider'
+import { useAsyncData } from '../../hooks/useAsyncData'
+import { countUnseenOrders } from '../../data/orders'
 
 /**
  * The page heading, now visually-hidden.
@@ -22,6 +24,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/design': 'Design system',
   '/signin': 'Sign in',
   '/profile': 'Your profile',
+  '/orders': 'Orders',
 }
 
 function pageTitle(pathname: string): string {
@@ -52,13 +55,43 @@ function pageTitle(pathname: string): string {
  */
 export default function AppShell() {
   const { pathname } = useLocation()
-  const { profile } = useAuth()
+  const { profile, canPost } = useAuth()
   const isModerator = profile?.isModerator ?? false
+
+  /**
+   * The unread-order count behind the sidebar badge.
+   *
+   * This is the whole notification system. Firebase is on Spark so there are
+   * no Cloud Functions to send anything, and mailing arbitrary sellers needs a
+   * verified sending domain this project does not have — so a seller finds out
+   * about an order by opening the site and seeing this number. The checkout
+   * copy is written to match: it tells buyers to message the seller rather than
+   * implying anybody has been alerted.
+   *
+   * Keyed on whether the orders page is open, not on the path itself, so it
+   * refetches exactly twice — once when the seller arrives there, once when
+   * they leave and the badge should have cleared — instead of once per
+   * navigation anywhere in the app.
+   *
+   * A failed count is deliberately swallowed — `unseen.error` is never read,
+   * and the badge simply stays at zero. This renders on every page in the app,
+   * and an error banner across the whole shell because a decoration could not
+   * be fetched would be worse than a missing decoration.
+   */
+  const unseen = useAsyncData(
+    () =>
+      profile && canPost ? countUnseenOrders(profile.uid) : Promise.resolve(0),
+    [profile?.uid, canPost, pathname === '/orders'],
+  )
 
   return (
     <>
       <div className="flex w-full gap-3 p-3 pb-28 sm:p-4 md:gap-4 md:p-6 md:pb-6">
-        <Sidebar isModerator={isModerator} />
+        <Sidebar
+          isModerator={isModerator}
+          isSeller={canPost && profile !== null}
+          unseenOrders={unseen.data ?? 0}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <TopBar />

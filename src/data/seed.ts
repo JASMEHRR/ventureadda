@@ -33,9 +33,25 @@ import type { MenuItemInput, VentureInput } from './ventures'
  * WhatsApp's "phone number is invalid" page instead, which exercises the whole
  * flow without messaging anyone.
  */
+/**
+ * Fields with a sensible default for demo content are optional here.
+ *
+ * Every entry below would otherwise have to repeat `deliverySlots: []` and
+ * `inStock: true` roughly forty times to say nothing — and the next field with
+ * a default would mean touching all forty lines again. `seedInput` fills them
+ * in on the way out, so the literals stay about the businesses.
+ */
 export type SeedVenture = {
-  venture: VentureInput
-  items: MenuItemInput[]
+  venture: Omit<VentureInput, 'deliverySlots'> & Partial<Pick<VentureInput, 'deliverySlots'>>
+  items: (Omit<MenuItemInput, 'inStock'> & Partial<Pick<MenuItemInput, 'inStock'>>)[]
+}
+
+/** Fills the defaults so the result is what createVenture actually wants. */
+export function seedInput(entry: SeedVenture): { venture: VentureInput; items: MenuItemInput[] } {
+  return {
+    venture: { deliverySlots: [], ...entry.venture },
+    items: entry.items.map((item) => ({ inStock: true, ...item })),
+  }
 }
 
 const photo = (file: string) => ({ url: `/seed/${file}`, publicId: '' })

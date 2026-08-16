@@ -3,7 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Logo, { LogoMark } from '../ui/Logo'
 import type { NavItem } from '../../navigation'
-import { DEV_NAV, MODERATOR_NAV, PRIMARY_NAV } from '../../navigation'
+import { DEV_NAV, MODERATOR_NAV, PRIMARY_NAV, SELLER_NAV } from '../../navigation'
 
 const STORAGE_KEY = 'ventureadda:sidebar-collapsed'
 
@@ -54,14 +54,26 @@ function useCollapsed(): [boolean, (next: boolean) => void] {
  * it was most of why the panel needed 260px. Everything else — glass, radii,
  * type, the opacity ladder, the collapse behaviour itself — is spec.
  */
-function SidebarLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+function SidebarLink({
+  item,
+  collapsed,
+  badge = 0,
+}: {
+  item: NavItem
+  collapsed: boolean
+  /** Unread count. Zero renders nothing at all, not an empty pill. */
+  badge?: number
+}) {
   const Icon = item.icon
+  // Folded into the accessible name rather than left as a decorative dot: an
+  // indicator a screen reader cannot perceive is not an indicator.
+  const name = badge > 0 ? `${item.label}, ${badge} new` : item.label
   return (
     <NavLink
       to={item.to}
       end={item.to === '/'}
-      aria-label={collapsed ? item.label : undefined}
-      title={collapsed ? item.label : undefined}
+      aria-label={collapsed || badge > 0 ? name : undefined}
+      title={collapsed ? name : undefined}
       className={({ isActive }) =>
         `group flex items-center rounded-2xl border transition duration-150 active:scale-[0.98] ${
           collapsed ? 'justify-center p-2.5' : 'gap-3 px-4 py-2.5'
@@ -74,23 +86,43 @@ function SidebarLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
     >
       {({ isActive }) => (
         <>
-          <Icon
-            size={16}
-            aria-hidden="true"
-            className={`shrink-0 transition-colors ${
-              isActive ? 'text-brand-400' : 'text-white/40 group-hover:text-white/85'
-            }`}
-          />
-          {!collapsed && (
-            <span
-              className={`truncate font-mono text-[11px] tracking-wider uppercase transition-colors ${
-                isActive
-                  ? 'font-extrabold text-white'
-                  : 'font-bold text-white/40 group-hover:text-white/85'
+          <span className="relative shrink-0">
+            <Icon
+              size={16}
+              aria-hidden="true"
+              className={`transition-colors ${
+                isActive ? 'text-brand-400' : 'text-white/40 group-hover:text-white/85'
               }`}
-            >
-              {item.label}
-            </span>
+            />
+            {/* Collapsed, the rail has no room for the count, so it becomes a
+                dot on the icon. The number is still in the accessible name. */}
+            {badge > 0 && collapsed && (
+              <span
+                aria-hidden="true"
+                className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-brand-400 ring-2 ring-[#0a0d12]"
+              />
+            )}
+          </span>
+          {!collapsed && (
+            <>
+              <span
+                className={`min-w-0 flex-1 truncate font-mono text-[11px] tracking-wider uppercase transition-colors ${
+                  isActive
+                    ? 'font-extrabold text-white'
+                    : 'font-bold text-white/40 group-hover:text-white/85'
+                }`}
+              >
+                {item.label}
+              </span>
+              {badge > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 rounded-full bg-brand-500/25 px-2 py-0.5 font-mono text-[9px] font-extrabold text-brand-300"
+                >
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
+            </>
           )}
         </>
       )}
@@ -98,10 +130,24 @@ function SidebarLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
   )
 }
 
-export default function Sidebar({ isModerator = false }: { isModerator?: boolean }) {
+export default function Sidebar({
+  isModerator = false,
+  isSeller = false,
+  unseenOrders = 0,
+}: {
+  isModerator?: boolean
+  /** May list a venture, so the Orders entry is worth showing them. */
+  isSeller?: boolean
+  unseenOrders?: number
+}) {
   const [collapsed, setCollapsed] = useCollapsed()
 
-  const items = [...PRIMARY_NAV, ...(isModerator ? MODERATOR_NAV : []), ...DEV_NAV]
+  const items = [
+    ...PRIMARY_NAV,
+    ...(isSeller ? SELLER_NAV : []),
+    ...(isModerator ? MODERATOR_NAV : []),
+    ...DEV_NAV,
+  ]
 
   return (
     <aside
@@ -149,7 +195,12 @@ export default function Sidebar({ isModerator = false }: { isModerator?: boolean
 
       <nav aria-label="Primary" className={`space-y-1.5 ${collapsed ? 'mt-1' : ''}`}>
         {items.map((item) => (
-          <SidebarLink key={item.to} item={item} collapsed={collapsed} />
+          <SidebarLink
+            key={item.to}
+            item={item}
+            collapsed={collapsed}
+            badge={item.to === '/orders' ? unseenOrders : 0}
+          />
         ))}
       </nav>
 

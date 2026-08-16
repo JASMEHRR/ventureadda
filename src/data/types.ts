@@ -32,6 +32,14 @@ export type Venture = {
    * Absent is the normal case — VentureLogo falls back to an initial tile.
    */
   logo?: StoredImage
+  /**
+   * Collection or delivery windows the seller is prepared to offer, in their
+   * own words — "6pm – 8pm", "After 9pm, weekends only". Chosen from at
+   * checkout rather than typed by the buyer, because a buyer-typed time is a
+   * request the seller then has to decline, and a seller who has not set any
+   * gets no slot picker at all rather than an empty one.
+   */
+  deliverySlots: string[]
   status: VentureStatus
   rejectionReason?: string
   clickCount: number
@@ -67,6 +75,22 @@ export type MenuItem = {
    * Absent items render in a flat list with no heading.
    */
   category?: string
+  /**
+   * Whether the item can be ordered at all. Deliberately separate from `stock`
+   * rather than derived from it: most sellers here bake to order and never
+   * count units, so "sold out today" has to be one tap that does not require
+   * inventing a number. Absent on documents written before this existed, which
+   * is why the reader defaults it to true — an old item must not vanish from
+   * every menu the moment this field ships.
+   */
+  inStock: boolean
+  /**
+   * Units on hand, when the seller is counting. Absent means they are not, and
+   * the buyer's stepper has no ceiling. Zero is a real value and is not the
+   * same as absent — it caps the stepper at nothing addable, which is why
+   * `inStock` still exists to say so in words.
+   */
+  stock?: number
   inquiryCount: number
 }
 
@@ -79,7 +103,101 @@ export type MenuItemDraft = {
   description: string
   price: string
   category: string
+  /** Empty string means "not counting", which is the common case. */
+  stock: string
+  inStock: boolean
   photo?: StoredImage
+}
+
+/**
+ * Where the order stands, as far as the seller is concerned.
+ *
+ * There is no payment gateway anywhere in this product and there is not going
+ * to be one, so none of these is verified by anything — they are the seller's
+ * own record of a conversation that happened off the site. 'paid' means the
+ * seller says they were paid, not that money moved through us.
+ */
+export type OrderStatus = 'pending' | 'paid' | 'completed'
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: 'Payment pending',
+  paid: 'Payment received',
+  completed: 'Completed',
+}
+
+/**
+ * Who reaches out once the order is placed, chosen by the buyer.
+ *
+ * The seller has no say in this and no way to withhold their number: the
+ * number is already on the listing, it is how this site has always worked, and
+ * a "hide my number" switch would leave buyers with an order and no way to
+ * chase it.
+ */
+export type ContactPreference = 'buyerContacts' | 'sellerContacts'
+
+/**
+ * How the buyer intends to pay. Neither is processed by this site — there is
+ * no gateway and no money touches us. 'online' means the buyer will send it
+ * by UPI or whatever the two of them agree; it is a statement of intent that
+ * saves the seller a question, nothing more.
+ */
+export type PaymentMethod = 'cod' | 'online'
+
+export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cod: 'Cash on delivery',
+  online: 'Paying online',
+}
+
+/**
+ * A line is copied, not referenced.
+ *
+ * Name and price are frozen at the moment of ordering rather than read back
+ * from menuItems, because the seller may edit or delete the item tomorrow and
+ * an order that silently reprices itself afterwards is a dispute, not a record.
+ */
+export type OrderLine = {
+  itemId: string
+  name: string
+  price: number
+  quantity: number
+}
+
+export type Order = {
+  id: string
+  ventureId: string
+  /** Denormalised so the seller's list needs no second read per order. */
+  ventureName: string
+  /**
+   * Copied from the venture at creation and checked against it by the rules.
+   * This is what lets the seller's query be `where ownerId == me` with no
+   * per-document get() in the read rule.
+   */
+  ownerId: string
+  buyerUid: string
+  buyerName: string
+  buyerPhone: string
+  lines: OrderLine[]
+  /** Whole rupees, summed from the lines at creation. */
+  total: number
+  contactPreference: ContactPreference
+  payment: PaymentMethod
+  /**
+   * Where it goes. A hostel room or a classroom, in the buyer's own words —
+   * this is a campus, not a postal system, and "Hostel J, room 214" is a
+   * complete address here while a structured form would be theatre.
+   */
+  deliveryAddress: string
+  /**
+   * One of the venture's own `deliverySlots`, or empty when the seller has not
+   * published any — in which case the two of them agree a time in the
+   * conversation that follows, same as they always have.
+   */
+  deliverySlot: string
+  status: OrderStatus
+  /** False until the seller has opened their orders page. Drives the badge. */
+  seen: boolean
+  /** Null only in the instant before the server timestamp resolves locally. */
+  createdAt: Date | null
 }
 
 /**

@@ -12,12 +12,18 @@ export type MenuDraftResult =
   | { ok: true; items: MenuItemDraft[] }
   | { ok: false; error: string }
 
+/**
+ * `inStock` is deliberately not part of this test. It defaults to true on a
+ * fresh row, so treating it as content would make every spare row non-blank
+ * and resurrect the very rows this filter exists to discard.
+ */
 function isBlank(item: MenuItemDraft): boolean {
   return (
     item.name.trim() === '' &&
     item.price.trim() === '' &&
     item.description.trim() === '' &&
     item.category.trim() === '' &&
+    item.stock.trim() === '' &&
     item.photo === undefined
   )
 }
@@ -55,6 +61,21 @@ export function validateMenuDrafts(items: MenuItemDraft[]): MenuDraftResult {
   })
   if (badPrice) {
     return { ok: false, error: `"${badPrice.name}" needs a price in whole rupees.` }
+  }
+
+  // Blank is the normal case and means "not counting" — only a value that was
+  // typed and is not a whole non-negative number is refused. A fractional or
+  // negative count would reach the buyer's stepper as a nonsense ceiling.
+  const badStock = started.find((item) => {
+    if (item.stock.trim() === '') return false
+    const value = Number(item.stock)
+    return !Number.isInteger(value) || value < 0
+  })
+  if (badStock) {
+    return {
+      ok: false,
+      error: `"${badStock.name}" needs a whole number of units in stock, or nothing at all.`,
+    }
   }
 
   return { ok: true, items: started }

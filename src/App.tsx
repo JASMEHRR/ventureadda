@@ -35,6 +35,7 @@ const Chat = lazy(() => import('./pages/Chat'))
 const Moderator = lazy(() => import('./pages/Moderator'))
 const SignIn = lazy(() => import('./pages/SignIn'))
 const Profile = lazy(() => import('./pages/Profile'))
+const Orders = lazy(() => import('./pages/Orders'))
 const DesignDemo = lazy(() => import('./pages/DesignDemo'))
 
 export default function App() {
@@ -63,6 +64,7 @@ export default function App() {
                     <Route path="venture/:ventureId/edit" element={<EditVenture />} />
                     <Route path="signin" element={<SignIn />} />
                     <Route path="profile" element={<Profile />} />
+                    <Route path="orders" element={<Orders />} />
                     <Route path="add" element={<AddVenture />} />
                     <Route path="moderator" element={<Moderator />} />
                     <Route path="chat" element={<Chat />} />

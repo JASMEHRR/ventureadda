@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { AlertTriangle, LogOut, Plus, Shield, Trash2 } from 'lucide-react'
+import { AlertTriangle, ClipboardList, LogOut, Plus, Shield, Trash2 } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
@@ -9,6 +9,7 @@ import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { deleteVenture, listMenuItems, listVenturesByOwner } from '../data/ventures'
+import { countUnseenOrders } from '../data/orders'
 import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
 
@@ -41,6 +42,11 @@ export default function Profile() {
    * leaves a venture with nothing to tap. That is a fair trade only if the
    * result is visible to the person who can fix it, which is here.
    */
+  const unseen = useAsyncData(
+    () => (profile ? countUnseenOrders(profile.uid) : Promise.resolve(0)),
+    [profile?.uid, refreshToken],
+  )
+
   const itemCounts = useAsyncData(async () => {
     const ventures = mine.data ?? []
     const counts: Record<string, number> = {}
@@ -78,6 +84,9 @@ export default function Profile() {
    * to clear out.
    */
   const listed = (mine.data ?? []).filter((venture) => !removed.includes(venture.id))
+  // Null while the count is still loading, which is not the same as zero — but
+  // renders the same, and a badge that flickers in a moment late is correct.
+  const unseenCount = unseen.data ?? 0
 
   const remove = async () => {
     const target = confirmDelete
@@ -125,6 +134,30 @@ export default function Profile() {
           </p>
         )}
       </section>
+
+      {/* The only route to orders on a phone: the bottom bar is full at 390px
+          and the sidebar that carries the Orders entry is hidden below md. */}
+      {listed.length > 0 && (
+        <Link
+          to="/orders"
+          className="liquid-glass-panel flex items-center gap-3.5 rounded-3xl p-5 transition duration-150 hover:bg-white/[0.06] active:scale-[0.99]"
+        >
+          <ClipboardList size={18} className="shrink-0 text-brand-400" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-bold text-white">Orders</span>
+            <span className="block text-[12.5px] text-white/45">
+              {unseenCount > 0
+                ? `${unseenCount} you have not opened`
+                : 'What people have ordered'}
+            </span>
+          </span>
+          {unseenCount > 0 && (
+            <span className="shrink-0 rounded-full bg-brand-500/25 px-2.5 py-1 font-mono text-[11px] font-extrabold text-brand-300">
+              {unseenCount > 99 ? '99+' : unseenCount}
+            </span>
+          )}
+        </Link>
+      )}
 
       <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
         <div className="flex items-baseline justify-between gap-3">

@@ -17,6 +17,8 @@ const draft = (over: Partial<MenuItemDraft> = {}): MenuItemDraft => ({
   description: '',
   price: '',
   category: '',
+  stock: '',
+  inStock: true,
   ...over,
 })
 
@@ -62,6 +64,52 @@ assert.match(err(validateMenuDrafts([draft({ name: 'Cake', price: '-5' })])), /n
 
 // Zero is a legitimate price someone may actually mean, when typed.
 assert.equal(ok(validateMenuDrafts([draft({ name: 'Free sample', price: '0' })])).length, 1)
+
+// Stock is optional. Blank means the seller is not counting, which is the
+// common case and must not be mistaken for "none left".
+assert.equal(ok(validateMenuDrafts([draft({ name: 'Cake', price: '450' })])).length, 1)
+assert.equal(
+  ok(validateMenuDrafts([draft({ name: 'Cake', price: '450', stock: '  ' })])).length,
+  1,
+)
+
+// Zero stock is a real answer: the seller counted and has none.
+assert.equal(
+  ok(validateMenuDrafts([draft({ name: 'Cake', price: '450', stock: '0' })])).length,
+  1,
+)
+
+// A typed count that is not a whole non-negative number is refused, because it
+// becomes the ceiling on the buyer's stepper.
+assert.match(
+  err(validateMenuDrafts([draft({ name: 'Cake', price: '450', stock: '-2' })])),
+  /whole number of units/,
+)
+assert.match(
+  err(validateMenuDrafts([draft({ name: 'Cake', price: '450', stock: '2.5' })])),
+  /whole number of units/,
+)
+assert.match(
+  err(validateMenuDrafts([draft({ name: 'Cake', price: '450', stock: 'lots' })])),
+  /whole number of units/,
+)
+
+// A row whose only content is a stock count still counts as started, so it is
+// caught by the no-name rule rather than silently dropped.
+assert.match(err(validateMenuDrafts([draft({ stock: '5' })])), /no name/)
+
+// inStock defaults to true and is NOT content: a spare row left alone is still
+// blank and still dropped in silence.
+assert.equal(
+  ok(validateMenuDrafts([draft({ name: 'Tea', price: '20' }), draft({ inStock: true })])).length,
+  1,
+)
+
+// Sold out is not the same as invalid — it publishes, it just cannot be added.
+assert.equal(
+  ok(validateMenuDrafts([draft({ name: 'Cake', price: '450', inStock: false })])).length,
+  1,
+)
 
 // Nothing started at all.
 assert.match(err(validateMenuDrafts([draft(), draft()])), /at least one item/)

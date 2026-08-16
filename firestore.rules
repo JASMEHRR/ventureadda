@@ -126,6 +126,33 @@ service cloud.firestore {
 
       // Deleting a user would orphan their username claim and their ventures.
       allow delete: if false;
+
+      /**
+       * FCM registration tokens for this account's own devices, one per
+       * document, id = SHA-256 of the token so re-enabling on the same device
+       * overwrites rather than duplicating.
+       *
+       * A SUBCOLLECTION RATHER THAN A FIELD ON THE USER DOCUMENT, and that is
+       * the whole point. users/{uid} is readable by anyone signed in, because
+       * usernames have to be resolvable next to chat messages and ventures. A
+       * registration token sitting in that document would be readable by every
+       * account on the site — and an attacker who copied someone else's token
+       * into their own list could aim this site's order notifications at a
+       * stranger's phone. Here, only the owner can read or write them.
+       *
+       * api/notify-order.ts reads these with service-account credentials, which
+       * bypass rules entirely, so tightening this costs the server nothing.
+       */
+      match /pushTokens/{tokenId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isVerifiedUser()
+                              && isSelf(uid)
+                              && request.resource.data.keys().hasOnly(['token', 'createdAt'])
+                              && request.resource.data.token is string
+                              && request.resource.data.token.size() > 0
+                              && request.resource.data.token.size() <= 500
+                              && request.resource.data.createdAt == request.time;
+      }
     }
 
     match /approvedEmails/{emailId} {
@@ -185,7 +212,12 @@ service cloud.firestore {
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() <= 60
                     && request.resource.data.phone is string
-                    && request.resource.data.description.size() <= 600;
+                    && request.resource.data.description.size() <= 600
+                    // Optional, and capped: these are published to buyers and
+                    // an unbounded list is an unbounded document.
+                    && (!('deliverySlots' in request.resource.data)
+                        || (request.resource.data.deliverySlots is list
+                            && request.resource.data.deliverySlots.size() <= 12));
 
       // Owners may edit content but never status, ownership or the counters.
       // Moderators may change anything, which is how approve and reject work.
@@ -198,7 +230,13 @@ service cloud.firestore {
                         && resource.data.ownerId == request.auth.uid
                         && request.resource.data.ownerId == resource.data.ownerId
                         && request.resource.data.status == resource.data.status
-                        && request.resource.data.clickCount == resource.data.clickCount);
+                        && request.resource.data.clickCount == resource.data.clickCount
+                        // Capped on edit as well as on create. Every slot is
+                        // rendered in the checkout dialog, so an unbounded list
+                        // here is an unbounded list in front of every buyer.
+                        && (!('deliverySlots' in request.resource.data)
+                            || (request.resource.data.deliverySlots is list
+                                && request.resource.data.deliverySlots.size() <= 12)));
 
       allow delete: if isModerator()
                     || (request.auth != null && resource.data.ownerId == request.auth.uid);
@@ -214,6 +252,13 @@ service cloud.firestore {
                     && request.resource.data.inquiryCount == 0
                     && request.resource.data.price is number
                     && request.resource.data.price >= 0
+                    && request.resource.data.inStock is bool
+                    // Optional. Absent means the seller is not counting units,
+                    // which is the common case and must stay writable.
+                    && (!('stock' in request.resource.data)
+                        || request.resource.data.stock == null
+                        || (request.resource.data.stock is int
+                            && request.resource.data.stock >= 0))
                     && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId == request.auth.uid;
 
       allow update: if
@@ -234,6 +279,97 @@ service cloud.firestore {
       allow delete: if isModerator()
                     || (request.auth != null
                         && get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid);
+    }
+
+    match /orders/{orderId} {
+      // The seller, and moderators for support. Deliberately NOT the buyer:
+      // there is no per-buyer query in the app, and opening reads to
+      // `buyerUid == uid` would widen this document — which holds a name, a
+      // phone number and a hostel room — for no feature that exists.
+      //
+      // ownerId is denormalised onto the order precisely so this rule needs no
+      // get() of the parent venture. A read rule that costs a billed document
+      // read per row is a read rule that gets removed later under pressure.
+      allow read: if isModerator()
+                  || (request.auth != null && resource.data.ownerId == request.auth.uid);
+
+      // Any verified account, Thapar or not — outsiders may buy, they just may
+      // not sell. Signed-out ordering is deliberately NOT allowed, unlike the
+      // inquiry counter and the WhatsApp handoff: an order obliges a real
+      // person to make something and hands them a phone number, so it has to
+      // be attributable to an account somebody can report.
+      allow create: if isVerifiedUser()
+                    && request.resource.data.keys().hasOnly([
+                         'ventureId', 'ventureName', 'ownerId', 'buyerUid',
+                         'buyerName', 'buyerPhone', 'lines', 'total',
+                         'contactPreference', 'payment', 'deliveryAddress',
+                         'deliverySlot', 'status', 'seen', 'createdAt'
+                       ])
+                    // Pins the order to the caller. Without this, one account
+                    // could paper a seller's dashboard with orders in other
+                    // people's names.
+                    && request.resource.data.buyerUid == request.auth.uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.seen == false
+                    // Forces serverTimestamp(). A client-supplied time could
+                    // backdate an order to the top of the seller's list.
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.buyerName is string
+                    && request.resource.data.buyerName.size() > 0
+                    && request.resource.data.buyerName.size() <= 60
+                    // Digits only, matching what the client strips it down to.
+                    // The seller's dashboard turns this straight into a tel:
+                    // link and a wa.me URL, and neither should ever be handed
+                    // something that is not a number.
+                    && request.resource.data.buyerPhone is string
+                    && request.resource.data.buyerPhone.matches('^[0-9]{8,15}$')
+                    && request.resource.data.ventureId is string
+                    && request.resource.data.ventureId.size() > 0
+                    && request.resource.data.deliveryAddress is string
+                    && request.resource.data.deliveryAddress.size() > 0
+                    && request.resource.data.deliveryAddress.size() <= 200
+                    && request.resource.data.deliverySlot is string
+                    && request.resource.data.deliverySlot.size() <= 60
+                    && request.resource.data.contactPreference in ['buyerContacts', 'sellerContacts']
+                    && request.resource.data.payment in ['cod', 'online']
+                    // LIMIT OF THIS RULE: `lines` is checked for being a list
+                    // of a sane length, and `total` for being a sane number,
+                    // but rules cannot iterate a list — so the per-line shape
+                    // and the arithmetic linking them are NOT enforced here.
+                    // A determined signed-in buyer can write an order whose
+                    // total disagrees with its lines. The seller sees both on
+                    // the dashboard and settles payment in person, so this is
+                    // a visible inconsistency rather than a way to get goods
+                    // cheaply. Do not build anything that trusts `total`
+                    // without re-summing the lines.
+                    && request.resource.data.lines is list
+                    && request.resource.data.lines.size() > 0
+                    && request.resource.data.lines.size() <= 50
+                    && request.resource.data.total is number
+                    && request.resource.data.total >= 0
+                    && request.resource.data.total <= 1000000
+                    && request.resource.data.ventureName is string
+                    && request.resource.data.ventureName.size() <= 60
+                    // The claimed seller must really own that venture, and it
+                    // must be live. Ordering from a pending or rejected
+                    // listing is ordering from a business nobody approved.
+                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId == request.resource.data.ownerId
+                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.status == 'live';
+
+      // The seller moving their own order along, and marking it read. Nothing
+      // else about the document may change — not the total, not the lines, not
+      // the buyer. The record of what was ordered is the point of having one.
+      allow update: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'seen'])
+                    && request.resource.data.status in ['pending', 'paid', 'completed']
+                    && request.resource.data.seen is bool;
+
+      // The seller clearing a prank or a duplicate. Buyers cannot withdraw an
+      // order — by then the seller may already have made it — they message and
+      // sort it out, which is what this whole site is.
+      allow delete: if isModerator()
+                    || (request.auth != null && resource.data.ownerId == request.auth.uid);
     }
 
     match /chatMessages/{messageId} {

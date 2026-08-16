@@ -61,6 +61,10 @@ export default function EditVenture() {
     description: item.description ?? '',
     price: String(item.price),
     category: item.category ?? '',
+    // Undefined means the seller was not counting, and the form says that with
+    // an empty field. String(undefined) would put the word "undefined" in it.
+    stock: item.stock === undefined ? '' : String(item.stock),
+    inStock: item.inStock,
     photo: item.photo,
   }))
 
@@ -70,7 +74,8 @@ export default function EditVenture() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    // Wider from lg so VentureForm's save rail has a column to sit in.
+    <div className="mx-auto max-w-2xl space-y-4 lg:max-w-5xl">
       <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] leading-relaxed text-white/50">
         Edits go live immediately — approval is only for new listings. Items you keep hold on to
         their enquiry counts; items you remove lose theirs.

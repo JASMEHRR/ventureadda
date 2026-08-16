@@ -32,7 +32,7 @@ import {
 } from '../data/ventures'
 import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
-import { SEED_VENTURES } from '../data/seed'
+import { SEED_VENTURES, seedInput } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL } from '../lib/firebase'
 import { getSiteSettings, setBackdrop } from '../data/settings'
@@ -189,10 +189,11 @@ export default function Moderator() {
   const importSeed = () =>
     act(async () => {
       for (const entry of SEED_VENTURES) {
+        const { venture, items } = seedInput(entry)
         const id = await createVenture(
           { uid: profile.uid, username: profile.username },
-          entry.venture,
-          entry.items,
+          venture,
+          items,
           { isDemo: true },
         )
         // Seeded listings skip the queue: you are the moderator and you just

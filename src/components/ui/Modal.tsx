@@ -66,6 +66,22 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
     [onClose],
   )
 
+  /**
+   * Open/close lifecycle. Depends on `open` and NOTHING else, which is the
+   * whole point.
+   *
+   * THE BUG THIS FIXES. This used to also depend on `handleKeyDown`, and every
+   * caller in this app passes an inline arrow as `onClose` — so `onClose` was a
+   * new function on every render, `handleKeyDown` was rebuilt with it, and this
+   * effect tore down and re-ran. Its cleanup calls restoreFocusTo.focus(). So
+   * typing one character into a field inside a dialog re-rendered the parent,
+   * ripped focus out of that field back to whatever opened the dialog, and then
+   * the timer below moved it to the close button. The checkout form could not
+   * be filled in: one keystroke per click into the field.
+   *
+   * The listener therefore lives in its own effect below, where being rebuilt
+   * costs nothing but a removeEventListener/addEventListener pair.
+   */
   useEffect(() => {
     if (!open) return
 
@@ -80,18 +96,23 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
       target.focus()
     }, 40)
 
-    document.addEventListener('keydown', handleKeyDown)
-
     // Stop the page behind the dialog scrolling under the backdrop.
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
     return () => {
       window.clearTimeout(focusTimer)
-      document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = previousOverflow
       restoreFocusTo.current?.focus()
     }
+  }, [open])
+
+  // Escape and the Tab trap. Re-subscribing when the handler identity changes
+  // is free and has no effect on focus.
+  useEffect(() => {
+    if (!open) return
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, handleKeyDown])
 
   if (!open) return null

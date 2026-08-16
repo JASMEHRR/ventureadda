@@ -38,6 +38,28 @@ export function cartMessage(ventureName: string, items: CartLine[], buyer: Buyer
 }
 
 /**
+ * The seller's side of the same conversation, for the orders dashboard.
+ *
+ * A SEPARATE MESSAGE, not cartMessage pointed the other way. That was the
+ * first version and it was wrong: cartMessage opens "Hi {venture}, I found you
+ * on VentureAdda and want to order", so a seller tapping Message sent their
+ * buyer a message written as if the seller were the customer. The order is
+ * itemised the same way because the buyer should be able to check it, but
+ * everything around it has to come from the other direction.
+ */
+export function sellerMessage(ventureName: string, items: CartLine[], buyerName: string): string {
+  const lines = items.map((item) => `${item.quantity} × ${item.name} — ₹${item.price * item.quantity}`)
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  return [
+    `Hi ${buyerName}, this is ${ventureName} from VentureAdda. I have your order:`,
+    '',
+    ...lines,
+    '',
+    `Total: ₹${total}`,
+  ].join('\n')
+}
+
+/**
  * Returns null when either number is unusable, so the caller can disable the
  * button rather than sending someone to a broken WhatsApp page.
  */
@@ -56,4 +78,24 @@ export function cartLink(
   if (items.length === 0) return null
 
   return `https://wa.me/${digits}?text=${encodeURIComponent(cartMessage(ventureName, items, { ...buyer, phone: buyerDigits }))}`
+}
+
+/**
+ * Opens WhatsApp to the buyer, from the seller, with the order written out.
+ *
+ * Same validity rules as cartLink, and the same null contract — one number
+ * this time, because the seller is sending from their own device and their own
+ * number is not in the link.
+ */
+export function sellerReplyLink(
+  buyerNumber: string,
+  ventureName: string,
+  items: CartLine[],
+  buyerName: string,
+): string | null {
+  const digits = normalisePhone(buyerNumber)
+  if (digits.length < 8 || digits.length > 15) return null
+  if (items.length === 0) return null
+
+  return `https://wa.me/${digits}?text=${encodeURIComponent(sellerMessage(ventureName, items, buyerName))}`
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import Button from './ui/Button'
 import MenuImport from './MenuImport'
+import Field from './ui/Field'
 import Select from './ui/Select'
 import PhotoUploader from './ui/PhotoUploader'
+import StockToggle from './ui/StockToggle'
 import TextField, { inputClass } from './ui/TextField'
 import Textarea from './ui/Textarea'
 import type { SelectOption } from './ui/Select'
@@ -18,6 +20,9 @@ const CATEGORY_OPTIONS: SelectOption<string>[] = CATEGORIES.map((category) => ({
   label: category.name,
 }))
 
+/** A venture may publish at most this many collection windows. Mirrors firestore.rules. */
+const MAX_SLOTS = 12
+
 let draftKeySeed = 0
 const newDraft = (): MenuItemDraft => ({
   key: `draft-${(draftKeySeed += 1)}`,
@@ -25,6 +30,10 @@ const newDraft = (): MenuItemDraft => ({
   description: '',
   price: '',
   category: '',
+  stock: '',
+  // A new item is for sale. The other default would mean every item added in a
+  // hurry is invisible to buyers for reasons its owner never sees.
+  inStock: true,
 })
 
 export type VentureFormValues = {
@@ -38,6 +47,165 @@ type VentureFormProps = {
   onSubmit: (values: VentureFormValues) => Promise<void>
 }
 
+/**
+ * The section a menu item belongs to, picked rather than typed.
+ *
+ * REPLACES a plain input backed by `<datalist>`. That control was the one
+ * thing on this page rendered by the browser rather than by us: an unstyled
+ * white system dropdown in the middle of a dark glass form, with no indication
+ * it was even there until you clicked. Worse, it was still a free-text field,
+ * so "Snacks" and "snacks" made two sections out of one and the seller found
+ * out by looking at their own live menu.
+ *
+ * Existing sections are now chips — one tap, spelled identically every time —
+ * and the input is only for a section that does not exist yet.
+ */
+function SectionPicker({
+  value,
+  known,
+  onChange,
+  label,
+}: {
+  value: string
+  /** Every section name already used elsewhere in this menu. */
+  known: string[]
+  onChange: (next: string) => void
+  label: string
+}) {
+  return (
+    <div>
+      <span className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+        Section
+      </span>
+
+      {known.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {known.map((section) => {
+            const active = value === section
+            return (
+              <button
+                key={section}
+                type="button"
+                aria-pressed={active}
+                // Tapping the active chip clears it, which is the only way back
+                // to "no section" once one is chosen without hunting for the
+                // text field and deleting it by hand.
+                onClick={() => onChange(active ? '' : section)}
+                className={`rounded-full border px-3 py-1.5 text-[12px] font-bold transition duration-150 active:scale-[0.96] ${
+                  active
+                    ? 'border-brand-400/50 bg-brand-500/20 text-brand-300'
+                    : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-white/25 hover:text-white'
+                }`}
+              >
+                {section}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      <input
+        aria-label={label}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={known.length > 0 ? 'Or type a new section' : 'Optional, e.g. Snacks'}
+        className={inputClass}
+      />
+    </div>
+  )
+}
+
+/**
+ * The collection windows a buyer may choose from at checkout.
+ *
+ * Free text on purpose. "After 9pm" and "Between classes, Tuesday" are both
+ * real answers on this campus, and a time picker would refuse them both.
+ */
+function SlotsEditor({
+  slots,
+  onChange,
+}: {
+  slots: string[]
+  onChange: (next: string[]) => void
+}) {
+  const [draft, setDraft] = useState('')
+
+  const add = () => {
+    const value = draft.trim()
+    if (!value) return
+    // Case-insensitive, because "6pm - 8pm" and "6PM - 8PM" offered as two
+    // choices is a checkout that looks broken.
+    if (slots.some((slot) => slot.toLowerCase() === value.toLowerCase())) {
+      setDraft('')
+      return
+    }
+    if (slots.length >= MAX_SLOTS) return
+    onChange([...slots, value])
+    setDraft('')
+  }
+
+  return (
+    <Field
+      id="venture-slot-input"
+      label="Collection or delivery times"
+      hint={
+        slots.length >= MAX_SLOTS
+          ? `That is the maximum of ${MAX_SLOTS} windows.`
+          : 'Optional. Buyers pick one of these when they order. Leave it empty and you agree a time in the conversation instead.'
+      }
+    >
+      {slots.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {slots.map((slot) => (
+            <span
+              key={slot}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] py-1.5 pr-1.5 pl-3 text-[12px] font-bold text-white/80"
+            >
+              {slot}
+              <button
+                type="button"
+                onClick={() => onChange(slots.filter((other) => other !== slot))}
+                aria-label={`Remove the ${slot} window`}
+                className="rounded-full p-1 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.9]"
+              >
+                <X size={11} aria-hidden="true" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          id="venture-slot-input"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          // Enter would otherwise submit the whole venture, which on a form
+          // this long is a genuinely destructive surprise.
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            add()
+          }}
+          maxLength={60}
+          disabled={slots.length >= MAX_SLOTS}
+          placeholder="6pm – 8pm"
+          className={`${inputClass} disabled:opacity-40`}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={add}
+          disabled={draft.trim() === '' || slots.length >= MAX_SLOTS}
+          className="shrink-0"
+        >
+          Add
+        </Button>
+      </div>
+    </Field>
+  )
+}
+
 export default function VentureForm({ initial, submitLabel, onSubmit }: VentureFormProps) {
   const [name, setName] = useState(initial?.name ?? '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? 'food')
@@ -46,6 +214,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const [phone, setPhone] = useState(initial?.phone ?? '')
   const [photos, setPhotos] = useState<StoredImage[]>(initial?.photos ?? [])
   const [logo, setLogo] = useState<StoredImage | undefined>(initial?.logo)
+  const [deliverySlots, setDeliverySlots] = useState<string[]>(initial?.deliverySlots ?? [])
   const [items, setItems] = useState<MenuItemDraft[]>(
     initial?.items?.length ? initial.items : [newDraft()],
   )
@@ -85,6 +254,11 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const patchItem = (key: string, patch: Partial<MenuItemDraft>) =>
     setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
 
+  /** Every section already in use, for the per-item chips. */
+  const knownSections = [...new Set(items.map((item) => item.category.trim()).filter(Boolean))]
+
+  const soldOutCount = items.filter((item) => !item.inStock && item.name.trim() !== '').length
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
@@ -117,6 +291,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           hours: hours.trim(),
           phone: digits,
           photos,
+          deliverySlots,
           logo,
         },
         items: filled.map((item) => ({
@@ -125,6 +300,10 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           description: item.description.trim(),
           price: Math.round(Number(item.price)),
           category: item.category.trim() || undefined,
+          inStock: item.inStock,
+          // Blank means the seller is not counting. Number('') is 0, which
+          // would silently publish every uncounted item as "none left".
+          stock: item.stock.trim() === '' ? undefined : Math.round(Number(item.stock)),
           photo: item.photo,
         })),
       })
@@ -136,186 +315,235 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <section className="liquid-glass-panel space-y-4 rounded-3xl p-5">
-        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          The basics
-        </h2>
-
-        <TextField
-          id="venture-name"
-          label="Venture name"
-          required
-          maxLength={60}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Hostel Bakes"
-        />
-
-        <Select
-          label="Category"
-          value={categoryId}
-          options={CATEGORY_OPTIONS}
-          onChange={setCategoryId}
-        />
-
-        <Textarea
-          id="venture-description"
-          label="Description"
-          hint="Two lines is plenty."
-          required
-          maxLength={600}
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="What you make, and how people collect it."
-        />
-
-        <TextField
-          id="venture-hours"
-          label="Opening hours"
-          required
-          value={hours}
-          onChange={(event) => setHours(event.target.value)}
-          placeholder="4pm – 11pm, daily"
-        />
-
-        <TextField
-          id="venture-phone"
-          label="WhatsApp number"
-          hint="With country code. This is where item enquiries land."
-          required
-          inputMode="tel"
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          placeholder="919876543210"
-        />
-
-        <PhotoUploader
-          label="Logo"
-          hint="Optional. A square image shown next to your name. Without one, your initial is used."
-          photos={logo ? [logo] : []}
-          onChange={(next) => setLogo(next[0])}
-          max={1}
-        />
-
-        <PhotoUploader
-          label="Photos"
-          hint="Optional, but a listing with photos gets opened far more. Up to four, JPG, PNG or WebP, 5MB each."
-          photos={photos}
-          onChange={setPhotos}
-        />
-      </section>
-
-      <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
-        <div className="flex items-baseline justify-between gap-3">
+    /**
+     * Two columns from `lg`, with the save panel in the right-hand one.
+     *
+     * A single Save at the foot of the page is fine for a form you can see all
+     * of. This one holds a whole catalogue — thirty items is a realistic menu,
+     * and each item is six fields and a photo — so saving meant scrolling past
+     * everything you had just typed to reach the only button that keeps it.
+     * Below `lg` there is no room for a rail, so the same panel sticks to the
+     * bottom of the viewport instead.
+     */
+    <form onSubmit={submit} className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-4">
+      <div className="space-y-4">
+        <section className="liquid-glass-panel space-y-4 rounded-3xl p-5">
           <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-            Menu
+            The basics
           </h2>
-          <span className="font-mono text-[10px] text-white/30">
-            {items.length} {items.length === 1 ? 'item' : 'items'}
-          </span>
-        </div>
 
-        <MenuImport onAdd={addExtracted} />
+          <TextField
+            id="venture-name"
+            label="Venture name"
+            required
+            maxLength={60}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Hostel Bakes"
+          />
 
-        {/* Shared by every section input below, so picking "Snacks" on item 4
-            offers it on item 5 too — without this, a typo made once has to be
-            retyped identically on every other item for the sections to group
-            together. */}
-        <datalist id="item-categories">
-          {[...new Set(items.map((item) => item.category.trim()).filter(Boolean))].map(
-            (category) => (
-              <option key={category} value={category} />
-            ),
-          )}
-        </datalist>
+          <Select
+            label="Category"
+            value={categoryId}
+            options={CATEGORY_OPTIONS}
+            onChange={setCategoryId}
+          />
 
-        {items.map((item, index) => (
-          <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
-                Item {index + 1}
-              </span>
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setItems((prev) => prev.filter((row) => row.key !== item.key))}
-                  aria-label={`Remove item ${index + 1}`}
-                  className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
-                >
-                  <Trash2 size={13} aria-hidden="true" />
-                </button>
-              )}
-            </div>
+          <Textarea
+            id="venture-description"
+            label="Description"
+            hint="Two lines is plenty."
+            required
+            maxLength={600}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="What you make, and how people collect it."
+          />
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-              <input
-                aria-label={`Item ${index + 1} name`}
-                value={item.name}
-                onChange={(event) => patchItem(item.key, { name: event.target.value })}
-                placeholder="Chocolate Fudge Cake"
-                className={inputClass}
-              />
-              <input
-                aria-label={`Item ${index + 1} price in rupees`}
-                inputMode="numeric"
-                value={item.price}
-                onChange={(event) => patchItem(item.key, { price: event.target.value })}
-                placeholder="450"
-                className={`${inputClass} sm:w-28`}
-              />
-            </div>
+          <TextField
+            id="venture-hours"
+            label="Opening hours"
+            required
+            value={hours}
+            onChange={(event) => setHours(event.target.value)}
+            placeholder="4pm – 11pm, daily"
+          />
 
-            <input
-              aria-label={`Item ${index + 1} description`}
-              value={item.description}
-              onChange={(event) => patchItem(item.key, { description: event.target.value })}
-              placeholder="Dark chocolate, 500g, serves four"
-              className={`${inputClass} mt-3`}
-            />
+          <SlotsEditor slots={deliverySlots} onChange={setDeliverySlots} />
 
-            <input
-              aria-label={`Item ${index + 1} section`}
-              list="item-categories"
-              value={item.category}
-              onChange={(event) => patchItem(item.key, { category: event.target.value })}
-              placeholder="Section, e.g. Snacks (optional)"
-              className={`${inputClass} mt-3`}
-            />
+          <TextField
+            id="venture-phone"
+            label="WhatsApp number"
+            hint="With country code. This is where item enquiries land, and it is shown to buyers who order."
+            required
+            inputMode="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="919876543210"
+          />
 
-            <div className="mt-3">
-              <PhotoUploader
-                label="Item photo"
-                photos={item.photo ? [item.photo] : []}
-                onChange={(next) => patchItem(item.key, { photo: next[0] })}
-                max={1}
-              />
-            </div>
+          <PhotoUploader
+            label="Logo"
+            hint="Optional. A square image shown next to your name. Without one, your initial is used."
+            photos={logo ? [logo] : []}
+            onChange={(next) => setLogo(next[0])}
+            max={1}
+          />
+
+          <PhotoUploader
+            label="Photos"
+            hint="Optional, but a listing with photos gets opened far more. Up to four, JPG, PNG or WebP, 5MB each."
+            photos={photos}
+            onChange={setPhotos}
+          />
+        </section>
+
+        <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+              Menu
+            </h2>
+            <span className="font-mono text-[10px] text-white/30">
+              {items.length} {items.length === 1 ? 'item' : 'items'}
+            </span>
           </div>
-        ))}
 
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setItems((prev) => [...prev, newDraft()])}
-        >
-          <Plus size={13} aria-hidden="true" />
-          Add another item
-        </Button>
-      </section>
+          <MenuImport onAdd={addExtracted} />
 
-      {error && (
-        <p
-          role="alert"
-          className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] text-red-400"
-        >
-          {error}
-        </p>
-      )}
+          {items.map((item, index) => (
+            <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+                  Item {index + 1}
+                </span>
+                <div className="flex items-center gap-2">
+                  <StockToggle
+                    value={item.inStock}
+                    onChange={(next) => patchItem(item.key, { inStock: next })}
+                    label={`Item ${index + 1} availability`}
+                  />
+                  {items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setItems((prev) => prev.filter((row) => row.key !== item.key))}
+                      aria-label={`Remove item ${index + 1}`}
+                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                    >
+                      <Trash2 size={13} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              </div>
 
-      <Button type="submit" variant="primary" loading={busy} className="w-full">
-        {submitLabel}
-      </Button>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <input
+                  aria-label={`Item ${index + 1} name`}
+                  value={item.name}
+                  onChange={(event) => patchItem(item.key, { name: event.target.value })}
+                  placeholder="Chocolate Fudge Cake"
+                  className={inputClass}
+                />
+                <input
+                  aria-label={`Item ${index + 1} price in rupees`}
+                  inputMode="numeric"
+                  value={item.price}
+                  onChange={(event) => patchItem(item.key, { price: event.target.value })}
+                  placeholder="₹ 450"
+                  className={`${inputClass} sm:w-28`}
+                />
+                <input
+                  aria-label={`Item ${index + 1} units in stock, optional`}
+                  inputMode="numeric"
+                  value={item.stock}
+                  onChange={(event) => patchItem(item.key, { stock: event.target.value })}
+                  placeholder="Qty"
+                  title="How many you have. Leave empty if you are not counting."
+                  className={`${inputClass} sm:w-24`}
+                />
+              </div>
+
+              <input
+                aria-label={`Item ${index + 1} description`}
+                value={item.description}
+                onChange={(event) => patchItem(item.key, { description: event.target.value })}
+                placeholder="Dark chocolate, 500g, serves four"
+                className={`${inputClass} mt-3`}
+              />
+
+              <div className="mt-3">
+                <SectionPicker
+                  value={item.category}
+                  known={knownSections}
+                  onChange={(next) => patchItem(item.key, { category: next })}
+                  label={`Item ${index + 1} section`}
+                />
+              </div>
+
+              <div className="mt-3">
+                <PhotoUploader
+                  label="Item photo"
+                  photos={item.photo ? [item.photo] : []}
+                  onChange={(next) => patchItem(item.key, { photo: next[0] })}
+                  max={1}
+                />
+              </div>
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setItems((prev) => [...prev, newDraft()])}
+          >
+            <Plus size={13} aria-hidden="true" />
+            Add another item
+          </Button>
+        </section>
+      </div>
+
+      {/* Sticks to the top of the rail on desktop, to the bottom of the
+          viewport on a phone. `bottom-24` clears MobileNav, which is fixed at
+          bottom-3 below md. */}
+      <div className="sticky bottom-24 z-30 mt-4 md:bottom-4 lg:top-6 lg:bottom-auto lg:mt-0">
+        <div className="liquid-glass-panel space-y-3 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          {error && (
+            <p role="alert" className="text-[13px] leading-relaxed text-red-400">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" variant="primary" loading={busy} className="w-full">
+            {submitLabel}
+          </Button>
+
+          {/* Desktop only. On a phone the panel is a bar over the content and
+              every extra line of it is a line of the form you cannot see. */}
+          <dl className="hidden gap-1 lg:grid">
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
+                Items
+              </dt>
+              <dd className="font-mono text-[12px] font-bold text-white/70">{items.length}</dd>
+            </div>
+            {soldOutCount > 0 && (
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
+                  Sold out
+                </dt>
+                <dd className="font-mono text-[12px] font-bold text-red-400">{soldOutCount}</dd>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
+                Windows
+              </dt>
+              <dd className="font-mono text-[12px] font-bold text-white/70">
+                {deliverySlots.length}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
     </form>
   )
 }
