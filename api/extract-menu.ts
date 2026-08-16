@@ -174,9 +174,17 @@ async function verifyFirebaseToken(
  * the browser, into the menu builder, and a human confirms it. Extraction gets
  * prices wrong, and a wrong price is worse than no price because somebody acts
  * on it.
+ *
+ * RUNTIME. Not pinned to Edge. Three crashes in production (write ECONNRESET,
+ * an out-of-memory kill, and a 300s timeout) all showed Node-internal stack
+ * frames (node:net, node:internal/stream_base_commons) that do not exist in
+ * Vercel's actual Edge V8 isolate, and a diagnostic log placed as the first
+ * line of the handler never printed before any of them — meaning whatever was
+ * crashing did so before our code ran at all. That pointed at a runtime
+ * mismatch rather than a bug in this file, so this now runs as a plain
+ * Node.js serverless function, which is what the crashes were actually
+ * behaving like.
  */
-
-export const config = { runtime: 'edge' }
 
 /**
  * Groq's vision model, confirmed against console.groq.com/docs/vision rather
@@ -268,13 +276,6 @@ export function parseItems(raw: string): ExtractedItem[] | null {
 }
 
 export default async function handler(request: Request): Promise<Response> {
-  // TEMPORARY DIAGNOSTIC: the crash logs for this function show Node internals
-  // (node:net, node:internal/stream_base_commons), which do not exist in the
-  // Edge runtime this file declares via `config.runtime`. This line confirms
-  // which runtime Vercel is actually invoking before any real fix goes in.
-  // Remove once confirmed either way.
-  console.log('runtime check', typeof (globalThis as Record<string, unknown>).EdgeRuntime, typeof process)
-
   if (request.method !== 'POST') {
     return fail('Use POST.', 405, 'method_not_allowed')
   }
