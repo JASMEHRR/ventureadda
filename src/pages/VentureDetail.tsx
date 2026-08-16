@@ -252,34 +252,47 @@ export default function VentureDetail() {
         )}
 
         <div className="space-y-2.5">
-          {menu.data?.map((item) => {
+          {menu.data?.map((item, index) => {
             const quantity = cart[item.id] ?? 0
+            // listMenuItems returns items grouped by category already; a
+            // heading goes above the first item of each group only, and
+            // never above uncategorised items, which sort last with no
+            // heading of their own.
+            const previousCategory = index > 0 ? menu.data![index - 1].category : undefined
+            const showHeading = Boolean(item.category) && item.category !== previousCategory
+
             return (
-              <ListRow
-                key={item.id}
-                title={item.name}
-                description={item.description}
-                meta={
-                  <span className="flex flex-col items-end gap-0.5">
-                    <span>₹{item.price}</span>
-                    {showItemStats && (
-                      <span className="text-[10px] font-bold text-brand-400">
-                        {(localCounts[item.id] ?? item.inquiryCount).toLocaleString('en-IN')} asked
-                      </span>
-                    )}
-                    {quantity > 0 && (
-                      <span className="text-[10px] font-bold text-brand-400">
-                        {quantity} in order
-                      </span>
-                    )}
-                  </span>
-                }
-                thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
-                icon={item.photo ? undefined : UtensilsCrossed}
-                actionIcon={Plus}
-                actionLabel={`Add ${item.name} to your order`}
-                onClick={() => addToCart(item)}
-              />
+              <div key={item.id}>
+                {showHeading && (
+                  <h3 className="mb-2.5 px-1 font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+                    {item.category}
+                  </h3>
+                )}
+                <ListRow
+                  title={item.name}
+                  description={item.description}
+                  meta={
+                    <span className="flex flex-col items-end gap-0.5">
+                      <span>₹{item.price}</span>
+                      {showItemStats && (
+                        <span className="text-[10px] font-bold text-brand-400">
+                          {(localCounts[item.id] ?? item.inquiryCount).toLocaleString('en-IN')} asked
+                        </span>
+                      )}
+                      {quantity > 0 && (
+                        <span className="text-[10px] font-bold text-brand-400">
+                          {quantity} in order
+                        </span>
+                      )}
+                    </span>
+                  }
+                  thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
+                  icon={item.photo ? undefined : UtensilsCrossed}
+                  actionIcon={Plus}
+                  actionLabel={`Add ${item.name} to your order`}
+                  onClick={() => addToCart(item)}
+                />
+              </div>
             )
           })}
         </div>

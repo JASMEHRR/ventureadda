@@ -60,6 +60,7 @@ export default function EditVenture() {
     name: item.name,
     description: item.description ?? '',
     price: String(item.price),
+    category: item.category ?? '',
     photo: item.photo,
   }))
 

@@ -24,6 +24,7 @@ const newDraft = (): MenuItemDraft => ({
   name: '',
   description: '',
   price: '',
+  category: '',
 })
 
 export type VentureFormValues = {
@@ -123,6 +124,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           name: item.name.trim(),
           description: item.description.trim(),
           price: Math.round(Number(item.price)),
+          category: item.category.trim() || undefined,
           photo: item.photo,
         })),
       })
@@ -257,6 +259,14 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
               value={item.description}
               onChange={(event) => patchItem(item.key, { description: event.target.value })}
               placeholder="Dark chocolate, 500g, serves four"
+              className={`${inputClass} mt-3`}
+            />
+
+            <input
+              aria-label={`Item ${index + 1} section`}
+              value={item.category}
+              onChange={(event) => patchItem(item.key, { category: event.target.value })}
+              placeholder="Section, e.g. Snacks (optional)"
               className={`${inputClass} mt-3`}
             />
 

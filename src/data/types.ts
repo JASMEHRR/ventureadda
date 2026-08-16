@@ -61,6 +61,12 @@ export type MenuItem = {
   /** Whole rupees. No fractional currency anywhere in this product. */
   price: number
   photo?: StoredImage
+  /**
+   * Free text, e.g. "Snacks", "Drinks" — a section within one venture's own
+   * menu, not the fixed top-level Category every venture is filed under.
+   * Absent items render in a flat list with no heading.
+   */
+  category?: string
   inquiryCount: number
 }
 
@@ -72,6 +78,7 @@ export type MenuItemDraft = {
   name: string
   description: string
   price: string
+  category: string
   photo?: StoredImage
 }
 

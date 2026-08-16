@@ -17,6 +17,7 @@ function isBlank(item: MenuItemDraft): boolean {
     item.name.trim() === '' &&
     item.price.trim() === '' &&
     item.description.trim() === '' &&
+    item.category.trim() === '' &&
     item.photo === undefined
   )
 }

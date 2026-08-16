@@ -16,6 +16,7 @@ const draft = (over: Partial<MenuItemDraft> = {}): MenuItemDraft => ({
   name: '',
   description: '',
   price: '',
+  category: '',
   ...over,
 })
 
@@ -45,6 +46,7 @@ assert.match(
   err(validateMenuDrafts([draft({ photo: { url: 'x', publicId: '' } })])),
   /no name/,
 )
+assert.match(err(validateMenuDrafts([draft({ category: 'Snacks' })])), /no name/)
 
 // The row number matches what is on screen, counting blank rows above it.
 assert.match(

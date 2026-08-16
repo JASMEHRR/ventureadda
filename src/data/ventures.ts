@@ -83,6 +83,7 @@ function toMenuItem(snapshot: QueryDocumentSnapshot<DocumentData>): MenuItem {
     description: data.description || undefined,
     price: typeof data.price === 'number' ? data.price : 0,
     photo: data.photo ?? undefined,
+    category: data.category || undefined,
     inquiryCount: typeof data.inquiryCount === 'number' ? data.inquiryCount : 0,
   }
 }
@@ -139,9 +140,18 @@ export async function getVenture(ventureId: string): Promise<Venture | null> {
   }
 }
 
+/**
+ * Category first (uncategorised items sort last, after every named group),
+ * then name within it — so a venture's own sections read as sections instead
+ * of an alphabetised jumble.
+ */
 export async function listMenuItems(ventureId: string): Promise<MenuItem[]> {
   const snapshot = await getDocs(query(menuItemsRef, where('ventureId', '==', ventureId)))
-  return snapshot.docs.map(toMenuItem).sort((a, b) => a.name.localeCompare(b.name))
+  return snapshot.docs.map(toMenuItem).sort((a, b) => {
+    if (Boolean(a.category) !== Boolean(b.category)) return a.category ? -1 : 1
+    const category = (a.category ?? '').localeCompare(b.category ?? '')
+    return category !== 0 ? category : a.name.localeCompare(b.name)
+  })
 }
 
 export async function countVenturesByCategory(): Promise<Record<string, number>> {
@@ -181,6 +191,7 @@ export type MenuItemInput = {
   name: string
   description: string
   price: number
+  category?: string
   photo?: StoredImage
 }
 
@@ -258,6 +269,7 @@ export async function createVenture(
       description: item.description,
       price: item.price,
       ...(item.photo ? { photo: item.photo } : {}),
+      ...(item.category ? { category: item.category } : {}),
       inquiryCount: 0,
     })
   }
@@ -301,6 +313,7 @@ export async function updateVenture(
       description: item.description,
       price: item.price,
       ...(item.photo ? { photo: item.photo } : {}),
+      ...(item.category ? { category: item.category } : {}),
     }
     if (item.id) {
       batch.update(doc(menuItemsRef, item.id), payload)
