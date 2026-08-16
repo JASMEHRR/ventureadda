@@ -218,6 +218,18 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
 
         <MenuImport onAdd={addExtracted} />
 
+        {/* Shared by every section input below, so picking "Snacks" on item 4
+            offers it on item 5 too — without this, a typo made once has to be
+            retyped identically on every other item for the sections to group
+            together. */}
+        <datalist id="item-categories">
+          {[...new Set(items.map((item) => item.category.trim()).filter(Boolean))].map(
+            (category) => (
+              <option key={category} value={category} />
+            ),
+          )}
+        </datalist>
+
         {items.map((item, index) => (
           <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -264,6 +276,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
 
             <input
               aria-label={`Item ${index + 1} section`}
+              list="item-categories"
               value={item.category}
               onChange={(event) => patchItem(item.key, { category: event.target.value })}
               placeholder="Section, e.g. Snacks (optional)"

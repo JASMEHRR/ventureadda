@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MessageCircle, Minus, Plus, SearchX, ShoppingCart, UtensilsCrossed } from 'lucide-react'
+import {
+  ArrowLeft,
+  ChevronDown,
+  Clock,
+  MessageCircle,
+  Minus,
+  Plus,
+  SearchX,
+  ShoppingCart,
+  UtensilsCrossed,
+} from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
-import ListRow from '../components/ui/ListRow'
 import Modal from '../components/ui/Modal'
 import TextField from '../components/ui/TextField'
 import ReviewSection from '../components/ReviewSection'
@@ -55,6 +64,65 @@ function PhotoGallery({ venture }: { venture: Venture }) {
   )
 }
 
+function ItemCard({
+  item,
+  quantity,
+  askedCount,
+  showAsked,
+  onAdd,
+}: {
+  item: MenuItem
+  quantity: number
+  askedCount: number
+  showAsked: boolean
+  onAdd: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      aria-label={`Add ${item.name} to your order`}
+      className="group liquid-glass-panel flex flex-col overflow-hidden rounded-2xl text-left transition duration-150 hover:bg-white/[0.06] active:scale-[0.98]"
+    >
+      {item.photo ? (
+        <img
+          src={displayUrl(item.photo, 400)}
+          alt=""
+          loading="lazy"
+          className="aspect-square w-full object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="flex aspect-square w-full items-center justify-center bg-white/[0.04] text-white/25"
+        >
+          <UtensilsCrossed size={24} />
+        </span>
+      )}
+
+      <span className="flex min-w-0 flex-1 flex-col gap-1 p-3">
+        <span className="line-clamp-2 text-[13.5px] font-bold text-white">{item.name}</span>
+        <span className="mt-auto flex items-center justify-between gap-2">
+          <span className="font-mono text-[13px] font-bold text-white/90">₹{item.price}</span>
+          <Plus
+            size={14}
+            aria-hidden="true"
+            className="shrink-0 rounded-full bg-white/10 p-0.5 text-white/50 transition-colors group-hover:bg-brand-500/25 group-hover:text-brand-300"
+          />
+        </span>
+        {showAsked && (
+          <span className="font-mono text-[9px] font-bold text-brand-400">
+            {askedCount.toLocaleString('en-IN')} asked
+          </span>
+        )}
+        {quantity > 0 && (
+          <span className="font-mono text-[9px] font-bold text-brand-400">{quantity} in order</span>
+        )}
+      </span>
+    </button>
+  )
+}
+
 export default function VentureDetail() {
   const { ventureId = '' } = useParams()
   const { profile } = useAuth()
@@ -66,6 +134,9 @@ export default function VentureDetail() {
   const [buyerName, setBuyerName] = useState('')
   const [buyerPhone, setBuyerPhone] = useState('')
   const [localCounts, setLocalCounts] = useState<Record<string, number>>({})
+  /** Category name -> collapsed. Absent means expanded — the default, so a
+   *  venture with one section never opens on a page that looks empty. */
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({})
 
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
   const menu = useAsyncData(() => listMenuItems(ventureId), [ventureId])
@@ -79,6 +150,10 @@ export default function VentureDetail() {
 
   const addToCart = useCallback((item: MenuItem) => {
     setCart((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))
+  }, [])
+
+  const toggleCategory = useCallback((category: string) => {
+    setCollapsedCategories((prev) => ({ ...prev, [category]: !prev[category] }))
   }, [])
 
   const setQuantity = useCallback((itemId: string, quantity: number) => {
@@ -145,6 +220,18 @@ export default function VentureDetail() {
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
   const showItemStats = Boolean(profile && (profile.uid === v.ownerId || profile.isModerator))
+
+  // listMenuItems returns items already sorted category-then-name, with
+  // uncategorised items last — grouping here just has to walk that order
+  // once, not re-sort it. The uncategorised group (key '') renders with no
+  // heading and is never collapsible.
+  const menuGroups: { category: string; items: MenuItem[] }[] = []
+  for (const item of menu.data ?? []) {
+    const category = item.category ?? ''
+    const last = menuGroups[menuGroups.length - 1]
+    if (last && last.category === category) last.items.push(item)
+    else menuGroups.push({ category, items: [item] })
+  }
 
   const cartLines = (menu.data ?? [])
     .filter((item) => cart[item.id] > 0)
@@ -251,47 +338,45 @@ export default function VentureDetail() {
           </p>
         )}
 
-        <div className="space-y-2.5">
-          {menu.data?.map((item, index) => {
-            const quantity = cart[item.id] ?? 0
-            // listMenuItems returns items grouped by category already; a
-            // heading goes above the first item of each group only, and
-            // never above uncategorised items, which sort last with no
-            // heading of their own.
-            const previousCategory = index > 0 ? menu.data![index - 1].category : undefined
-            const showHeading = Boolean(item.category) && item.category !== previousCategory
-
+        <div className="space-y-5">
+          {menuGroups.map((group) => {
+            const collapsed = group.category !== '' && collapsedCategories[group.category]
             return (
-              <div key={item.id}>
-                {showHeading && (
-                  <h3 className="mb-2.5 px-1 font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
-                    {item.category}
-                  </h3>
-                )}
-                <ListRow
-                  title={item.name}
-                  description={item.description}
-                  meta={
-                    <span className="flex flex-col items-end gap-0.5">
-                      <span>₹{item.price}</span>
-                      {showItemStats && (
-                        <span className="text-[10px] font-bold text-brand-400">
-                          {(localCounts[item.id] ?? item.inquiryCount).toLocaleString('en-IN')} asked
-                        </span>
-                      )}
-                      {quantity > 0 && (
-                        <span className="text-[10px] font-bold text-brand-400">
-                          {quantity} in order
-                        </span>
-                      )}
+              <div key={group.category || ' uncategorised'}>
+                {group.category !== '' && (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(group.category)}
+                    aria-expanded={!collapsed}
+                    className="mb-2.5 flex w-full items-center gap-2 px-1 text-left"
+                  >
+                    <ChevronDown
+                      size={13}
+                      aria-hidden="true"
+                      className={`text-white/40 transition-transform duration-150 ${collapsed ? '-rotate-90' : ''}`}
+                    />
+                    <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+                      {group.category}
                     </span>
-                  }
-                  thumbnail={item.photo ? displayUrl(item.photo, 400) : undefined}
-                  icon={item.photo ? undefined : UtensilsCrossed}
-                  actionIcon={Plus}
-                  actionLabel={`Add ${item.name} to your order`}
-                  onClick={() => addToCart(item)}
-                />
+                    <span className="font-mono text-[9px] text-white/25">
+                      {group.items.length}
+                    </span>
+                  </button>
+                )}
+                {!collapsed && (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                    {group.items.map((item) => (
+                      <ItemCard
+                        key={item.id}
+                        item={item}
+                        quantity={cart[item.id] ?? 0}
+                        askedCount={localCounts[item.id] ?? item.inquiryCount}
+                        showAsked={showItemStats}
+                        onAdd={() => addToCart(item)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
