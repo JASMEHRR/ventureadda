@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Check, Inbox, MessageCircle, MousePointerClick, Sprout, Store, X } from 'lucide-react'
+import { Check, Inbox, MessageCircle, MousePointerClick, Search, Shield, Sprout, Store, X } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
 import PhotoUploader from '../components/ui/PhotoUploader'
 import StatCard from '../components/ui/StatCard'
+import TextField from '../components/ui/TextField'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
@@ -21,7 +22,10 @@ import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
 import { SEED_VENTURES } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
+import { OWNER_EMAIL } from '../lib/firebase'
 import { getSiteSettings, setBackdrop } from '../data/settings'
+import { findUserByUsername, setModerator } from '../data/moderators'
+import type { ModeratorCandidate } from '../data/moderators'
 
 type Tab = 'pending' | 'live'
 
@@ -85,6 +89,11 @@ export default function Moderator() {
   const [confirmDelete, setConfirmDelete] = useState<Venture | null>(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [moderatorQuery, setModeratorQuery] = useState('')
+  const [moderatorLookupBusy, setModeratorLookupBusy] = useState(false)
+  const [moderatorResult, setModeratorResult] = useState<ModeratorCandidate | 'not-found' | null>(
+    null,
+  )
 
   const refresh = useCallback(() => setRefreshToken((n) => n + 1), [])
 
@@ -124,6 +133,27 @@ export default function Moderator() {
       setBusy(false)
     }
   }
+
+  const isOwner = profile.email === OWNER_EMAIL
+
+  const lookupModerator = async () => {
+    setModeratorLookupBusy(true)
+    setNotice(null)
+    try {
+      const found = await findUserByUsername(moderatorQuery)
+      setModeratorResult(found ?? 'not-found')
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : 'That did not work.')
+    } finally {
+      setModeratorLookupBusy(false)
+    }
+  }
+
+  const toggleModerator = (candidate: ModeratorCandidate) =>
+    act(async () => {
+      await setModerator(candidate.uid, !candidate.isModerator)
+      setModeratorResult({ ...candidate, isModerator: !candidate.isModerator })
+    }, `${candidate.username} is ${!candidate.isModerator ? 'now' : 'no longer'} a moderator.`)
 
   const importSeed = () =>
     act(async () => {
@@ -198,6 +228,76 @@ export default function Moderator() {
           max={1}
         />
       </div>
+
+      {/* Owner only. The rules restrict the actual write the same way, but
+          showing this to every moderator would suggest they can use it and
+          fail — better to just not offer it. */}
+      {isOwner && (
+        <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            Moderators
+          </h2>
+          <p className="text-[12.5px] text-white/45">
+            Look up anyone by their username to grant or remove moderator access.
+          </p>
+
+          <div className="flex items-end gap-2">
+            <TextField
+              id="moderator-username"
+              label="Username"
+              wrapperClassName="flex-1"
+              value={moderatorQuery}
+              onChange={(event) => {
+                setModeratorQuery(event.target.value)
+                setModeratorResult(null)
+              }}
+              placeholder="e.g. jasmehr"
+            />
+            <Button
+              variant="secondary"
+              loading={moderatorLookupBusy}
+              disabled={!moderatorQuery.trim()}
+              onClick={() => void lookupModerator()}
+            >
+              <Search size={13} aria-hidden="true" />
+              Look up
+            </Button>
+          </div>
+
+          {moderatorResult === 'not-found' && (
+            <p className="text-[13px] text-white/45">No account with that username.</p>
+          )}
+
+          {moderatorResult && moderatorResult !== 'not-found' && (
+            <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <Shield
+                size={16}
+                aria-hidden="true"
+                className={moderatorResult.isModerator ? 'text-brand-400' : 'text-white/25'}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[14px] font-bold text-white">
+                  {moderatorResult.username}
+                </p>
+                <p className="truncate text-[12px] text-white/40">{moderatorResult.email}</p>
+              </div>
+              {moderatorResult.email === OWNER_EMAIL ? (
+                <span className="font-mono text-[10px] tracking-wider text-white/30 uppercase">
+                  Owner
+                </span>
+              ) : (
+                <Button
+                  variant={moderatorResult.isModerator ? 'danger' : 'primary'}
+                  disabled={busy}
+                  onClick={() => toggleModerator(moderatorResult)}
+                >
+                  {moderatorResult.isModerator ? 'Remove access' : 'Make moderator'}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="liquid-glass-panel flex gap-1.5 rounded-2xl p-1.5">
         {(['pending', 'live'] as Tab[]).map((value) => (

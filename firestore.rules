@@ -86,11 +86,18 @@ service cloud.firestore {
                     && request.resource.data.username.size() >= 3
                     && request.resource.data.username.size() <= 20;
 
-      allow update: if isVerifiedUser()
-                    && isSelf(uid)
-                    && request.resource.data.isModerator == resource.data.isModerator
-                    && request.resource.data.email == resource.data.email
-                    && request.resource.data.uid == resource.data.uid;
+      allow update: if (isVerifiedUser()
+                        && isSelf(uid)
+                        && request.resource.data.isModerator == resource.data.isModerator
+                        && request.resource.data.email == resource.data.email
+                        && request.resource.data.uid == resource.data.uid)
+                    // The owner promoting or revoking someone else, and nothing
+                    // else about their document — a moderator-picker UI writes
+                    // through this, not through the self-update branch above,
+                    // which forbids touching isModerator at all.
+                    || (isOwner()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isModerator'])
+                        && request.resource.data.isModerator is bool);
 
       // Deleting a user would orphan their username claim and their ventures.
       allow delete: if false;
