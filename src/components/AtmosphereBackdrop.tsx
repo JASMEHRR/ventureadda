@@ -59,6 +59,16 @@ export default function AtmosphereBackdrop() {
       aria-hidden="true"
       className="fixed inset-0 -z-10 bg-app bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${url})` }}
-    />
+    >
+      {/*
+        The dimmer from Settings.
+        A child rather than a filter on the parent: `filter` on this element
+        would create a stacking context and trap the whole backdrop, which the
+        note above is explicit about. A flat black sheet at a variable alpha
+        costs nothing and cannot do that. `--backdrop-dim` defaults to 0 in
+        index.css, so this is invisible until somebody asks for it.
+      */}
+      <div className="absolute inset-0 bg-black opacity-[var(--backdrop-dim)]" />
+    </div>
   )
 }

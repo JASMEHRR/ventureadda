@@ -282,16 +282,21 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // The seller, and moderators for support. Deliberately NOT the buyer:
-      // there is no per-buyer query in the app, and opening reads to
-      // `buyerUid == uid` would widen this document — which holds a name, a
-      // phone number and a hostel room — for no feature that exists.
+      // The seller, the buyer, and moderators for support.
       //
-      // ownerId is denormalised onto the order precisely so this rule needs no
-      // get() of the parent venture. A read rule that costs a billed document
-      // read per row is a read rule that gets removed later under pressure.
+      // The buyer clause is new, and it is what makes "track your own orders"
+      // possible. The objection to it before was that no per-buyer query
+      // existed, so it widened a document holding a name, a phone number and a
+      // hostel room for nothing. There is one now — listOrdersForBuyer — and
+      // every field it exposes to the buyer is a field the buyer typed.
+      //
+      // Both clauses are plain equality on a denormalised field, so neither
+      // costs a get() of the parent venture. A read rule that costs a billed
+      // document read per row is a read rule that gets removed later under
+      // pressure.
       allow read: if isModerator()
-                  || (request.auth != null && resource.data.ownerId == request.auth.uid);
+                  || (request.auth != null && resource.data.ownerId == request.auth.uid)
+                  || (request.auth != null && resource.data.buyerUid == request.auth.uid);
 
       // Any verified account, Thapar or not — outsiders may buy, they just may
       // not sell. Signed-out ordering is deliberately NOT allowed, unlike the

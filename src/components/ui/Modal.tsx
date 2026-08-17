@@ -118,7 +118,10 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6">
+    // `dvh`, not `vh`: on mobile Safari and Chrome the URL bar is inside `vh`,
+    // so a dialog sized to 100vh sits partly under browser chrome that is
+    // still on screen.
+    <div className="fixed inset-0 z-50 flex h-[100dvh] items-end justify-center p-3 sm:items-center sm:p-6">
       {/* Backdrop is its own element so a click on it closes without needing
           the panel to stop propagation. */}
       <div
@@ -136,9 +139,25 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
         initial={reduce ? false : { opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-        className="relative w-full max-w-md rounded-[1.75rem] border border-white/12 bg-surface/95 shadow-[0_30px_60px_rgba(0,0,0,0.8)] outline-none"
+        /**
+         * THE BUG THIS FIXES. The panel had no height bound and no scroll
+         * container, so a dialog taller than the window — the checkout, which
+         * is a cart, three fields, a slot picker and two choice groups — grew
+         * past both edges of the viewport. The flex parent centres it, so it
+         * overflowed equally above and below, and `document.body` is set to
+         * `overflow: hidden` while a dialog is open, so there was nothing to
+         * scroll: the total and the Place order button were simply off screen
+         * with no way to reach them.
+         *
+         * The panel is now a column capped at the viewport, with the header
+         * and footer pinned and only the body scrolling. `min-h-0` on that
+         * body is what actually allows it to shrink — a flex child defaults to
+         * `min-height: auto` and refuses to be smaller than its content, which
+         * would push the footer straight back off the bottom.
+         */
+        className="relative flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-[1.75rem] border border-white/12 bg-surface/95 shadow-[0_30px_60px_rgba(0,0,0,0.8)] outline-none"
       >
-        <div className="flex items-start gap-3 border-b border-white/8 px-5 py-4">
+        <div className="flex shrink-0 items-start gap-3 border-b border-white/8 px-5 py-4">
           <h2 id={titleId} className="min-w-0 flex-1 text-sm font-bold text-white">
             {title}
           </h2>
@@ -152,10 +171,12 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
           </button>
         </div>
 
-        <div className="px-5 py-4">{children}</div>
+        {/* overscroll-contain stops a flick at the end of this list from
+            scrolling the page behind the backdrop on iOS. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
 
         {footer && (
-          <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-white/8 px-5 py-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-white/8 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
             {footer}
           </div>
         )}

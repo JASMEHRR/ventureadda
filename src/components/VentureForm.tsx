@@ -392,7 +392,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
 
           <PhotoUploader
             label="Photos"
-            hint="Optional, but a listing with photos gets opened far more. Up to four, JPG, PNG or WebP, 5MB each."
+            hint="Up to four. Buyers swipe through them on your card, and the first one is the cover — use the arrows to choose which leads. Every photo is cropped square-ish, so pick one that survives it."
             photos={photos}
             onChange={setPhotos}
           />

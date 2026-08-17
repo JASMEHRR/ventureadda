@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { MODERATOR_NAV, PRIMARY_NAV } from '../../navigation'
+import { BUYER_NAV, MODERATOR_NAV, PRIMARY_NAV } from '../../navigation'
 
 /**
  * Fixed bottom bar, below `md` only — the counterpart to Sidebar, switching at
@@ -12,10 +12,21 @@ import { MODERATOR_NAV, PRIMARY_NAV } from '../../navigation'
  * top-right corner is a long reach, and listing a venture is the action the
  * whole site exists to encourage.
  */
-export default function MobileNav({ isModerator = false }: { isModerator?: boolean }) {
-  const items = [...PRIMARY_NAV, ...(isModerator ? MODERATOR_NAV : [])].filter(
-    (item) => !item.desktopOnly,
-  )
+export default function MobileNav({
+  isModerator = false,
+  isSignedIn = false,
+}: {
+  isModerator?: boolean
+  isSignedIn?: boolean
+}) {
+  // Dropping Categories freed the slot this fills: on a phone, "where is my
+  // order" is asked far more often than "show me a grid of six category
+  // tiles", and the tracking page had no route here at all before.
+  const items = [
+    ...PRIMARY_NAV,
+    ...(isSignedIn ? BUYER_NAV : []),
+    ...(isModerator ? MODERATOR_NAV : []),
+  ].filter((item) => !item.desktopOnly)
 
   return (
     <nav

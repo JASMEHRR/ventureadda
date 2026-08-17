@@ -1,46 +1,51 @@
 import { Link } from 'react-router-dom'
-import { Clock, ImageOff } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import type { Venture } from '../../data/ventures'
 import type { RatingSummary } from '../../data/reviews'
 import { StarDisplay } from './StarRating'
 import VentureLogo from './VentureLogo'
-import { displayUrl } from '../../lib/cloudinary'
+import PhotoCarousel from './PhotoCarousel'
 
 /**
  * Photography pattern from Step 0: 4:3, rounded-2xl, inset hairline border,
  * inside a glass card. Venture names sit at 17px rather than Ascend's 12–13px
  * card titles, per the mobile-first departure.
+ *
+ * NOT ONE BIG <Link> ANY MORE. The photo is a carousel now, and a carousel has
+ * arrows and dots — buttons, which cannot legally live inside an anchor; a
+ * browser resolves that markup by throwing the inner controls away. So the
+ * card is an <article>, each slide is its own link to the venture, and the
+ * text block below is another. Every part of the card that used to navigate
+ * still navigates.
+ *
+ * Cards stagger their auto-advance by position, so a grid of them does not
+ * flip over in unison like a departures board.
  */
 export default function VentureCard({
   venture,
   categoryName,
   rating,
+  /** Position in the grid, used only to stagger the auto-advance. */
+  index = 0,
 }: {
   venture: Venture
   categoryName: string
   /** Absent until anyone has reviewed. */
   rating?: RatingSummary
+  index?: number
 }) {
   return (
-    <Link
-      to={`/venture/${venture.id}`}
-      className="liquid-glass-panel group block rounded-3xl p-3 transition duration-150 hover:bg-white/[0.06] active:scale-[0.99]"
-    >
-      {venture.photos[0] ? (
-        <img
-          // w_800 rather than the original: a 4MB phone photo drawn 300px wide
-          // is most of the page weight on campus wifi.
-          src={displayUrl(venture.photos[0], 800)}
-          alt=""
-          loading="lazy"
-          className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
-        />
-      ) : (
-        <div className="flex aspect-4/3 w-full items-center justify-center rounded-2xl bg-white/[0.03] text-white/20 ring-1 ring-white/10 ring-inset">
-          <ImageOff size={22} aria-hidden="true" />
-        </div>
-      )}
-      <div className="px-2 pt-3.5 pb-1.5">
+    <article className="liquid-glass-panel group rounded-3xl p-3 transition duration-150 hover:bg-white/[0.06]">
+      <PhotoCarousel
+        photos={venture.photos}
+        alt={venture.name}
+        // w_800 rather than the original: a 4MB phone photo drawn 300px wide
+        // is most of the page weight on campus wifi.
+        width={800}
+        to={`/venture/${venture.id}`}
+        autoAdvanceMs={4500 + (index % 5) * 700}
+      />
+      <Link to={`/venture/${venture.id}`} className="block px-2 pt-3.5 pb-1.5">
         <div className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate font-mono text-[9px] tracking-[0.22em] text-white/30 uppercase">
@@ -81,7 +86,7 @@ export default function VentureCard({
             {venture.hours}
           </span>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </article>
   )
 }

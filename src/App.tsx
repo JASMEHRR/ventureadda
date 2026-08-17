@@ -27,7 +27,6 @@ import Browse from './pages/Browse'
  * open, and AddVenture and EditVenture drag in the form, the Cloudinary
  * uploader and the menu scanner.
  */
-const Categories = lazy(() => import('./pages/Categories'))
 const VentureDetail = lazy(() => import('./pages/VentureDetail'))
 const EditVenture = lazy(() => import('./pages/EditVenture'))
 const AddVenture = lazy(() => import('./pages/AddVenture'))
@@ -36,6 +35,10 @@ const Moderator = lazy(() => import('./pages/Moderator'))
 const SignIn = lazy(() => import('./pages/SignIn'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Orders = lazy(() => import('./pages/Orders'))
+const MyOrders = lazy(() => import('./pages/MyOrders'))
+const Cart = lazy(() => import('./pages/Cart'))
+const Settings = lazy(() => import('./pages/Settings'))
+const MyVentures = lazy(() => import('./pages/MyVentures'))
 const DesignDemo = lazy(() => import('./pages/DesignDemo'))
 
 export default function App() {
@@ -59,12 +62,15 @@ export default function App() {
               element={
                 <Suspense fallback={<LoadingLine label="Loading…" />}>
                   <Routes>
-                    <Route path="categories" element={<Categories />} />
                     <Route path="venture/:ventureId" element={<VentureDetail />} />
                     <Route path="venture/:ventureId/edit" element={<EditVenture />} />
                     <Route path="signin" element={<SignIn />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="orders" element={<Orders />} />
+                    <Route path="my-orders" element={<MyOrders />} />
+                    <Route path="cart" element={<Cart />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="my-ventures" element={<MyVentures />} />
                     <Route path="add" element={<AddVenture />} />
                     <Route path="moderator" element={<Moderator />} />
                     <Route path="chat" element={<Chat />} />

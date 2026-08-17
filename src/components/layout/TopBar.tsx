@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, ShoppingCart } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
 import Select from '../ui/Select'
 import type { SelectOption } from '../ui/Select'
 import { CATEGORIES } from '../../data/types'
+import { cartCount, useCart } from '../../data/cart'
+import { pageTitle } from '../../navigation'
 import { useAuth } from '../../auth/AuthProvider'
 
 /** Where the browse controls point. '/' is the landing page. */
@@ -52,6 +54,14 @@ export default function TopBar() {
   const account =
     profile?.username ?? (status === 'ready' ? (user?.email?.split('@')[0] ?? null) : null)
   const showAddVenture = status !== 'ready' || canPost
+
+  /**
+   * The cart lives in localStorage, so this is free — no read, no account
+   * needed, and it survives a reload. Signed-out visitors get the button too:
+   * the cart is where they find out what they picked, and the sign-in ask
+   * belongs at Place order, not at Add.
+   */
+  const items = cartCount(useCart())
   const [searchParams, setSearchParams] = useSearchParams()
 
   const category = searchParams.get('category') ?? 'all'
@@ -116,6 +126,14 @@ export default function TopBar() {
         All
       </Button>
 
+      {/* What the top bar says now that search and Add have moved into the
+          sidebar: where you are. From `md` up only, because below that the
+          search field needs the row and the bottom bar already shows the
+          current section. */}
+      <span className="hidden min-w-0 truncate font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/45 uppercase md:inline">
+        {pageTitle(pathname)}
+      </span>
+
       <Select
         label="Category"
         labelHidden
@@ -126,8 +144,11 @@ export default function TopBar() {
         triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[11px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
       />
 
-      {/* The primary action on a directory, so it gets the room that is left. */}
-      <div className="relative order-last w-full min-w-40 flex-1 sm:order-none sm:w-auto">
+      {/* BELOW `md` ONLY. Search now lives in the sidebar, which is where a
+          directory's filters belong — but the sidebar is hidden on a phone, so
+          the field has to exist somewhere and this is the only chrome left.
+          Exactly one search box is on screen at any width. */}
+      <div className="relative order-last w-full min-w-40 flex-1 sm:order-none sm:w-auto md:hidden">
         <Search
           size={14}
           aria-hidden="true"
@@ -144,12 +165,39 @@ export default function TopBar() {
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* Below `md` only, same reasoning as the search field: the sidebar
+            carries this action from `md` up, and two Add buttons on one screen
+            is one too many. */}
         {showAddVenture && (
-          <Button to="/add" className="hidden sm:inline-flex">
+          <Button to="/add" className="hidden sm:inline-flex md:hidden">
             <Plus size={13} aria-hidden="true" />
             Add venture
           </Button>
         )}
+
+        {/* Immediately left of the account tile, which is the corner every
+            shopping site puts it in — and the count is in the accessible name
+            rather than only in the pill, so it is not a decoration a screen
+            reader misses. */}
+        <Link
+          to="/cart"
+          aria-label={items === 0 ? 'Cart, empty' : `Cart, ${items} ${items === 1 ? 'item' : 'items'}`}
+          className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition duration-150 active:scale-[0.94] ${
+            items > 0
+              ? 'border-brand-500/40 bg-brand-500/15 text-brand-300 hover:bg-brand-500/25'
+              : 'border-white/12 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <ShoppingCart size={15} aria-hidden="true" />
+          {items > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute -top-1 -right-1 min-w-4 rounded-full bg-brand-400 px-1 text-center font-mono text-[9px] font-extrabold text-[#06202a] ring-2 ring-[#0a0d12]"
+            >
+              {items > 99 ? '99+' : items}
+            </span>
+          )}
+        </Link>
 
         {account ? (
           <Link

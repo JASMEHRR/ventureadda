@@ -54,7 +54,7 @@ export default function Browse() {
     <div className="space-y-4">
       {ventures.error && (
         <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[14px] text-red-400">
-          Could not load ventures: {ventures.error.message}
+          Could not load the listings: {ventures.error.message}
         </p>
       )}
 
@@ -68,19 +68,19 @@ export default function Browse() {
       {ventures.data && total === 0 && (
         <EmptyState
           icon={isFiltered ? SearchX : Store}
-          title={isFiltered ? 'Nothing matches that' : 'No ventures yet'}
+          title={isFiltered ? 'Nothing matched that' : 'Nothing listed yet'}
           action={
             !isFiltered && (
               <Button to="/add">
                 <Plus size={13} aria-hidden="true" />
-                List your venture
+                List yours
               </Button>
             )
           }
         >
           {isFiltered
-            ? 'Try a different word, or clear the category filter to see everything on campus.'
-            : 'Nobody has listed anything yet. If you make or sell something, you could be first.'}
+            ? 'Try another word, or clear the filters to see everything.'
+            : 'No one has listed a venture yet. If you sell something on campus, you can be the first.'}
         </EmptyState>
       )}
 
@@ -99,12 +99,13 @@ export default function Browse() {
               adding columns as the screen allows instead of stretching four
               cards across a 2560px monitor. */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1900px]:grid-cols-6">
-            {items.map((venture) => (
+            {items.map((venture, index) => (
               <VentureCard
                 key={venture.id}
                 venture={venture}
                 categoryName={categoryName(venture.categoryId)}
                 rating={ratings.data?.[venture.id]}
+                index={index}
               />
             ))}
           </div>

@@ -5,33 +5,7 @@ import MobileNav from './MobileNav'
 import { useAuth } from '../../auth/AuthProvider'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { countUnseenOrders } from '../../data/orders'
-
-/**
- * The page heading, now visually-hidden.
- *
- * The old top bar rendered this as a large title; the new one carries browse
- * controls instead, and a directory does not need "Browse ventures" written
- * above a grid of ventures. The heading still has to exist — a document with no
- * h1 gives a screen reader nothing to orient by — so it stays in the accessible
- * tree and leaves the screen.
- */
-const PAGE_TITLES: Record<string, string> = {
-  '/browse': 'Browse ventures',
-  '/categories': 'Categories',
-  '/chat': 'All Chat',
-  '/add': 'List a venture',
-  '/moderator': 'Review queue',
-  '/design': 'Design system',
-  '/signin': 'Sign in',
-  '/profile': 'Your profile',
-  '/orders': 'Orders',
-}
-
-function pageTitle(pathname: string): string {
-  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
-  if (pathname.startsWith('/venture/')) return 'Venture'
-  return 'Not found'
-}
+import { pageTitle } from '../../navigation'
 
 /**
  * The app shell: a collapsible sidebar on the left from `md` up, a top bar and
@@ -55,7 +29,7 @@ function pageTitle(pathname: string): string {
  */
 export default function AppShell() {
   const { pathname } = useLocation()
-  const { profile, canPost } = useAuth()
+  const { profile, canPost, isOwner, status } = useAuth()
   const isModerator = profile?.isModerator ?? false
 
   /**
@@ -90,6 +64,9 @@ export default function AppShell() {
         <Sidebar
           isModerator={isModerator}
           isSeller={canPost && profile !== null}
+          isSignedIn={status === 'ready'}
+          isOwner={isOwner}
+          showAdd={status !== 'ready' || canPost}
           unseenOrders={unseen.data ?? 0}
         />
 
@@ -107,7 +84,7 @@ export default function AppShell() {
         </div>
       </div>
 
-      <MobileNav isModerator={isModerator} />
+      <MobileNav isModerator={isModerator} isSignedIn={status === 'ready'} />
     </>
   )
 }
