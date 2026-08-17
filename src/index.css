@@ -41,6 +41,13 @@
   --glass-opacity: 1;
   --glass-blur: 20px;
 
+  /* How much the backdrop photograph is dimmed, 0–0.85. Read by the sheet
+     inside AtmosphereBackdrop. Both this and the two above are overwritten on
+     the document element by lib/appearance.ts when the reader has set them in
+     Settings; these declarations are the defaults, and the app must keep
+     working with appearance.ts never having run. */
+  --backdrop-dim: 0;
+
   /* Dark app: keeps scrollbars and native form controls from rendering light. */
   color-scheme: dark;
 }

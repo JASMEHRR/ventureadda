@@ -50,6 +50,16 @@ type AuthContextValue = {
    * letting someone fill in a form and eat a permission-denied.
    */
   canPost: boolean
+  /**
+   * The site owner, by address, mirroring isOwner() in firestore.rules.
+   *
+   * Used for chrome that exists for whoever is building this and nobody else —
+   * the design-system reference. It hides a link, it does not protect
+   * anything: the route is still reachable by typing it, and the page shows
+   * component samples, not data. Anything that actually needs protecting is
+   * guarded by the rules, not by this.
+   */
+  isOwner: boolean
   signInWithGoogle: () => Promise<void>
   sendLink: (email: string) => Promise<void>
   /** Returns 'needsEmail' when the link was opened in a different browser. */
@@ -296,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // A pre-approved outside address gets the same posting rights a Thapar
   // address has by default — that is the entire point of approving one.
   const canPost = status === 'ready' && (isThaparEmail(user?.email) || preApproved !== null)
+  const isOwner = status === 'ready' && (user?.email ?? '').toLowerCase() === OWNER_EMAIL
 
   const value = useMemo(
     () => ({
@@ -304,6 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       needsUsername,
       canPost,
+      isOwner,
       signInWithGoogle,
       sendLink,
       completeSignInFromLink,
@@ -316,6 +328,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       needsUsername,
       canPost,
+      isOwner,
       signInWithGoogle,
       sendLink,
       completeSignInFromLink,

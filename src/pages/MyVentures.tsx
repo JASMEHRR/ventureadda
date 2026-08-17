@@ -1,0 +1,243 @@
+import { useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import { AlertTriangle, Plus, Store, Trash2 } from 'lucide-react'
+import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
+import LoadingLine from '../components/ui/LoadingLine'
+import Modal from '../components/ui/Modal'
+import ChooseUsername from './ChooseUsername'
+import { useAuth } from '../auth/AuthProvider'
+import { useAsyncData } from '../hooks/useAsyncData'
+import { deleteVenture, listMenuItems, listVenturesByOwner } from '../data/ventures'
+import type { Venture } from '../data/ventures'
+import { categoryName } from '../data/types'
+
+/**
+ * Manage your listings.
+ *
+ * Moved out of the profile page, where it was a section under the account
+ * card. Profile is "who am I signed in as, and how do I sign out"; this is a
+ * seller's workbench — status, rejection reasons, the missing-menu warning,
+ * edit and delete — and it earns a tab of its own in the sidebar rather than
+ * being something you find by scrolling your own profile.
+ *
+ * The behaviour is unchanged from that section, including the two rules worth
+ * repeating: a live listing has no delete button, because people have found it
+ * and may have messaged about it, so taking one down is a moderator
+ * conversation; and a venture with no menu items gets a warning, because
+ * createVenture commits the venture first and the menu second, so a dropped
+ * connection leaves a listing with nothing to tap.
+ */
+
+const STATUS_STYLE: Record<string, string> = {
+  live: 'border-brand-500/30 bg-brand-500/15 text-brand-300',
+  pending: 'border-amber-500/30 bg-amber-500/15 text-amber-400',
+  rejected: 'border-red-500/30 bg-red-500/15 text-red-400',
+}
+
+export default function MyVentures() {
+  const { profile, status, canPost } = useAuth()
+  const [refreshToken, setRefreshToken] = useState(0)
+  const [confirmDelete, setConfirmDelete] = useState<Venture | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  /** Deleted this session, so the list can drop them before the refetch lands. */
+  const [removed, setRemoved] = useState<string[]>([])
+
+  const mine = useAsyncData(
+    () => (profile ? listVenturesByOwner(profile.uid) : Promise.resolve([])),
+    [profile?.uid, refreshToken],
+  )
+
+  const itemCounts = useAsyncData(async () => {
+    const ventures = mine.data ?? []
+    const counts: Record<string, number> = {}
+    for (const venture of ventures) {
+      counts[venture.id] = (await listMenuItems(venture.id)).length
+    }
+    return counts
+  }, [mine.data])
+
+  if (status === 'loading') return <LoadingLine label="Loading your ventures…" />
+  if (status === 'signedOut') return <Navigate to="/signin" replace />
+  if (!profile) {
+    return <ChooseUsername reason="Your listings are filed under a name, so pick one first." />
+  }
+
+  const listed = (mine.data ?? []).filter((venture) => !removed.includes(venture.id))
+
+  const remove = async () => {
+    const target = confirmDelete
+    if (!target) return
+    setBusy(true)
+    setDeleteError(null)
+    try {
+      await deleteVenture(target.id)
+      // Dropped from the list here rather than waiting for the refetch.
+      // useAsyncData keeps the previous array on screen while it re-runs, so
+      // without this the row it just deleted sits under "… deleted." with a
+      // live Delete button — and a second press denies, because the rules read
+      // ownerId off a document that is no longer there.
+      setRemoved((prev) => [...prev, target.id])
+      setConfirmDelete(null)
+      setNotice(`${target.name} deleted.`)
+      setRefreshToken((n) => n + 1)
+    } catch (cause) {
+      // Stays open, on the row it failed to delete. Closing on failure and
+      // reporting it in the same grey line the success uses is a dialog that
+      // lies about what happened.
+      setDeleteError(cause instanceof Error ? cause.message : 'Could not delete that listing.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-4">
+      <header className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-4">
+        <div className="min-w-0">
+          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            Your ventures
+          </h2>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-white/50">
+            Everything you have submitted, live or waiting for approval.
+          </p>
+        </div>
+        {canPost && (
+          <Button to="/add">
+            <Plus size={13} aria-hidden="true" />
+            Add venture
+          </Button>
+        )}
+      </header>
+
+      {mine.error && (
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[14px] text-red-400">
+          Could not load your ventures: {mine.error.message}
+        </p>
+      )}
+
+      {!mine.data && !mine.error && <LoadingLine label="Loading your ventures…" />}
+
+      {mine.data && listed.length === 0 && (
+        <EmptyState
+          icon={Store}
+          title="Nothing listed yet"
+          action={
+            canPost && (
+              <Button to="/add">
+                <Plus size={13} aria-hidden="true" />
+                List your venture
+              </Button>
+            )
+          }
+        >
+          {canPost
+            ? 'Anything you submit shows up here, including while it waits for approval.'
+            : 'Listing needs a Thapar address, or an invite from the owner.'}
+        </EmptyState>
+      )}
+
+      {listed.length > 0 && (
+        <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+          {listed.map((venture) => (
+            <div
+              key={venture.id}
+              className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-bold text-white">{venture.name}</p>
+                <p className="truncate text-[12.5px] text-white/40">
+                  {categoryName(venture.categoryId)}
+                </p>
+                {venture.status === 'rejected' && venture.rejectionReason && (
+                  <p className="mt-1 text-[12.5px] text-red-400">{venture.rejectionReason}</p>
+                )}
+                {itemCounts.data?.[venture.id] === 0 && (
+                  <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-amber-400">
+                    <AlertTriangle size={11} aria-hidden="true" className="shrink-0" />
+                    No items yet — add them so buyers have something to tap.
+                  </p>
+                )}
+              </div>
+              <span
+                className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold tracking-wider uppercase ${
+                  STATUS_STYLE[venture.status] ?? STATUS_STYLE.pending
+                }`}
+              >
+                {venture.status}
+              </span>
+              <Link
+                to={`/venture/${venture.id}`}
+                className="shrink-0 font-mono text-[10px] tracking-wider text-white/40 uppercase transition hover:text-white"
+              >
+                View
+              </Link>
+              <Link
+                to={`/venture/${venture.id}/edit`}
+                className="shrink-0 font-mono text-[10px] tracking-wider text-white/40 uppercase transition hover:text-white"
+              >
+                Edit
+              </Link>
+              {/* Only while it is not live. A live listing is something people
+                  have found and may have messaged, so taking it down is a
+                  moderator conversation rather than a button next to Edit. */}
+              {venture.status !== 'live' && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(venture)}
+                  aria-label={`Delete ${venture.name}`}
+                  className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          ))}
+
+          {notice && (
+            <p role="status" className="text-[13.5px] text-white/55">
+              {notice}
+            </p>
+          )}
+        </section>
+      )}
+
+      <Modal
+        open={confirmDelete !== null}
+        onClose={() => {
+          setConfirmDelete(null)
+          setDeleteError(null)
+        }}
+        title={`Delete ${confirmDelete?.name ?? ''}?`}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConfirmDelete(null)
+                setDeleteError(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" loading={busy} onClick={() => void remove()}>
+              Delete permanently
+            </Button>
+          </>
+        }
+      >
+        <p className="text-[14px] leading-relaxed text-white/70">
+          This removes the listing and everything on its menu. It cannot be undone, and the
+          moderators will not see it in the queue any more.
+        </p>
+        {deleteError && (
+          <p role="alert" className="mt-3 text-[13.5px] text-red-400">
+            {deleteError}
+          </p>
+        )}
+      </Modal>
+    </div>
+  )
+}

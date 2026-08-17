@@ -149,6 +149,25 @@ export async function listOrdersForOwner(ownerId: string): Promise<Order[]> {
 }
 
 /**
+ * The buyer's own orders, newest first.
+ *
+ * Same shape and the same in-memory sort as listOrdersForOwner, for the same
+ * reason: an orderBy here would need a composite index on (buyerUid,
+ * createdAt) and this codebase deliberately runs without any.
+ *
+ * The read rule was widened to `buyerUid == uid` to allow this. It was
+ * originally seller-only on the grounds that no per-buyer query existed — this
+ * is that query, and the document holds the buyer's own name, number and
+ * address, so they are reading nothing about themselves they did not type.
+ */
+export async function listOrdersForBuyer(buyerUid: string): Promise<Order[]> {
+  const snapshot = await getDocs(query(ordersRef, where('buyerUid', '==', buyerUid)))
+  return snapshot.docs
+    .map(toOrder)
+    .sort((a, b) => (b.createdAt?.getTime() ?? Infinity) - (a.createdAt?.getTime() ?? Infinity))
+}
+
+/**
  * How many of this seller's orders they have not looked at yet.
  *
  * Its own query rather than a count off `listOrdersForOwner`, because the nav

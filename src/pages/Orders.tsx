@@ -282,8 +282,8 @@ export default function Orders() {
           Orders
         </h2>
         <p className="mt-2 text-[13.5px] leading-relaxed text-white/50">
-          Everything ordered from your listings. Nothing is paid through this site — these
-          statuses are your own record of what you have been paid and what you have handed over.
+          Everything ordered from your listings. No money moves through this site, so these
+          statuses are your own record: what you have been paid, and what you have handed over.
         </p>
       </header>
 
@@ -305,8 +305,7 @@ export default function Orders() {
 
       {fetched.data && orders.length === 0 && (
         <EmptyState icon={Inbox} title="No orders yet">
-          When someone orders from one of your listings it shows up here, with their number and
-          where to bring it.
+          Orders land here with the buyer's number and where to take it.
         </EmptyState>
       )}
 
