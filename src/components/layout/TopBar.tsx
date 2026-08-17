@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, ShoppingCart } from 'lucide-react'
 import Avatar from '../ui/Avatar'
@@ -9,6 +8,7 @@ import type { SelectOption } from '../ui/Select'
 import { CATEGORIES } from '../../data/types'
 import { cartCount, useCart } from '../../data/cart'
 import { pageTitle } from '../../navigation'
+import { useShellSearch } from './useShellSearch'
 import { useAuth } from '../../auth/AuthProvider'
 
 /** Where the browse controls point. '/' is the landing page. */
@@ -62,38 +62,12 @@ export default function TopBar() {
    * belongs at Place order, not at Add.
    */
   const items = cartCount(useCart())
-  const [searchParams, setSearchParams] = useSearchParams()
-
+  const [searchParams] = useSearchParams()
   const category = searchParams.get('category') ?? 'all'
-  const urlQuery = searchParams.get('q') ?? ''
 
-  // Typing is local and the URL follows on a debounce. Writing every keystroke
-  // straight to the URL re-runs the Firestore read per character.
-  const [draft, setDraft] = useState(urlQuery)
-
-  // Keeps the field honest when the URL changes underneath it — the back
-  // button, or a category link that clears the search.
-  useEffect(() => setDraft(urlQuery), [urlQuery])
-
-  useEffect(() => {
-    if (draft === urlQuery) return
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(searchParams)
-      if (draft.trim()) params.set('q', draft)
-      else params.delete('q')
-      // Searching from a venture page searches the directory. Doing this on
-      // typing rather than on focus matters: navigating the moment the field is
-      // focused would throw away the page someone had merely clicked into.
-      if (pathname === BROWSE_PATH) {
-        // replace, so a search does not stack one history entry per keystroke
-        // for the back button to walk through.
-        setSearchParams(params, { replace: true })
-      } else {
-        navigate({ pathname: BROWSE_PATH, search: params.toString() })
-      }
-    }, 250)
-    return () => window.clearTimeout(timer)
-  }, [draft, urlQuery, pathname, navigate, searchParams, setSearchParams])
+  // The same hook the sidebar's field uses, so the two never disagree about
+  // what the box searches or where it writes.
+  const { draft, setDraft, placeholder, label } = useShellSearch()
 
   const setCategory = (value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -158,8 +132,8 @@ export default function TopBar() {
           type="search"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Brownies, earrings, embroidery…"
-          aria-label="Search ventures"
+          placeholder={placeholder}
+          aria-label={label}
           className="liquid-glass-input w-full rounded-full py-2 pr-4 pl-10 text-[13px] text-white placeholder-white/30"
         />
       </div>

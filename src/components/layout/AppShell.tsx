@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
@@ -6,6 +7,8 @@ import { useAuth } from '../../auth/AuthProvider'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { countUnseenOrders } from '../../data/orders'
 import { pageTitle } from '../../navigation'
+import { SearchScopeContext } from './useShellSearch'
+import type { SearchScope } from './useShellSearch'
 
 /**
  * The app shell: a collapsible sidebar on the left from `md` up, a top bar and
@@ -30,6 +33,14 @@ import { pageTitle } from '../../navigation'
 export default function AppShell() {
   const { pathname } = useLocation()
   const { profile, canPost, isOwner, status } = useAuth()
+
+  /**
+   * What the search box is currently pointed at. Set by VentureDetail while a
+   * venture is open, so the shell never has to read a venture document of its
+   * own just to know the name to put in a placeholder.
+   */
+  const [scope, setScope] = useState<SearchScope>(null)
+  const searchScope = useMemo(() => ({ scope, setScope }), [scope])
   const isModerator = profile?.isModerator ?? false
 
   /**
@@ -59,7 +70,7 @@ export default function AppShell() {
   )
 
   return (
-    <>
+    <SearchScopeContext.Provider value={searchScope}>
       <div className="flex w-full gap-3 p-3 pb-28 sm:p-4 md:gap-4 md:p-6 md:pb-6">
         <Sidebar
           isModerator={isModerator}
@@ -85,6 +96,6 @@ export default function AppShell() {
       </div>
 
       <MobileNav isModerator={isModerator} isSignedIn={status === 'ready'} />
-    </>
+    </SearchScopeContext.Provider>
   )
 }

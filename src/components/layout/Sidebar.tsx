@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen, Plus, Search } from 'lucide-react'
 import Logo, { LogoMark } from '../ui/Logo'
 import type { NavItem } from '../../navigation'
@@ -11,6 +11,7 @@ import {
   SELLER_NAV,
   SETTINGS_NAV,
 } from '../../navigation'
+import { useShellSearch } from './useShellSearch'
 
 const STORAGE_KEY = 'ventureadda:sidebar-collapsed'
 
@@ -155,36 +156,7 @@ const BROWSE_PATH = '/browse'
  * can paste into the group chat.
  */
 function SidebarSearch({ collapsed }: { collapsed: boolean }) {
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const urlQuery = searchParams.get('q') ?? ''
-
-  // Typing is local and the URL follows on a debounce. Writing every keystroke
-  // straight to the URL re-runs the Firestore read per character.
-  const [draft, setDraft] = useState(urlQuery)
-
-  // Keeps the field honest when the URL changes underneath it — the back
-  // button, or a category link that clears the search.
-  useEffect(() => setDraft(urlQuery), [urlQuery])
-
-  useEffect(() => {
-    if (draft === urlQuery) return
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(searchParams)
-      if (draft.trim()) params.set('q', draft)
-      else params.delete('q')
-      if (pathname === BROWSE_PATH) {
-        // replace, so a search does not stack one history entry per keystroke
-        // for the back button to walk through.
-        setSearchParams(params, { replace: true })
-      } else {
-        // Searching from a venture page searches the directory.
-        navigate({ pathname: BROWSE_PATH, search: params.toString() })
-      }
-    }, 250)
-    return () => window.clearTimeout(timer)
-  }, [draft, urlQuery, pathname, navigate, searchParams, setSearchParams])
+  const { draft, setDraft, placeholder, label } = useShellSearch()
 
   // Collapsed to a rail, the field becomes the button that expands it — a
   // 40px-wide text input is not a search box, it is a decoration.
@@ -192,8 +164,8 @@ function SidebarSearch({ collapsed }: { collapsed: boolean }) {
     return (
       <Link
         to={BROWSE_PATH}
-        aria-label="Search ventures"
-        title="Search ventures"
+        aria-label={label}
+        title={label}
         className="flex items-center justify-center rounded-2xl border border-transparent bg-white/[0.04] p-2.5 text-white/45 transition duration-150 hover:bg-white/[0.09] hover:text-white active:scale-[0.94]"
       >
         <Search size={16} aria-hidden="true" />
@@ -212,8 +184,8 @@ function SidebarSearch({ collapsed }: { collapsed: boolean }) {
         type="search"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
-        placeholder="Brownies, earrings…"
-        aria-label="Search ventures"
+        placeholder={placeholder}
+        aria-label={label}
         className="liquid-glass-input w-full rounded-full py-2 pr-3 pl-9 text-[13px] text-white placeholder-white/30"
       />
     </div>

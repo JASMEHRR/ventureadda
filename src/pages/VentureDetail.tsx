@@ -14,6 +14,7 @@ import type { MenuItem } from '../data/ventures'
 import { cartQuantity, cartTotal, setCartQuantity, useCart } from '../data/cart'
 import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
+import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
 /**
  * How many more of this item may be added.
@@ -175,6 +176,15 @@ export default function VentureDetail() {
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
   const menu = useAsyncData(() => listMenuItems(ventureId), [ventureId])
 
+  /**
+   * Point the shell's search box at this menu while the page is open, and let
+   * it go on the way out. Declared up here with the other hooks because the
+   * early returns below are unreachable to hooks — and passing the name only
+   * once it has loaded is why the argument is nullable.
+   */
+  useDeclareSearchScope(venture.data?.name ?? null)
+  const menuQuery = useMenuQuery()
+
   // One venture-level open per visit. Deliberately not in the same effect as
   // the data load, which re-runs whenever the id changes for other reasons.
   useEffect(() => {
@@ -256,12 +266,34 @@ export default function VentureDetail() {
   // they belong to the owner and the moderator, not to every passing browser.
   const showItemStats = Boolean(profile && (profile.uid === v.ownerId || profile.isModerator))
 
+  /**
+   * The menu, filtered by whatever is in the shell's search box.
+   *
+   * The box searches this venture's items while this page is open — see
+   * useShellSearch. Name, description and section are all matched, because
+   * somebody typing "gloves" and somebody typing "winter" are both describing
+   * the same thing to a seller who wrote one of those words in each field.
+   *
+   * Case-insensitive substring, not fuzzy matching: a menu is at most a few
+   * dozen items on one screen, and a scoring function nobody can predict is
+   * worse than a rule everybody already understands.
+   */
+  const needle = menuQuery.trim().toLowerCase()
+  const matching = (menu.data ?? []).filter((item) => {
+    if (needle === '') return true
+    return (
+      item.name.toLowerCase().includes(needle) ||
+      (item.description ?? '').toLowerCase().includes(needle) ||
+      (item.category ?? '').toLowerCase().includes(needle)
+    )
+  })
+
   // listMenuItems returns items already sorted category-then-name, with
   // uncategorised items last — grouping here just has to walk that order
   // once, not re-sort it. The uncategorised group (key '') renders with no
   // heading and is never collapsible.
   const menuGroups: { category: string; items: MenuItem[] }[] = []
-  for (const item of menu.data ?? []) {
+  for (const item of matching) {
     const category = item.category ?? ''
     const last = menuGroups[menuGroups.length - 1]
     if (last && last.category === category) last.items.push(item)
@@ -365,7 +397,9 @@ export default function VentureDetail() {
             Menu
           </h2>
           <span className="font-mono text-[10px] font-bold text-white/30">
-            Add what you want, then open your cart
+            {needle
+              ? `${matching.length} of ${menu.data?.length ?? 0} items`
+              : 'Add what you want, then open your cart'}
           </span>
         </header>
 
@@ -373,6 +407,25 @@ export default function VentureDetail() {
           <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[14px] text-white/45">
             Nothing on the menu yet.
           </p>
+        )}
+
+        {/* A filtered menu that matches nothing has to say so. Without this it
+            renders as a venture with an empty menu, which is a different and
+            much worse thing to tell somebody about a seller. The link clears
+            the filter rather than the whole URL, so a search someone arrived
+            with from a shared link does not take the page with it. */}
+        {needle !== '' && matching.length === 0 && (menu.data?.length ?? 0) > 0 && (
+          <div className="liquid-glass-panel rounded-2xl px-5 py-6 text-center">
+            <p className="text-[14px] text-white/60">
+              Nothing on this menu matches &ldquo;{menuQuery.trim()}&rdquo;.
+            </p>
+            <Link
+              to={`/venture/${v.id}`}
+              className="mt-2 inline-block font-mono text-[11px] font-bold tracking-wider text-brand-400 uppercase transition hover:text-brand-300"
+            >
+              Show the whole menu
+            </Link>
+          </div>
         )}
 
         {/* Only when there is more than one named section — a single section
