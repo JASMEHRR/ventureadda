@@ -141,6 +141,65 @@ export async function listVentures(
   )
 }
 
+/** A menu item with enough of its seller attached to render a result row. */
+export type ItemMatch = {
+  item: MenuItem
+  venture: Venture
+}
+
+/**
+ * Products across every live venture, for a directory-wide search.
+ *
+ * listVentures already matched item names — searching "brownie" has always
+ * found the venture that sells brownies — but it returned only the venture,
+ * so the buyer landed on a page of forty items still hunting for the one they
+ * typed. This returns the items themselves.
+ *
+ * Sold-out items are kept rather than filtered. "Brownies, sold out today" is
+ * an answer; silently returning nothing tells somebody this campus has no
+ * brownies at all, which is a different and wrong claim.
+ *
+ * The same two reads listVentures does, and the caller runs them together, so
+ * a search costs no more round trips than it used to. This is a
+ * class-sized dataset read whole and filtered in memory — the honest ceiling
+ * on that is a few thousand items, well past anything this site will hold, and
+ * the alternative is a search product for a directory of forty sellers.
+ */
+export async function searchMenuItems(needle: string): Promise<ItemMatch[]> {
+  const q = needle.trim().toLowerCase()
+  if (!q) return []
+
+  const [ventureSnapshot, itemSnapshot] = await Promise.all([
+    getDocs(query(venturesRef, where('status', '==', 'live'))),
+    getDocs(menuItemsRef),
+  ])
+
+  // Live ventures only. A pending or rejected listing is one no moderator has
+  // approved, and its menu must not be reachable through a search box.
+  const live = new Map(ventureSnapshot.docs.map(toVenture).map((v) => [v.id, v]))
+
+  return itemSnapshot.docs
+    .map(toMenuItem)
+    .filter(
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        (item.description ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q),
+    )
+    .flatMap((item) => {
+      const venture = live.get(item.ventureId)
+      return venture ? [{ item, venture }] : []
+    })
+    .sort((a, b) => {
+      // A name match beats a description match: someone typing "beanie" wants
+      // the beanie, not the scarf whose description mentions one.
+      const aName = a.item.name.toLowerCase().includes(q)
+      const bName = b.item.name.toLowerCase().includes(q)
+      if (aName !== bName) return aName ? -1 : 1
+      return a.item.name.localeCompare(b.item.name)
+    })
+}
+
 export async function getVenture(ventureId: string): Promise<Venture | null> {
   try {
     const snapshot = await getDoc(doc(venturesRef, ventureId))

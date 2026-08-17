@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { PanelLeftClose, PanelLeftOpen, Plus, Search } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-react'
 import Logo, { LogoMark } from '../ui/Logo'
 import type { NavItem } from '../../navigation'
 import {
@@ -11,7 +11,6 @@ import {
   SELLER_NAV,
   SETTINGS_NAV,
 } from '../../navigation'
-import { useShellSearch } from './useShellSearch'
 
 const STORAGE_KEY = 'ventureadda:sidebar-collapsed'
 
@@ -138,60 +137,6 @@ function SidebarLink({
   )
 }
 
-/** Where the browse controls point. '/' is the landing page. */
-const BROWSE_PATH = '/browse'
-
-/**
- * The search field, moved here from the top bar.
- *
- * WHY IT MOVED. The top bar was carrying the wordmark, an All button, a
- * category select, search, Add venture, the cart and the account tile in one
- * row, and search — the widest control of the seven — was what made the row
- * fight for space at every width. The sidebar is a column with room to spare
- * and it is where a directory's filters belong; the top bar keeps only what
- * has to be reachable in a thumb's reach of the corner.
- *
- * The URL is still the state, exactly as before: the control is in the shell,
- * the results are in the page, and a filtered directory stays a link somebody
- * can paste into the group chat.
- */
-function SidebarSearch({ collapsed }: { collapsed: boolean }) {
-  const { draft, setDraft, placeholder, label } = useShellSearch()
-
-  // Collapsed to a rail, the field becomes the button that expands it — a
-  // 40px-wide text input is not a search box, it is a decoration.
-  if (collapsed) {
-    return (
-      <Link
-        to={BROWSE_PATH}
-        aria-label={label}
-        title={label}
-        className="flex items-center justify-center rounded-2xl border border-transparent bg-white/[0.04] p-2.5 text-white/45 transition duration-150 hover:bg-white/[0.09] hover:text-white active:scale-[0.94]"
-      >
-        <Search size={16} aria-hidden="true" />
-      </Link>
-    )
-  }
-
-  return (
-    <div className="relative mb-3">
-      <Search
-        size={14}
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-white/30"
-      />
-      <input
-        type="search"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        placeholder={placeholder}
-        aria-label={label}
-        className="liquid-glass-input w-full rounded-full py-2 pr-3 pl-9 text-[13px] text-white placeholder-white/30"
-      />
-    </div>
-  )
-}
-
 export default function Sidebar({
   isModerator = false,
   isSeller = false,
@@ -273,8 +218,6 @@ export default function Sidebar({
           )}
         </button>
       </div>
-
-      <SidebarSearch collapsed={collapsed} />
 
       <nav aria-label="Primary" className={`space-y-1.5 ${collapsed ? 'mt-1' : ''}`}>
         {items.map((item) => (

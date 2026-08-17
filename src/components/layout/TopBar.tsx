@@ -77,7 +77,21 @@ export default function TopBar() {
   }
 
   return (
-    <header className="liquid-glass-panel flex flex-wrap items-center gap-2 rounded-[1.5rem] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+    /*
+      STICKY, and opaque enough to survive it.
+      The bar carries search, the category filter and the cart — the three
+      controls somebody reaches for part-way down a long menu — so scrolling
+      them off screen meant scrolling back up to use any of them. `top-3` and
+      `md:top-6` match the shell's own padding, so it keeps floating with the
+      backdrop visible around it rather than snapping flush to the edge.
+
+      The extra background under the glass is not decoration. Glass takes its
+      contrast from what is behind it, and what passes behind this while
+      scrolling is a grid of product photographs; without an opaque layer the
+      row became unreadable over a white-background sticker every time one
+      slid under it.
+    */
+    <header className="liquid-glass-panel sticky top-3 z-40 flex flex-wrap items-center gap-2 rounded-[1.5rem] bg-[#0a0d12]/85 px-3 py-2.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4 sm:py-3 md:top-6">
       {/* Wordmark only below `md`, where the sidebar that carries it is hidden.
           On desktop it would be on screen twice. */}
       {/* The mark without the wordmark, deliberately. The note above is about a
@@ -118,11 +132,11 @@ export default function TopBar() {
         triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[11px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
       />
 
-      {/* BELOW `md` ONLY. Search now lives in the sidebar, which is where a
-          directory's filters belong — but the sidebar is hidden on a phone, so
-          the field has to exist somewhere and this is the only chrome left.
-          Exactly one search box is on screen at any width. */}
-      <div className="relative order-last w-full min-w-40 flex-1 sm:order-none sm:w-auto md:hidden">
+      {/* EVERY WIDTH. It lived in the sidebar for a while, which put it out of
+          reach on the pages where people search most and hid it entirely on a
+          phone. One box, always in the same corner, is worth more than a
+          tidier column. */}
+      <div className="relative order-last w-full min-w-40 flex-1 sm:order-none sm:w-auto">
         <Search
           size={14}
           aria-hidden="true"
