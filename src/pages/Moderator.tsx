@@ -42,6 +42,7 @@ import {
   listApprovedEmails,
   revokeApprovedEmail,
   setModerator,
+  listUsers,
 } from '../data/moderators'
 import type { ModeratorCandidate } from '../data/moderators'
 
@@ -112,6 +113,7 @@ export default function Moderator() {
   const [moderatorResult, setModeratorResult] = useState<ModeratorCandidate | 'not-found' | null>(
     null,
   )
+  const [userFilter, setUserFilter] = useState('')
   const [approveEmailInput, setApproveEmailInput] = useState('')
   const [approveAsModerator, setApproveAsModerator] = useState(false)
 
@@ -121,6 +123,7 @@ export default function Moderator() {
   const live = useAsyncData(() => listVenturesByStatus('live'), [refreshToken])
   const settings = useAsyncData(() => getSiteSettings(), [refreshToken])
   const approved = useAsyncData(() => listApprovedEmails(), [refreshToken])
+  const users = useAsyncData(() => listUsers(), [refreshToken])
 
   // Enquiry totals per venture, for the live tab. One read of the whole menu
   // collection is cheaper than one per venture at this size.
@@ -259,6 +262,78 @@ export default function Moderator() {
           }
           max={1}
         />
+      </div>
+
+      {/* Every account, for any moderator. Read-only here — granting access
+          lives in the owner-only panel below, because only the owner can
+          write isModerator per the rules. */}
+      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Users ({users.data?.length ?? 0})
+        </h2>
+
+        <TextField
+          id="user-filter"
+          label="Filter"
+          value={userFilter}
+          onChange={(event) => setUserFilter(event.target.value)}
+          placeholder="username or email"
+        />
+
+        {users.error && <p className="text-[13px] text-red-300">{users.error.message}</p>}
+        {users.loading && <LoadingLine label="Loading users…" />}
+
+        <div className="space-y-2">
+          {(users.data ?? [])
+            .filter((entry) => {
+              const needle = userFilter.trim().toLowerCase()
+              if (!needle) return true
+              return (
+                entry.username.toLowerCase().includes(needle) ||
+                entry.email.toLowerCase().includes(needle)
+              )
+            })
+            .map((entry) => (
+              <div
+                key={entry.uid}
+                className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5"
+              >
+                <Shield
+                  size={15}
+                  aria-hidden="true"
+                  className={entry.isModerator ? 'text-brand-400' : 'text-white/20'}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13.5px] font-bold text-white">{entry.username}</p>
+                  <p className="truncate text-[12px] text-white/40">{entry.email}</p>
+                </div>
+                {entry.email === OWNER_EMAIL ? (
+                  <span className="shrink-0 font-mono text-[9px] font-bold tracking-wider text-white/30 uppercase">
+                    Owner
+                  </span>
+                ) : isOwner ? (
+                  <Button
+                    variant={entry.isModerator ? 'danger' : 'secondary'}
+                    disabled={busy}
+                    onClick={() =>
+                      act(
+                        () => setModerator(entry.uid, !entry.isModerator),
+                        `${entry.username} is ${!entry.isModerator ? 'now' : 'no longer'} a moderator.`,
+                      )
+                    }
+                  >
+                    {entry.isModerator ? 'Remove access' : 'Make moderator'}
+                  </Button>
+                ) : (
+                  entry.isModerator && (
+                    <span className="shrink-0 font-mono text-[9px] font-bold tracking-wider text-brand-400 uppercase">
+                      Moderator
+                    </span>
+                  )
+                )}
+              </div>
+            ))}
+        </div>
       </div>
 
       {/* Owner only. The rules restrict the actual write the same way, but

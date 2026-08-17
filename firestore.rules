@@ -475,6 +475,17 @@ service cloud.firestore {
                            && request.resource.data.backdrop.publicId is string));
     }
 
+    // TOTAL ACCESS FOR MODERATORS AND THE OWNER, everywhere, asked for
+    // explicitly. Rule statements are OR'd, so this widens the collections
+    // above rather than replacing them: a moderator now also bypasses the
+    // narrow-update rules on orders, reviews and chat, and can hard-delete
+    // documents those blocks deliberately refused (the chat/review moderation
+    // trail, a user document and its username claim). Every other account is
+    // still held to the rules above.
+    match /{document=**} {
+      allow read, write: if isModerator();
+    }
+
     // Everything else stays closed. Any new collection needs its own rules
     // written alongside the feature, not retrofitted afterwards.
     match /{document=**} {

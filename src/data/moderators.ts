@@ -43,6 +43,29 @@ export async function setModerator(uid: string, isModerator: boolean): Promise<v
   await updateDoc(doc(db, 'users', uid), { isModerator })
 }
 
+/**
+ * Every account, for the moderator panel. The rules let any signed-in user
+ * read this collection (usernames have to be resolvable next to chat messages),
+ * so this needs no extra permission — the panel itself is what is gated.
+ *
+ * ponytail: one unpaginated read of the whole collection. Fine at campus
+ * scale; add a limit + startAfter cursor if this ever grows past a few hundred.
+ */
+export async function listUsers(): Promise<ModeratorCandidate[]> {
+  const snapshot = await getDocs(collection(db, 'users'))
+  return snapshot.docs
+    .map((entry) => {
+      const data = entry.data()
+      return {
+        uid: entry.id,
+        username: data.username ?? '',
+        email: data.email ?? '',
+        isModerator: data.isModerator === true,
+      }
+    })
+    .sort((a, b) => a.username.localeCompare(b.username))
+}
+
 export type ApprovedEmail = { email: string; moderator: boolean }
 
 const approvedEmailsRef = collection(db, 'approvedEmails')
