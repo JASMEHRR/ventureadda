@@ -55,12 +55,12 @@ export default function EmptyState({
         <Icon size={22} aria-hidden="true" />
       </span>
       {eyebrow && (
-        <p className="mt-5 font-mono text-[9px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <p className="mt-5 font-mono text-[11px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           {eyebrow}
         </p>
       )}
-      <p className={`${eyebrow ? 'mt-2' : 'mt-5'} text-[19px] font-extrabold text-white`}>{title}</p>
-      <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-white/45">{children}</p>
+      <p className={`${eyebrow ? 'mt-2' : 'mt-5'} text-[20px] font-extrabold text-white`}>{title}</p>
+      <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-white/45">{children}</p>
       {extra && <div className="flex w-full justify-center">{extra}</div>}
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2.5">{action}</div>}
     </div>

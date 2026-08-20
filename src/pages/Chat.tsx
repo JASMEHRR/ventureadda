@@ -90,7 +90,7 @@ export default function Chat() {
 
   return (
     <div className="flex h-[calc(100dvh-13rem)] min-h-[24rem] flex-col gap-3 md:h-[calc(100dvh-11rem)]">
-      <p className="liquid-glass-panel shrink-0 rounded-2xl px-5 py-3 text-[13.5px] leading-relaxed text-white/50">
+      <p className="liquid-glass-panel shrink-0 rounded-2xl px-5 py-3 text-[15px] leading-relaxed text-white/50">
         One room, for feedback about the site — bugs, things that are confusing, things you want.
         Everyone can read it. Only Thapar accounts can post.
       </p>
@@ -101,7 +101,7 @@ export default function Chat() {
         className="liquid-glass-panel min-h-0 flex-1 space-y-3 overflow-y-auto rounded-3xl p-4 sm:p-5"
       >
         {loadError && (
-          <p role="alert" className="text-[14px] text-red-400">
+          <p role="alert" className="text-[15px] text-red-400">
             Could not load the room: {loadError}
           </p>
         )}
@@ -115,8 +115,8 @@ export default function Chat() {
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/35">
               <MessagesSquare size={22} aria-hidden="true" />
             </span>
-            <p className="mt-5 text-[17px] font-extrabold text-white">Nothing here yet</p>
-            <p className="mt-2 max-w-sm text-[14px] text-white/45">
+            <p className="mt-5 text-[18px] font-extrabold text-white">Nothing here yet</p>
+            <p className="mt-2 max-w-sm text-[15px] text-white/45">
               Be the first. Found a bug, or something that annoyed you? Say so.
             </p>
           </div>
@@ -127,19 +127,19 @@ export default function Chat() {
             <Avatar name={message.username} className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
-                <span className="truncate text-[14px] font-bold text-white">
+                <span className="truncate text-[15px] font-bold text-white">
                   {message.username}
                 </span>
-                <time className="shrink-0 font-mono text-[10px] tracking-wider text-white/30">
+                <time className="shrink-0 font-mono text-[11.5px] tracking-wider text-white/30">
                   {timeLabel(message.createdAt)}
                 </time>
               </div>
               {message.deleted ? (
-                <p className="mt-0.5 text-[14px] text-white/25 italic">
+                <p className="mt-0.5 text-[15px] text-white/25 italic">
                   Message removed by a moderator
                 </p>
               ) : (
-                <p className="mt-0.5 text-[14.5px] leading-relaxed break-words text-white/80">
+                <p className="mt-0.5 text-[15.5px] leading-relaxed break-words text-white/80">
                   {message.text}
                 </p>
               )}
@@ -184,7 +184,7 @@ export default function Chat() {
                 }
               }}
               placeholder="Something broken? Something missing?"
-              className="liquid-glass-input max-h-32 min-h-[2.75rem] w-full resize-y rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30"
+              className="liquid-glass-input max-h-32 min-h-[2.75rem] w-full resize-y rounded-xl px-4 py-2.5 text-[15px] text-white placeholder-white/30"
             />
             <Button
               type="submit"
@@ -201,7 +201,7 @@ export default function Chat() {
           {(sendError || remaining < 100) && (
             <p
               role={sendError ? 'alert' : undefined}
-              className={`px-2 pt-1.5 text-[12.5px] ${sendError ? 'text-red-400' : 'text-white/35'}`}
+              className={`px-2 pt-1.5 text-[14px] ${sendError ? 'text-red-400' : 'text-white/35'}`}
             >
               {sendError ?? `${remaining} characters left`}
             </p>
@@ -209,7 +209,7 @@ export default function Chat() {
         </form>
       ) : (
         <div className="liquid-glass-panel flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
-          <p className="text-[13.5px] text-white/50">
+          <p className="text-[15px] text-white/50">
             {status === 'ready'
               ? // Signed in, but not on a Thapar address. Say which account
                 // would work rather than only that this one does not.
@@ -243,7 +243,7 @@ export default function Chat() {
           </>
         }
       >
-        <p className="text-[14px] leading-relaxed text-white/70">
+        <p className="text-[15px] leading-relaxed text-white/70">
           The text is erased, not just hidden — it will not be readable from the database either.
           Who posted it and when stays, so a repeat offender is still visible to you.
         </p>

@@ -227,10 +227,15 @@ export default function PhotoCarousel({
                 }}
                 aria-label={`Show photo ${dot + 1}`}
                 aria-current={dot === index}
-                className={`pointer-events-auto h-1.5 rounded-full transition-all duration-200 ${
-                  dot === index ? 'w-5 bg-white' : 'w-1.5 bg-white/45 hover:bg-white/80'
-                }`}
-              />
+                className="pointer-events-auto flex items-center px-1 py-2.5"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`block h-1.5 rounded-full transition-all duration-200 ${
+                    dot === index ? 'w-5 bg-white' : 'w-1.5 bg-white/45 hover:bg-white/80'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </>

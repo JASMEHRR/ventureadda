@@ -69,8 +69,8 @@ function CartLine({ entry }: { entry: CartEntry }) {
       )}
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-bold text-white">{entry.name}</span>
-        <span className="block font-mono text-[11.5px] text-white/40">
+        <span className="block truncate text-[15px] font-bold text-white">{entry.name}</span>
+        <span className="block font-mono text-[13px] text-white/40">
           ₹{entry.price} each
           {entry.stock !== undefined && entry.stock <= 5 ? ` · ${entry.stock} left` : ''}
         </span>
@@ -94,7 +94,7 @@ function CartLine({ entry }: { entry: CartEntry }) {
         <span
           aria-live="polite"
           aria-atomic="true"
-          className="w-6 text-center font-mono text-[13px] font-extrabold text-white"
+          className="w-6 text-center font-mono text-[14.5px] font-extrabold text-white"
         >
           <span className="sr-only">{entry.name}, </span>
           {entry.quantity}
@@ -110,7 +110,7 @@ function CartLine({ entry }: { entry: CartEntry }) {
         </button>
       </span>
 
-      <span className="w-16 shrink-0 text-right font-mono text-[13.5px] font-bold text-white/85">
+      <span className="w-16 shrink-0 text-right font-mono text-[15px] font-bold text-white/85">
         ₹{entry.price * entry.quantity}
       </span>
     </li>
@@ -195,12 +195,12 @@ export default function Cart() {
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="liquid-glass-panel rounded-3xl px-5 py-4">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Cart
           </h2>
-          <span className="font-mono text-[15px] font-extrabold text-brand-400">₹{total}</span>
+          <span className="font-mono text-[16px] font-extrabold text-brand-400">₹{total}</span>
         </div>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-white/50">
+        <p className="mt-2 text-[15px] leading-relaxed text-white/50">
           {groups.length === 1
             ? 'You order and pay each seller directly. Nothing is charged here.'
             : `${groups.length} sellers, so ${groups.length} separate orders. You settle each one with them directly.`}
@@ -208,13 +208,13 @@ export default function Cart() {
       </header>
 
       {live.error && (
-        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] text-red-400">
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[15px] text-red-400">
           Could not check these against the live menus: {live.error.message}
         </p>
       )}
 
       {notice && (
-        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5 text-[13.5px] leading-relaxed text-amber-300">
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5 text-[15px] leading-relaxed text-amber-300">
           {notice}
         </p>
       )}
@@ -229,7 +229,7 @@ export default function Cart() {
               <VentureLogo name={group.ventureName} logo={venture?.logo} size={36} />
               <Link
                 to={`/venture/${group.ventureId}`}
-                className="min-w-0 flex-1 truncate text-[16px] font-extrabold text-white transition-colors hover:text-brand-300"
+                className="min-w-0 flex-1 truncate text-[17px] font-extrabold text-white transition-colors hover:text-brand-300"
               >
                 {group.ventureName}
               </Link>
@@ -242,15 +242,15 @@ export default function Cart() {
             </ul>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
-              <span className="font-mono text-[13px] text-white/45">
+              <span className="font-mono text-[14.5px] text-white/45">
                 Subtotal{' '}
-                <span className="text-[15px] font-extrabold text-white/85">₹{subtotal}</span>
+                <span className="text-[16px] font-extrabold text-white/85">₹{subtotal}</span>
               </span>
               <span className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => clearVentureCart(group.ventureId)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[10px] font-bold tracking-wider text-white/40 uppercase transition duration-150 hover:bg-red-500/15 hover:text-red-300 active:scale-[0.96]"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[11.5px] font-bold tracking-wider text-white/40 uppercase transition duration-150 hover:bg-red-500/15 hover:text-red-300 active:scale-[0.96]"
                 >
                   Clear
                 </button>

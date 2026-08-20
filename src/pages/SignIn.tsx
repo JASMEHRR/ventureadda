@@ -53,18 +53,18 @@ function errorMessage(cause: unknown): string {
 function InboxAdvice() {
   return (
     <div className="mt-5 w-full max-w-sm rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-left">
-      <p className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+      <p className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
         Check spam
       </p>
-      <p className="mt-2 text-[13px] leading-relaxed text-white/60">
+      <p className="mt-2 text-[14.5px] leading-relaxed text-white/60">
         It usually lands in <span className="text-white/85">Spam</span> or{' '}
         <span className="text-white/85">Promotions</span> rather than your inbox. Search for{' '}
         <span className="text-white/85">VentureAdda</span> or:
       </p>
-      <p className="mt-2 rounded-lg bg-black/25 px-3 py-2 font-mono text-[11px] break-all text-white/70">
+      <p className="mt-2 rounded-lg bg-black/25 px-3 py-2 font-mono text-[12.5px] break-all text-white/70">
         {SENDER_ADDRESS}
       </p>
-      <p className="mt-2 text-[12.5px] leading-relaxed text-white/40">
+      <p className="mt-2 text-[14px] leading-relaxed text-white/40">
         Marking it "not spam" means the next one arrives properly.
       </p>
     </div>
@@ -207,10 +207,10 @@ export default function SignIn() {
     <div className="mx-auto max-w-md space-y-4">
       <div className="liquid-glass-panel space-y-5 rounded-3xl p-5 sm:p-6">
         <div>
-          <h2 className="text-[19px] font-extrabold text-white">
+          <h2 className="text-[20px] font-extrabold text-white">
             {mode === 'needsEmail' ? 'Confirm your address' : 'Sign in'}
           </h2>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-white/50">
+          <p className="mt-1.5 text-[15px] leading-relaxed text-white/50">
             {mode === 'needsEmail'
               ? 'You opened the link on a different device, so we need the address you asked for it with.'
               : 'Browsing needs no account at all. Sign in to review a venture, and with your Thapar address to post or list one.'}
@@ -233,7 +233,7 @@ export default function SignIn() {
 
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-white/10" />
-              <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+              <span className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
                 or
               </span>
               <span className="h-px flex-1 bg-white/10" />
@@ -266,7 +266,7 @@ export default function SignIn() {
           </div>
         )}
 
-        <p className="flex items-start gap-2 text-[12.5px] leading-relaxed text-white/40">
+        <p className="flex items-start gap-2 text-[14px] leading-relaxed text-white/40">
           <ShieldCheck size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-brand-400" />
           <span>
             Posting in chat and listing a venture need an @{ALLOWED_EMAIL_DOMAIN} address.

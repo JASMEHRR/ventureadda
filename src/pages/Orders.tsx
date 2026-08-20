@@ -78,20 +78,20 @@ function OrderCard({
     >
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[15px] font-bold text-white">
+          <p className="text-[16px] font-bold text-white">
             {order.buyerName}
             {!order.seen && (
-              <span className="ml-2 rounded-full bg-brand-500/25 px-2 py-0.5 align-middle font-mono text-[9px] font-bold tracking-wider text-brand-300 uppercase">
+              <span className="ml-2 rounded-full bg-brand-500/25 px-2 py-0.5 align-middle font-mono text-[11px] font-bold tracking-wider text-brand-300 uppercase">
                 New
               </span>
             )}
           </p>
-          <p className="font-mono text-[10px] tracking-wider text-white/35 uppercase">
+          <p className="font-mono text-[11.5px] tracking-wider text-white/35 uppercase">
             {when(order.createdAt)} · {order.ventureName}
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold tracking-wider uppercase ${STATUS_STYLE[order.status]}`}
+          className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider uppercase ${STATUS_STYLE[order.status]}`}
         >
           {ORDER_STATUS_LABEL[order.status]}
         </span>
@@ -99,10 +99,10 @@ function OrderCard({
 
       <ul className="space-y-1">
         {order.lines.map((line) => (
-          <li key={line.itemId + line.name} className="flex items-baseline gap-2 text-[13.5px]">
+          <li key={line.itemId + line.name} className="flex items-baseline gap-2 text-[15px]">
             <span className="font-mono font-bold text-brand-400">{line.quantity}×</span>
             <span className="min-w-0 flex-1 truncate text-white/80">{line.name}</span>
-            <span className="shrink-0 font-mono text-[12.5px] text-white/45">
+            <span className="shrink-0 font-mono text-[14px] text-white/45">
               ₹{line.price * line.quantity}
             </span>
           </li>
@@ -110,13 +110,13 @@ function OrderCard({
       </ul>
 
       <div className="flex items-center justify-between border-t border-white/8 pt-2.5">
-        <span className="font-mono text-[9px] font-bold tracking-[0.18em] text-white/35 uppercase">
+        <span className="font-mono text-[11px] font-bold tracking-[0.18em] text-white/35 uppercase">
           {PAYMENT_LABEL[order.payment]}
         </span>
-        <span className="font-mono text-[15px] font-extrabold text-brand-400">₹{order.total}</span>
+        <span className="font-mono text-[16px] font-extrabold text-brand-400">₹{order.total}</span>
       </div>
 
-      <dl className="space-y-1.5 border-t border-white/8 pt-2.5 text-[13px]">
+      <dl className="space-y-1.5 border-t border-white/8 pt-2.5 text-[14.5px]">
         <div className="flex items-start gap-2">
           <dt className="sr-only">Deliver to</dt>
           <MapPin size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
@@ -142,7 +142,7 @@ function OrderCard({
               +{order.buyerPhone}
             </a>
             {order.contactPreference === 'sellerContacts' && (
-              <span className="ml-2 text-[12px] text-amber-400">Asked you to call them</span>
+              <span className="ml-2 text-[13.5px] text-amber-400">Asked you to call them</span>
             )}
           </dd>
         </div>
@@ -278,10 +278,10 @@ export default function Orders() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="liquid-glass-panel rounded-3xl px-5 py-4">
-        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Orders
         </h2>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-white/50">
+        <p className="mt-2 text-[15px] leading-relaxed text-white/50">
           Everything ordered from your listings. No money moves through this site, so these
           statuses are your own record: what you have been paid, and what you have handed over.
         </p>
@@ -290,13 +290,13 @@ export default function Orders() {
       <PushToggle uid={profile.uid} />
 
       {fetched.error && (
-        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[14px] text-red-400">
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[15px] text-red-400">
           Could not load your orders: {fetched.error.message}
         </p>
       )}
 
       {error && (
-        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] text-red-400">
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[15px] text-red-400">
           {error}
         </p>
       )}
@@ -311,7 +311,7 @@ export default function Orders() {
 
       {open.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
             Open · {open.length}
           </h3>
           {open.map((order) => (
@@ -328,7 +328,7 @@ export default function Orders() {
 
       {done.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
             Completed · {done.length}
           </h3>
           {done.map((order) => (
@@ -362,7 +362,7 @@ export default function Orders() {
           </>
         }
       >
-        <p className="text-[14px] leading-relaxed text-white/70">
+        <p className="text-[15px] leading-relaxed text-white/70">
           This removes your only record of what they asked for and how to reach them. The buyer is
           not told. Use it for pranks and duplicates, not for orders you have finished — mark those
           completed instead.

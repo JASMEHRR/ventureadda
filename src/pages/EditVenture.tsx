@@ -37,7 +37,7 @@ export default function EditVenture() {
 
   if (!venture.data) {
     return (
-      <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[14px] text-white/50">
+      <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[15px] text-white/50">
         That venture does not exist, or you do not have access to it.
       </p>
     )
@@ -48,7 +48,7 @@ export default function EditVenture() {
   const mayEdit = venture.data.ownerId === profile.uid || profile.isModerator
   if (!mayEdit) {
     return (
-      <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[14px] text-white/50">
+      <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[15px] text-white/50">
         Only the owner can edit this listing.
       </p>
     )
@@ -76,7 +76,7 @@ export default function EditVenture() {
   return (
     // Wider from lg so VentureForm's save rail has a column to sit in.
     <div className="mx-auto max-w-2xl space-y-4 lg:max-w-5xl">
-      <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] leading-relaxed text-white/50">
+      <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[15px] leading-relaxed text-white/50">
         Edits go live immediately — approval is only for new listings. Items you keep hold on to
         their enquiry counts; items you remove lose theirs.
       </p>

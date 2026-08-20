@@ -64,7 +64,7 @@ export default function Logo({
         className={
           markOnly
             ? 'sr-only'
-            : 'text-[19px] font-extrabold tracking-tight text-white whitespace-nowrap'
+            : 'text-[20px] font-extrabold tracking-tight text-white whitespace-nowrap'
         }
       >
         VentureAdda

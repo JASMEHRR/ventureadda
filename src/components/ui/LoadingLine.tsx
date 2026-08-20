@@ -27,7 +27,7 @@ export default function LoadingLine({
   return (
     <p
       role="status"
-      className={`font-mono text-[10px] tracking-[0.18em] text-white/75 uppercase ${
+      className={`font-mono text-[11.5px] tracking-[0.18em] text-white/75 uppercase ${
         inset ? 'px-1' : ''
       }`}
     >

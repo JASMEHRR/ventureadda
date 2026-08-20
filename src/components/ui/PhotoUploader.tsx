@@ -80,7 +80,7 @@ export default function PhotoUploader({
 
   return (
     <div>
-      <span className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+      <span className="mb-1.5 block font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
         {label}
       </span>
 
@@ -95,7 +95,7 @@ export default function PhotoUploader({
             {/* Only when there is an order to have. One photo is not a cover,
                 it is the photo. */}
             {photos.length > 1 && index === 0 && (
-              <span className="absolute top-1 left-1 rounded-full bg-brand-500/90 px-1.5 py-0.5 font-mono text-[8px] font-extrabold tracking-wider text-app uppercase">
+              <span className="absolute top-1 left-1 rounded-full bg-brand-500/90 px-1.5 py-0.5 font-mono text-[11px] font-extrabold tracking-wider text-app uppercase">
                 Cover
               </span>
             )}
@@ -149,7 +149,7 @@ export default function PhotoUploader({
             ) : (
               <ImagePlus size={18} aria-hidden="true" />
             )}
-            <span className="font-mono text-[9px] tracking-wider uppercase">
+            <span className="font-mono text-[11px] tracking-wider uppercase">
               {busy ? 'Sending' : 'Add'}
             </span>
           </button>
@@ -165,9 +165,9 @@ export default function PhotoUploader({
         onChange={(event) => void handleFiles(event.target.files)}
       />
 
-      {hint && !error && <p className="mt-1.5 text-[12.5px] text-white/35">{hint}</p>}
+      {hint && !error && <p className="mt-1.5 text-[14px] text-white/35">{hint}</p>}
       {error && (
-        <p role="alert" className="mt-1.5 text-[12.5px] text-red-400">
+        <p role="alert" className="mt-1.5 text-[14px] text-red-400">
           {error}
         </p>
       )}

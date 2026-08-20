@@ -97,10 +97,10 @@ export default function MyVentures() {
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-4">
         <div className="min-w-0">
-          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Your ventures
           </h2>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-white/50">
+          <p className="mt-2 text-[15px] leading-relaxed text-white/50">
             Everything you have submitted, live or waiting for approval.
           </p>
         </div>
@@ -113,7 +113,7 @@ export default function MyVentures() {
       </header>
 
       {mine.error && (
-        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[14px] text-red-400">
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[15px] text-red-400">
           Could not load your ventures: {mine.error.message}
         </p>
       )}
@@ -147,22 +147,22 @@ export default function MyVentures() {
               className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-bold text-white">{venture.name}</p>
-                <p className="truncate text-[12.5px] text-white/40">
+                <p className="truncate text-[16px] font-bold text-white">{venture.name}</p>
+                <p className="truncate text-[14px] text-white/40">
                   {categoryName(venture.categoryId)}
                 </p>
                 {venture.status === 'rejected' && venture.rejectionReason && (
-                  <p className="mt-1 text-[12.5px] text-red-400">{venture.rejectionReason}</p>
+                  <p className="mt-1 text-[14px] text-red-400">{venture.rejectionReason}</p>
                 )}
                 {itemCounts.data?.[venture.id] === 0 && (
-                  <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-amber-400">
+                  <p className="mt-1 flex items-center gap-1.5 text-[14px] text-amber-400">
                     <AlertTriangle size={11} aria-hidden="true" className="shrink-0" />
                     No items yet — add them so buyers have something to tap.
                   </p>
                 )}
               </div>
               <span
-                className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold tracking-wider uppercase ${
+                className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider uppercase ${
                   STATUS_STYLE[venture.status] ?? STATUS_STYLE.pending
                 }`}
               >
@@ -170,13 +170,13 @@ export default function MyVentures() {
               </span>
               <Link
                 to={`/venture/${venture.id}`}
-                className="shrink-0 font-mono text-[10px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="shrink-0 font-mono text-[11.5px] tracking-wider text-white/40 uppercase transition hover:text-white"
               >
                 View
               </Link>
               <Link
                 to={`/venture/${venture.id}/edit`}
-                className="shrink-0 font-mono text-[10px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="shrink-0 font-mono text-[11.5px] tracking-wider text-white/40 uppercase transition hover:text-white"
               >
                 Edit
               </Link>
@@ -197,7 +197,7 @@ export default function MyVentures() {
           ))}
 
           {notice && (
-            <p role="status" className="text-[13.5px] text-white/55">
+            <p role="status" className="text-[15px] text-white/55">
               {notice}
             </p>
           )}
@@ -228,12 +228,12 @@ export default function MyVentures() {
           </>
         }
       >
-        <p className="text-[14px] leading-relaxed text-white/70">
+        <p className="text-[15px] leading-relaxed text-white/70">
           This removes the listing and everything on its menu. It cannot be undone, and the
           moderators will not see it in the queue any more.
         </p>
         {deleteError && (
-          <p role="alert" className="mt-3 text-[13.5px] text-red-400">
+          <p role="alert" className="mt-3 text-[15px] text-red-400">
             {deleteError}
           </p>
         )}

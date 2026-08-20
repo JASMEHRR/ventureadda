@@ -80,7 +80,7 @@ export default function Select<T extends string>({
   onChange,
   placeholder = 'Select…',
   className = '',
-  triggerClassName = 'liquid-glass-input flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-left text-[13px] font-bold transition duration-150 active:scale-[0.99]',
+  triggerClassName = 'liquid-glass-input flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-left text-[14.5px] font-bold transition duration-150 active:scale-[0.99]',
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -295,7 +295,7 @@ export default function Select<T extends string>({
         className={
           labelHidden
             ? 'sr-only'
-            : 'mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase'
+            : 'mb-1.5 block font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase'
         }
       >
         {label}
@@ -372,7 +372,7 @@ export default function Select<T extends string>({
                   aria-selected={isSelected}
                   onClick={() => commit(index)}
                   onPointerEnter={() => setActiveIndex(index)}
-                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-colors ${
+                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-bold transition-colors ${
                     isActive ? 'bg-white/[0.07]' : ''
                   } ${isSelected ? 'text-brand-300' : isActive ? 'text-white/85' : 'text-white/60'}`}
                 >

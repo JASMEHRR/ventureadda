@@ -44,11 +44,11 @@ function ProfileLink({
     >
       <Icon size={18} className="shrink-0 text-brand-400" aria-hidden="true" />
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-bold text-white">{label}</span>
-        <span className="block text-[12.5px] text-white/45">{detail}</span>
+        <span className="block text-[16px] font-bold text-white">{label}</span>
+        <span className="block text-[14px] text-white/45">{detail}</span>
       </span>
       {badge > 0 && (
-        <span className="shrink-0 rounded-full bg-brand-500/25 px-2.5 py-1 font-mono text-[11px] font-extrabold text-brand-300">
+        <span className="shrink-0 rounded-full bg-brand-500/25 px-2.5 py-1 font-mono text-[12.5px] font-extrabold text-brand-300">
           {badge > 99 ? '99+' : badge}
         </span>
       )}
@@ -90,17 +90,17 @@ export default function Profile() {
     <div className="mx-auto max-w-md space-y-4">
       <section className="liquid-glass-panel rounded-3xl p-5 sm:p-6">
         <div className="flex items-center gap-3.5">
-          <Avatar name={profile.username} className="h-12 w-12 text-[17px]" />
+          <Avatar name={profile.username} className="h-12 w-12 text-[18px]" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[19px] font-extrabold text-white">{profile.username}</p>
-            <p className="truncate text-[13px] text-white/45">{profile.email}</p>
+            <p className="truncate text-[20px] font-extrabold text-white">{profile.username}</p>
+            <p className="truncate text-[14.5px] text-white/45">{profile.email}</p>
           </div>
         </div>
 
         {profile.isModerator && (
           <p className="mt-4 flex items-center gap-2 rounded-xl border border-brand-500/30 bg-brand-500/15 px-3.5 py-2.5 text-brand-300">
             <Shield size={13} aria-hidden="true" />
-            <span className="font-mono text-[10px] font-bold tracking-wider uppercase">
+            <span className="font-mono text-[11.5px] font-bold tracking-wider uppercase">
               Moderator
             </span>
           </p>

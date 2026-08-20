@@ -113,7 +113,7 @@ function SidebarLink({
           {!collapsed && (
             <>
               <span
-                className={`min-w-0 flex-1 truncate font-mono text-[11px] tracking-wider uppercase transition-colors ${
+                className={`min-w-0 flex-1 truncate font-mono text-[12.5px] tracking-wider uppercase transition-colors ${
                   isActive
                     ? 'font-extrabold text-white'
                     : 'font-bold text-white/40 group-hover:text-white/85'
@@ -124,7 +124,7 @@ function SidebarLink({
               {badge > 0 && (
                 <span
                   aria-hidden="true"
-                  className="shrink-0 rounded-full bg-brand-500/25 px-2 py-0.5 font-mono text-[9px] font-extrabold text-brand-300"
+                  className="shrink-0 rounded-full bg-brand-500/25 px-2 py-0.5 font-mono text-[11px] font-extrabold text-brand-300"
                 >
                   {badge > 99 ? '99+' : badge}
                 </span>
@@ -194,7 +194,7 @@ export default function Sidebar({
           </Link>
         ) : (
           <div className="min-w-0">
-            <p className="font-mono text-[9px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
+            <p className="font-mono text-[11px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
               Thapar
             </p>
             <Link to="/browse" className="mt-1 block">
@@ -245,7 +245,7 @@ export default function Sidebar({
         >
           <Plus size={15} aria-hidden="true" className="shrink-0" />
           {!collapsed && (
-            <span className="font-mono text-[11px] font-extrabold tracking-wider uppercase">
+            <span className="font-mono text-[12.5px] font-extrabold tracking-wider uppercase">
               Add venture
             </span>
           )}
@@ -253,7 +253,7 @@ export default function Sidebar({
       )}
 
       {!collapsed && (
-        <p className="mt-6 px-4 pb-1 font-mono text-[9px] tracking-[0.18em] text-white/20 uppercase">
+        <p className="mt-6 px-4 pb-1 font-mono text-[11px] tracking-[0.18em] text-white/20 uppercase">
           No payments on site
         </p>
       )}

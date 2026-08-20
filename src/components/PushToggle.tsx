@@ -41,7 +41,7 @@ export default function PushToggle({ uid }: { uid: string }) {
 
   if (availability.state === 'unsupported' || availability.state === 'blocked') {
     return (
-      <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[12.5px] leading-relaxed text-white/40">
+      <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[14px] leading-relaxed text-white/40">
         {availability.state === 'unsupported'
           ? availability.reason
           : 'Notifications are blocked for this site in your browser settings. The site cannot ask again once you have refused, so unblock them there if you want to be told about new orders.'}{' '}
@@ -80,16 +80,16 @@ export default function PushToggle({ uid }: { uid: string }) {
         <BellOff size={16} className="shrink-0 text-white/30" aria-hidden="true" />
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-[14px] font-bold text-white">
+        <p className="text-[15px] font-bold text-white">
           {enabled ? 'Notifications are on for this device' : 'Get told about new orders'}
         </p>
-        <p className="mt-0.5 text-[12.5px] leading-relaxed text-white/45">
+        <p className="mt-0.5 text-[14px] leading-relaxed text-white/45">
           {enabled
             ? 'This device will buzz when an order arrives, even with the site closed. Turn it on separately on your other devices.'
             : 'Your browser will tell you when an order arrives, even with the site closed. This applies to this device only.'}
         </p>
         {error && (
-          <p role="alert" className="mt-1.5 text-[12.5px] text-red-400">
+          <p role="alert" className="mt-1.5 text-[14px] text-red-400">
             {error}
           </p>
         )}

@@ -85,7 +85,7 @@ export default function AddVenture() {
   return (
     // Wider from lg so VentureForm's save rail has a column to sit in.
     <div className="mx-auto max-w-2xl space-y-4 lg:max-w-5xl">
-      <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[13.5px] leading-relaxed text-white/50">
+      <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[15px] leading-relaxed text-white/50">
         Everything here goes to a review queue first. Payment never happens on the site — buyers
         message you on WhatsApp and you settle it between yourselves.
       </p>

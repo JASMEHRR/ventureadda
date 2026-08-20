@@ -70,7 +70,7 @@ export default function Browse() {
   return (
     <div className="space-y-4">
       {ventures.error && (
-        <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[14px] text-red-400">
+        <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[15px] text-red-400">
           Could not load the listings: {ventures.error.message}
         </p>
       )}
@@ -107,10 +107,10 @@ export default function Browse() {
       {query.trim() !== '' && (productMatches.data?.length ?? 0) > 0 && (
         <section className="space-y-3">
           <header className="flex items-baseline justify-between gap-3 px-1">
-            <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
               Items matching &ldquo;{query.trim()}&rdquo;
             </h2>
-            <span className="font-mono text-[10px] font-bold text-white/30">
+            <span className="font-mono text-[11.5px] font-bold text-white/30">
               {productMatches.data!.length} {productMatches.data!.length === 1 ? 'item' : 'items'}
             </span>
           </header>
@@ -140,18 +140,18 @@ export default function Browse() {
                     <VentureLogo name={venture.name} logo={venture.logo} size={64} />
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14.5px] font-bold text-white">
+                    <span className="block truncate text-[15.5px] font-bold text-white">
                       {item.name}
                     </span>
-                    <span className="block truncate font-mono text-[10px] tracking-wider text-white/35 uppercase">
+                    <span className="block truncate font-mono text-[11.5px] tracking-wider text-white/35 uppercase">
                       {venture.name}
                     </span>
                     <span className="mt-1 flex items-baseline gap-2">
-                      <span className="font-mono text-[13px] font-bold text-brand-400">
+                      <span className="font-mono text-[14.5px] font-bold text-brand-400">
                         ₹{item.price}
                       </span>
                       {!sellable && (
-                        <span className="font-mono text-[9px] font-bold tracking-wider text-red-300 uppercase">
+                        <span className="font-mono text-[11px] font-bold tracking-wider text-red-300 uppercase">
                           Sold out
                         </span>
                       )}
@@ -167,10 +167,10 @@ export default function Browse() {
       {grouped.map(({ category, items }) => (
         <section key={category.id} className="space-y-3">
           <header className="flex items-baseline justify-between gap-3 px-1">
-            <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
               {category.name}
             </h2>
-            <span className="font-mono text-[10px] font-bold text-white/30">
+            <span className="font-mono text-[11.5px] font-bold text-white/30">
               {items.length} {items.length === 1 ? 'venture' : 'ventures'}
             </span>
           </header>

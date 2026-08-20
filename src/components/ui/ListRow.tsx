@@ -67,14 +67,14 @@ export default function ListRow({
       ) : null}
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-bold text-white">{title}</span>
+        <span className="block truncate text-[16px] font-bold text-white">{title}</span>
         {description && (
-          <span className="mt-0.5 block truncate text-[12.5px] text-white/45">{description}</span>
+          <span className="mt-0.5 block truncate text-[14px] text-white/45">{description}</span>
         )}
       </span>
 
       {meta && (
-        <span className="shrink-0 font-mono text-[13px] font-bold text-white/90">{meta}</span>
+        <span className="shrink-0 font-mono text-[14.5px] font-bold text-white/90">{meta}</span>
       )}
 
       {ActionIcon && (

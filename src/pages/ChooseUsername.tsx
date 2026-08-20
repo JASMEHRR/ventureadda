@@ -49,19 +49,19 @@ export default function ChooseUsername({
       <form onSubmit={submit} className="liquid-glass-panel space-y-4 rounded-3xl p-5 sm:p-6">
         <div className="flex items-center gap-2 text-brand-400">
           <AtSign size={13} aria-hidden="true" />
-          <span className="font-mono text-[9px] font-extrabold tracking-[0.22em] uppercase">
+          <span className="font-mono text-[11px] font-extrabold tracking-[0.22em] uppercase">
             Pick a name first
           </span>
         </div>
 
         <div>
-          <h2 className="text-[19px] font-extrabold text-white">Choose a username</h2>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-white/50">
+          <h2 className="text-[20px] font-extrabold text-white">Choose a username</h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-white/50">
             {reason} Signed in as <span className="text-white/80">{user?.email}</span>.
           </p>
           {/* Said before the choice, not after. It cannot be changed later and
               nobody reads a warning that arrives with the confirmation. */}
-          <p className="mt-1.5 text-[13px] leading-relaxed text-white/40">
+          <p className="mt-1.5 text-[14.5px] leading-relaxed text-white/40">
             Usernames are permanent — they cannot be changed or released later.
           </p>
         </div>

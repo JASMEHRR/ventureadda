@@ -59,10 +59,10 @@ function Section({ eyebrow, note, children }: { eyebrow: string; note: string; c
       className="space-y-3"
     >
       <header className="px-1">
-        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           {eyebrow}
         </h2>
-        <p className="mt-1 text-[12.5px] text-white/40">{note}</p>
+        <p className="mt-1 text-[14px] text-white/40">{note}</p>
       </header>
       {children}
     </motion.section>
@@ -85,7 +85,7 @@ export default function DesignDemo() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="liquid-glass-highlight glass-shimmer rounded-[1.75rem] px-5 py-6 sm:px-7 sm:py-8"
       >
-        <p className="font-mono text-[9px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
+        <p className="font-mono text-[11px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
           Design system · Step 0
         </p>
         {/* Deliberately not an h1 — TopBar owns the page heading now, and the
@@ -93,7 +93,7 @@ export default function DesignDemo() {
         <p className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
           VentureAdda
         </p>
-        <p className="mt-2 max-w-md text-[14px] text-white/55">
+        <p className="mt-2 max-w-md text-[15px] text-white/55">
           Every venture on campus, one adda. This page exists to prove the visual system before
           any feature is built on top of it.
         </p>
@@ -105,19 +105,19 @@ export default function DesignDemo() {
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="liquid-glass-panel rounded-3xl p-5">
-            <p className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+            <p className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
               liquid-glass-panel
             </p>
-            <p className="mt-2 text-[14px] text-white/70">
+            <p className="mt-2 text-[15px] text-white/70">
               The default surface. 4% to 1% white gradient, 20px blur, 135% saturate, with a top
               light-catch and a bottom inner shadow.
             </p>
           </div>
           <div className="liquid-glass-highlight rounded-3xl p-5">
-            <p className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+            <p className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
               liquid-glass-highlight
             </p>
-            <p className="mt-2 text-[14px] text-white/70">
+            <p className="mt-2 text-[15px] text-white/70">
               Emphasised. Stronger fill and border, 1.2× blur, and a single top highlight with no
               bottom shadow, so it sits proud of the panel beside it.
             </p>
@@ -208,16 +208,16 @@ export default function DesignDemo() {
               className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
             />
             <div className="px-2 pt-3.5 pb-1.5">
-              <span className="font-mono text-[9px] tracking-[0.22em] text-white/30 uppercase">
+              <span className="font-mono text-[11px] tracking-[0.22em] text-white/30 uppercase">
                 Food &amp; Snacks
               </span>
-              <h3 className="mt-1.5 text-[17px] font-extrabold text-white">Hostel Bakes</h3>
-              <p className="mt-1 text-[13.5px] text-white/55">
+              <h3 className="mt-1.5 text-[18px] font-extrabold text-white">Hostel Bakes</h3>
+              <p className="mt-1 text-[15px] text-white/55">
                 Fresh brownies and cakes, baked in H-block. Order by 6pm for same-day.
               </p>
               <div className="mt-3 flex items-center gap-1.5 text-white/40">
                 <Clock size={11} aria-hidden="true" />
-                <span className="font-mono text-[10px] tracking-wider uppercase">
+                <span className="font-mono text-[11.5px] tracking-wider uppercase">
                   Open · 4pm – 11pm
                 </span>
               </div>
@@ -231,16 +231,16 @@ export default function DesignDemo() {
               className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
             />
             <div className="px-2 pt-3.5 pb-1.5">
-              <span className="font-mono text-[9px] tracking-[0.22em] text-white/30 uppercase">
+              <span className="font-mono text-[11px] tracking-[0.22em] text-white/30 uppercase">
                 Food &amp; Snacks
               </span>
-              <h3 className="mt-1.5 text-[17px] font-extrabold text-white">Midnight Batter</h3>
-              <p className="mt-1 text-[13.5px] text-white/55">
+              <h3 className="mt-1.5 text-[18px] font-extrabold text-white">Midnight Batter</h3>
+              <p className="mt-1 text-[15px] text-white/55">
                 Late-night cake slices and jar desserts. Delivers to all hostels.
               </p>
               <div className="mt-3 flex items-center gap-1.5 text-white/40">
                 <Clock size={11} aria-hidden="true" />
-                <span className="font-mono text-[10px] tracking-wider uppercase">
+                <span className="font-mono text-[11.5px] tracking-wider uppercase">
                   Open · 9pm – 2am
                 </span>
               </div>
@@ -329,12 +329,12 @@ export default function DesignDemo() {
                 <Icon size={16} aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-mono text-[12px] font-extrabold tracking-wider text-white uppercase">
+                <span className="block font-mono text-[13.5px] font-extrabold tracking-wider text-white uppercase">
                   {title}
                 </span>
-                <span className="mt-0.5 block truncate text-[12.5px] text-white/45">{body}</span>
+                <span className="mt-0.5 block truncate text-[14px] text-white/45">{body}</span>
               </span>
-              <span className="shrink-0 font-mono text-[11px] font-bold text-white/30">
+              <span className="shrink-0 font-mono text-[12.5px] font-bold text-white/30">
                 {count}
               </span>
             </button>
@@ -370,14 +370,14 @@ export default function DesignDemo() {
         note="Opt-in only. A diagonal band sweeps across on hover — hover the panel below, and the header at the top of this page."
       >
         <div className="liquid-glass-highlight glass-shimmer rounded-3xl p-6">
-          <p className="text-[14px] text-white/70">
+          <p className="text-[15px] text-white/70">
             Hover me. The sweep takes 800ms and is deliberately not applied to every glass
             element.
           </p>
         </div>
       </Section>
 
-      <p className="px-1 pt-2 text-center font-mono text-[9px] tracking-[0.22em] text-white/25 uppercase">
+      <p className="px-1 pt-2 text-center font-mono text-[11px] tracking-[0.22em] text-white/25 uppercase">
         Backdrop · Joshua Woroniecki / Unsplash
       </p>
     </div>

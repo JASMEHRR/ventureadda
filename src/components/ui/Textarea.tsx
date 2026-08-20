@@ -29,7 +29,7 @@ export default function Textarea({
         id={id}
         rows={rows}
         aria-invalid={error ? true : undefined}
-        className={`liquid-glass-input w-full resize-y rounded-xl px-4 py-2.5 text-[14px] text-white placeholder-white/30 ${className}`}
+        className={`liquid-glass-input w-full resize-y rounded-xl px-4 py-2.5 text-[15px] text-white placeholder-white/30 ${className}`}
         {...rest}
       />
     </Field>

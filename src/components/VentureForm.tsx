@@ -89,7 +89,7 @@ function SectionPicker({
 }) {
   return (
     <div>
-      <span className="mb-1.5 block font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+      <span className="mb-1.5 block font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
         Section
       </span>
 
@@ -106,7 +106,7 @@ function SectionPicker({
                 // to "no section" once one is chosen without hunting for the
                 // text field and deleting it by hand.
                 onClick={() => onChange(active ? '' : section)}
-                className={`rounded-full border px-3 py-1.5 text-[12px] font-bold transition duration-150 active:scale-[0.96] ${
+                className={`rounded-full border px-3 py-1.5 text-[13.5px] font-bold transition duration-150 active:scale-[0.96] ${
                   active
                     ? 'border-brand-400/50 bg-brand-500/20 text-brand-300'
                     : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-white/25 hover:text-white'
@@ -190,15 +190,15 @@ function SectionsEditor({
   return (
     <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Menu sections
         </h2>
-        <span className="font-mono text-[10px] text-white/30">
+        <span className="font-mono text-[11.5px] text-white/30">
           {sections.length} {sections.length === 1 ? 'section' : 'sections'}
         </span>
       </div>
 
-      <p className="text-[13px] leading-relaxed text-white/45">
+      <p className="text-[14.5px] leading-relaxed text-white/45">
         The headings your menu is grouped under, like Snacks or Drinks. Rename one here and every
         item under it follows. Optional — a menu with no sections is one plain list.
       </p>
@@ -238,10 +238,10 @@ function SectionsEditor({
                   </>
                 ) : (
                   <>
-                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-white/85">
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-white/85">
                       {section}
                     </span>
-                    <span className="font-mono text-[10px] text-white/30">
+                    <span className="font-mono text-[11.5px] text-white/30">
                       {used} {used === 1 ? 'item' : 'items'}
                     </span>
                     <button
@@ -353,7 +353,7 @@ function SlotsEditor({
           {slots.map((slot) => (
             <span
               key={slot}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] py-1.5 pr-1.5 pl-3 text-[12px] font-bold text-white/80"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] py-1.5 pr-1.5 pl-3 text-[13.5px] font-bold text-white/80"
             >
               {slot}
               <button
@@ -562,7 +562,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
     <form onSubmit={submit} className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-4">
       <div className="space-y-4">
         <section className="liquid-glass-panel space-y-4 rounded-3xl p-5">
-          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             The basics
           </h2>
 
@@ -633,10 +633,10 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
         </section>
 
         <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
-          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Menu layout
           </h2>
-          <p className="text-[13px] leading-relaxed text-white/45">
+          <p className="text-[14.5px] leading-relaxed text-white/45">
             Where your menu starts for everyone who opens it. Buyers can resize it on their own
             device if they prefer, so this is your default rather than a lock.
           </p>
@@ -658,10 +658,10 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
 
         <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
               Menu
             </h2>
-            <span className="font-mono text-[10px] text-white/30">
+            <span className="font-mono text-[11.5px] text-white/30">
               {items.length} {items.length === 1 ? 'item' : 'items'}
             </span>
           </div>
@@ -671,7 +671,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           {items.map((item, index) => (
             <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="font-mono text-[9px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+                <span className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
                   Item {index + 1}
                 </span>
                 <div className="flex items-center gap-2">
@@ -765,7 +765,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
       <div className="sticky bottom-24 z-30 mt-4 md:bottom-4 lg:top-6 lg:bottom-auto lg:mt-0">
         <div className="liquid-glass-panel space-y-3 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           {error && (
-            <p role="alert" className="text-[13px] leading-relaxed text-red-400">
+            <p role="alert" className="text-[14.5px] leading-relaxed text-red-400">
               {error}
             </p>
           )}
@@ -778,24 +778,24 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
               every extra line of it is a line of the form you cannot see. */}
           <dl className="hidden gap-1 lg:grid">
             <div className="flex items-baseline justify-between gap-2">
-              <dt className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
+              <dt className="font-mono text-[11px] tracking-[0.18em] text-white/30 uppercase">
                 Items
               </dt>
-              <dd className="font-mono text-[12px] font-bold text-white/70">{items.length}</dd>
+              <dd className="font-mono text-[13.5px] font-bold text-white/70">{items.length}</dd>
             </div>
             {soldOutCount > 0 && (
               <div className="flex items-baseline justify-between gap-2">
-                <dt className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
+                <dt className="font-mono text-[11px] tracking-[0.18em] text-white/30 uppercase">
                   Sold out
                 </dt>
-                <dd className="font-mono text-[12px] font-bold text-red-400">{soldOutCount}</dd>
+                <dd className="font-mono text-[13.5px] font-bold text-red-400">{soldOutCount}</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between gap-2">
-              <dt className="font-mono text-[9px] tracking-[0.18em] text-white/30 uppercase">
+              <dt className="font-mono text-[11px] tracking-[0.18em] text-white/30 uppercase">
                 Windows
               </dt>
-              <dd className="font-mono text-[12px] font-bold text-white/70">
+              <dd className="font-mono text-[13.5px] font-bold text-white/70">
                 {deliverySlots.length}
               </dd>
             </div>

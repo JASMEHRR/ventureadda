@@ -52,7 +52,7 @@ export default function MobileNav({
               <>
                 <Icon size={18} aria-hidden="true" className={isActive ? 'text-brand-400' : ''} />
                 <span
-                  className={`font-mono text-[9px] tracking-wider uppercase ${
+                  className={`font-mono text-[11px] tracking-wider uppercase ${
                     isActive ? 'font-extrabold' : 'font-bold'
                   }`}
                 >
@@ -73,7 +73,7 @@ export default function MobileNav({
         }
       >
         <Plus size={18} aria-hidden="true" />
-        <span className="font-mono text-[9px] font-bold tracking-wider uppercase">List</span>
+        <span className="font-mono text-[11px] font-bold tracking-wider uppercase">List</span>
       </NavLink>
     </nav>
   )

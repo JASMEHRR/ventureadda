@@ -223,7 +223,7 @@ export default function CheckoutModal({
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-whatsapp bg-whatsapp px-5 py-2.5 text-[12px] font-bold tracking-wider text-black uppercase transition duration-150 hover:bg-whatsapp/85 active:scale-[0.97]"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-whatsapp bg-whatsapp px-5 py-2.5 text-[13.5px] font-bold tracking-wider text-black uppercase transition duration-150 hover:bg-whatsapp/85 active:scale-[0.97]"
               >
                 <MessageCircle size={13} aria-hidden="true" />
                 Message seller
@@ -261,7 +261,7 @@ export default function CheckoutModal({
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-brand-400" aria-hidden="true" />
-            <p className="text-[14px] leading-relaxed text-white/75">
+            <p className="text-[15px] leading-relaxed text-white/75">
               {venture.name} has your order for{' '}
               <span className="font-mono font-bold text-white">₹{placed.total}</span>. It is on
               their dashboard now, and you can follow it under Your orders.
@@ -269,7 +269,7 @@ export default function CheckoutModal({
           </div>
 
           {contactPreference === 'sellerContacts' ? (
-            <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[13px] leading-relaxed text-white/60">
+            <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[14.5px] leading-relaxed text-white/60">
               They will call or message you on{' '}
               <span className="font-mono text-white/85">{buyer.phone}</span>. Sellers here are
               students with classes, so give it a few hours. Their number is{' '}
@@ -277,14 +277,14 @@ export default function CheckoutModal({
               not wait.
             </p>
           ) : (
-            <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[13px] leading-relaxed text-white/60">
+            <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[14.5px] leading-relaxed text-white/60">
               Send the message below to confirm it. The order is saved either way, but a seller who
               has heard from you starts sooner.
             </p>
           )}
 
           {payment === 'cod' && (
-            <p className="text-[12.5px] leading-relaxed text-white/45">
+            <p className="text-[14px] leading-relaxed text-white/45">
               Paying cash: expect a quick call to check the order is real before they make it.
             </p>
           )}
@@ -294,8 +294,8 @@ export default function CheckoutModal({
           <div className="space-y-2.5">
             {entries.map((entry) => (
               <div key={entry.itemId} className="flex items-center gap-3">
-                <span className="min-w-0 flex-1 truncate text-[14px] text-white">{entry.name}</span>
-                <span className="shrink-0 font-mono text-[13px] text-white/50">
+                <span className="min-w-0 flex-1 truncate text-[15px] text-white">{entry.name}</span>
+                <span className="shrink-0 font-mono text-[14.5px] text-white/50">
                   ₹{entry.price * entry.quantity}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">
@@ -307,7 +307,7 @@ export default function CheckoutModal({
                   >
                     <Minus size={12} aria-hidden="true" />
                   </button>
-                  <span className="w-4 text-center font-mono text-[12px] text-white">
+                  <span className="w-4 text-center font-mono text-[13.5px] text-white">
                     {entry.quantity}
                   </span>
                   <button
@@ -325,10 +325,10 @@ export default function CheckoutModal({
           </div>
 
           <div className="flex items-center justify-between border-t border-white/8 pt-3">
-            <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-white/40 uppercase">
+            <span className="font-mono text-[11.5px] font-bold tracking-[0.18em] text-white/40 uppercase">
               Total
             </span>
-            <span className="font-mono text-[16px] font-extrabold text-brand-400">₹{total}</span>
+            <span className="font-mono text-[17px] font-extrabold text-brand-400">₹{total}</span>
           </div>
 
           {/* Signed-out buyers still get the whole form to read, with a
@@ -336,7 +336,7 @@ export default function CheckoutModal({
               Hiding it until they sign in asks for an account before saying
               what the account is for. */}
           {authStatus === 'signedOut' && (
-            <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-amber-300">
+            <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[14.5px] leading-relaxed text-amber-300">
               Ordering needs an account, so the seller knows who they are making this for. Browsing
               never will.
             </p>
@@ -431,7 +431,7 @@ export default function CheckoutModal({
             />
           </div>
 
-          <p className="flex items-start gap-2 border-t border-white/8 pt-3.5 text-[12.5px] leading-relaxed text-white/45">
+          <p className="flex items-start gap-2 border-t border-white/8 pt-3.5 text-[14px] leading-relaxed text-white/45">
             <Phone size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
             <span>
               Seller&rsquo;s number: <span className="font-mono text-white/70">{venture.phone}</span>
@@ -440,7 +440,7 @@ export default function CheckoutModal({
           </p>
 
           {placeError && (
-            <p role="alert" className="text-[13px] text-red-400">
+            <p role="alert" className="text-[14.5px] text-red-400">
               {placeError}
             </p>
           )}
