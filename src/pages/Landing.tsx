@@ -184,6 +184,7 @@ export default function Landing() {
   // read falls back to the demo cards rather than to a hole above the fold.
   const live = useAsyncData(() => listVentures(), [])
   const showcase = featuredVentures(live.data ?? [])
+  const cards = showcase.length > 0 ? showcase : PREVIEW_VENTURES
 
   return (
     <div className="min-h-screen">
@@ -239,39 +240,52 @@ export default function Landing() {
         </Reveal>
       </Section>
 
-      {/* Product shot, spec §7: a .liquid-glass-highlight frame with
-          rounded-t-[1.75rem] and no bottom radius, so the image is cropped by
-          the fold rather than ending in a tidy box.
+      {/*
+        The ventures on campus right now, Glood first.
 
-          REAL VENTURES, AND THEREFORE REAL LINKS. These used to be three
-          invented businesses behind aria-hidden and pointer-events-none: a
-          screenshot you could not click, because the cards named ventures that
-          did not exist. Now it is whatever is actually live — Glood first —
-          which makes the most prominent thing on the page also the most useful
-          one on it. Tapping a card opens that venture, which is where a
-          stranger arriving from a WhatsApp link wanted to go anyway.
+        NO FRAME AND NO CROP ANY MORE. Spec §7 puts the product shot inside a
+        .liquid-glass-highlight box clipped by the fold, which is the right
+        treatment for a screenshot — a picture of the app, presented as a
+        picture. These are the app: real cards, real links, two of them today.
+        A glass box around two cards on a three-column grid is a box with a
+        hole in it, and the crop cut the descriptions off mid-sentence on
+        listings a visitor is meant to be able to read and click. Off comes the
+        box; the cards sit on the backdrop like they do everywhere else.
 
-          The demo cards stay for the moment before the read resolves and for
-          the case where it fails or nothing is live, and they keep the
-          aria-hidden, inert treatment they have always had, because in that
-          state they are still illustrations of businesses that do not exist. */}
+        The column count follows the number of ventures rather than being fixed
+        at three, so the row is full whatever is live — and it is capped at
+        three, because a fourth would push the cards below anything a phone
+        shows above the fold.
+
+        The demo cards stay for the moment before the read resolves and for a
+        read that fails or finds nothing live, and they keep the aria-hidden,
+        inert treatment they have always had: in that state they are still
+        illustrations of businesses that do not exist.
+      */}
       <div className="px-6" aria-hidden={showcase.length === 0 ? true : undefined}>
-        <div className="mx-auto max-w-6xl">
-          <div className="liquid-glass-highlight rounded-t-[1.75rem] px-4 pt-4 pb-0 sm:px-6 sm:pt-6">
-            <div
-              className={`grid max-h-[26rem] grid-cols-2 gap-3 overflow-hidden lg:grid-cols-3 ${
-                showcase.length === 0 ? 'pointer-events-none select-none' : ''
-              }`}
-            >
-              {(showcase.length > 0 ? showcase : PREVIEW_VENTURES).map((venture, index) => (
-                <VentureCard
-                  key={venture.id}
-                  venture={venture}
-                  categoryName={categoryName(venture.categoryId)}
-                  index={index}
-                />
-              ))}
-            </div>
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-4 text-center">
+            <Eyebrow>Exclusive</Eyebrow>
+            <p className="mt-2 text-[13.5px] text-white/45">
+              Live on VentureAdda right now. Tap one to see the whole menu.
+            </p>
+          </div>
+
+          <div
+            className={`grid gap-3 ${
+              cards.length === 1 ? 'mx-auto max-w-sm grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+            } ${cards.length >= 3 ? 'lg:grid-cols-3' : ''} ${
+              showcase.length === 0 ? 'pointer-events-none select-none' : ''
+            }`}
+          >
+            {cards.map((venture, index) => (
+              <VentureCard
+                key={venture.id}
+                venture={venture}
+                categoryName={categoryName(venture.categoryId)}
+                index={index}
+              />
+            ))}
           </div>
         </div>
       </div>
