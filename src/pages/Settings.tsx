@@ -94,6 +94,26 @@ export default function Settings() {
           <h3 className="text-[15px] font-bold text-white">Appearance</h3>
         </div>
 
+        <ChoiceGroup
+          label="Theme"
+          value={appearance.theme}
+          onChange={(theme) => update({ theme })}
+          choices={[
+            {
+              value: 'auto',
+              label: 'Follow my system',
+              detail: 'Night or day, whichever this device is set to, changing with it.',
+            },
+            { value: 'dark', label: 'Night', detail: 'Dark panels on the photograph, as shot.' },
+            {
+              value: 'light',
+              label: 'Day',
+              detail:
+                'Light panels and dark text. The backdrop photograph is washed out behind them so the text stays readable.',
+            },
+          ]}
+        />
+
         <Slider
           label="Panel solidity"
           hint="How much the panels stand out from the photo behind them. Turn it up if text is hard to read outdoors."

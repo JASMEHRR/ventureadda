@@ -1,4 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import { MENU_DENSITIES } from '../data/types'
+import type { MenuDensity } from '../data/types'
 
 /**
  * The two glass knobs, made adjustable by the reader.
@@ -38,6 +40,29 @@ const STORAGE_KEY = 'ventureadda:appearance'
  */
 export type AutoPlay = 'auto' | 'on' | 'off'
 
+/**
+ * Night, day, or whatever the device is set to.
+ *
+ * 'auto' is the default because a phone that is already in light mode at noon
+ * is telling us something we would otherwise have to guess, and someone who
+ * has never opened Settings should still get a readable screen in sunlight.
+ * The two explicit values beat the system, because plenty of people run their
+ * OS dark and still want this one site light, or the reverse.
+ */
+export type Theme = 'auto' | 'dark' | 'light'
+
+/**
+ * How many items the reader wants across a menu grid.
+ *
+ * 'store' — the default — means whatever the seller set on that venture, and
+ * it is the honest default because the seller is the one who knows whether
+ * their items are photographed cakes or a price list. The other three overrule
+ * them for this device only: a menu that is comfortable on the seller's phone
+ * can be three items to a screen on a laptop, and someone scanning forty items
+ * for one price wants them all at once.
+ */
+export type MenuDensityChoice = 'store' | MenuDensity
+
 export type Appearance = {
   /** Multiplies every glass fill, border and highlight. 0 is invisible glass. */
   glassOpacity: number
@@ -46,6 +71,8 @@ export type Appearance = {
   /** Dims the backdrop photograph behind everything. 0 leaves it as shot. */
   backdropDim: number
   autoPlayPhotos: AutoPlay
+  theme: Theme
+  menuDensity: MenuDensityChoice
 }
 
 /**
@@ -69,9 +96,23 @@ export const DEFAULTS: Appearance = {
   glassBlur: 20,
   backdropDim: 0,
   autoPlayPhotos: 'on',
+  theme: 'auto',
+  menuDensity: 'store',
 }
 
 const AUTO_PLAY: AutoPlay[] = ['auto', 'on', 'off']
+const THEMES: Theme[] = ['auto', 'dark', 'light']
+const DENSITY_CHOICES: MenuDensityChoice[] = ['store', ...MENU_DENSITIES]
+
+/** The system preference, for `theme: 'auto'`. Defaults to night if the
+ *  browser has no opinion, which is what this app was designed in. */
+function systemTheme(): 'dark' | 'light' {
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+}
+
+export function resolveTheme(theme: Theme): 'dark' | 'light' {
+  return theme === 'auto' ? systemTheme() : theme
+}
 
 /** Ranges are clamped rather than trusted: this comes back from storage, which
  *  is hand-editable, and a NaN reaching a CSS variable silently kills the rule
@@ -107,6 +148,10 @@ function read(): Appearance {
       autoPlayPhotos: AUTO_PLAY.includes(value.autoPlayPhotos as AutoPlay)
         ? (value.autoPlayPhotos as AutoPlay)
         : DEFAULTS.autoPlayPhotos,
+      theme: THEMES.includes(value.theme as Theme) ? (value.theme as Theme) : DEFAULTS.theme,
+      menuDensity: DENSITY_CHOICES.includes(value.menuDensity as MenuDensityChoice)
+        ? (value.menuDensity as MenuDensityChoice)
+        : DEFAULTS.menuDensity,
     }
   } catch {
     // Blocked storage or malformed JSON. The defaults are a working app.
@@ -125,7 +170,25 @@ export function applyAppearance(next: Appearance = getAppearance()): void {
   root.style.setProperty('--glass-opacity', String(next.glassOpacity))
   root.style.setProperty('--glass-blur', `${next.glassBlur}px`)
   root.style.setProperty('--backdrop-dim', String(next.backdropDim))
+  // The one attribute the day-mode block in index.css keys off. Written even
+  // for night, so the selector is never matching a stale value from a theme
+  // the reader has since switched away from.
+  root.dataset.theme = resolveTheme(next.theme)
 }
+
+// Following the system means following it while the page is open, not only at
+// boot: phones flip to light at sunrise with the tab still sitting there.
+// Registered once, at module load, and only ever repaints for 'auto'.
+window.matchMedia?.('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (getAppearance().theme !== 'auto') return
+  // A fresh object, not the same one. useSyncExternalStore compares snapshots
+  // by identity, so notifying with the identical reference repaints the CSS
+  // and leaves every subscriber rendering the old theme — the top bar would
+  // sit there offering "Switch to day mode" on an already-light page.
+  snapshot = { ...getAppearance() }
+  applyAppearance(snapshot)
+  for (const listener of listeners) listener()
+})
 
 export function getAppearance(): Appearance {
   if (snapshot === null) snapshot = read()
@@ -138,6 +201,8 @@ export function setAppearance(patch: Partial<Appearance>): void {
     glassBlur: clamp('glassBlur', patch.glassBlur ?? getAppearance().glassBlur),
     backdropDim: clamp('backdropDim', patch.backdropDim ?? getAppearance().backdropDim),
     autoPlayPhotos: patch.autoPlayPhotos ?? getAppearance().autoPlayPhotos,
+    theme: patch.theme ?? getAppearance().theme,
+    menuDensity: patch.menuDensity ?? getAppearance().menuDensity,
   }
   snapshot = next
   applyAppearance(next)
@@ -165,4 +230,13 @@ export function useAppearance(): [Appearance, (patch: Partial<Appearance>) => vo
   const value = useSyncExternalStore(subscribe, getAppearance, () => DEFAULTS)
   const update = useCallback((patch: Partial<Appearance>) => setAppearance(patch), [])
   return [value, update]
+}
+
+/** The grid to actually render: the reader's override, or the seller's own
+ *  setting when they have not asked for one. */
+export function resolveMenuDensity(
+  choice: MenuDensityChoice,
+  storeDefault: MenuDensity,
+): MenuDensity {
+  return choice === 'store' ? storeDefault : choice
 }

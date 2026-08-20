@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import Button from './ui/Button'
 import MenuImport from './MenuImport'
 import Field from './ui/Field'
@@ -10,7 +10,7 @@ import TextField, { inputClass } from './ui/TextField'
 import Textarea from './ui/Textarea'
 import type { SelectOption } from './ui/Select'
 import { CATEGORIES } from '../data/types'
-import type { MenuItemDraft, StoredImage } from '../data/types'
+import type { MenuDensity, MenuItemDraft, StoredImage } from '../data/types'
 import type { MenuItemInput, VentureInput } from '../data/ventures'
 import { validateMenuDrafts } from '../data/menuDrafts'
 import type { ParsedRow } from '../data/menuParse'
@@ -19,6 +19,21 @@ const CATEGORY_OPTIONS: SelectOption<string>[] = CATEGORIES.map((category) => ({
   value: category.id,
   label: category.name,
 }))
+
+/**
+ * How the seller's own menu is laid out by default.
+ *
+ * A seller setting rather than a fixed grid, because the right answer depends
+ * entirely on the stock: four photographed cakes are wasted at six to a row,
+ * and a forty-line stationery list read two at a time is a scroll nobody
+ * finishes. Buyers can still override it on their own device, so this is the
+ * starting point, not a rule.
+ */
+const DENSITY_OPTIONS: SelectOption<MenuDensity>[] = [
+  { value: 'roomy', label: 'Large — big photos, few per row' },
+  { value: 'default', label: 'Medium — the usual balance' },
+  { value: 'dense', label: 'Small — fit the most on screen' },
+]
 
 /** A venture may publish at most this many collection windows. Mirrors firestore.rules. */
 const MAX_SLOTS = 12
@@ -112,6 +127,185 @@ function SectionPicker({
         className={inputClass}
       />
     </div>
+  )
+}
+
+/**
+ * The menu's own sections, managed in one place instead of item by item.
+ *
+ * The per-item picker below can only ever *apply* a section that already
+ * exists on some other item, which left no way to do the three things a seller
+ * actually wants: create a section before there is anything in it, fix a typo
+ * in one they already used, or get rid of one entirely. Renaming meant editing
+ * every item that carried the old spelling and hoping you matched it exactly,
+ * and deleting meant clearing the field on each of them by hand — on a
+ * thirty-item menu that is thirty edits to fix one word.
+ *
+ * A rename here rewrites every item holding the old name in the same keystroke,
+ * which is the whole reason this lives above the list rather than inside it.
+ * Nothing here writes to Firestore: sections are still just a string on each
+ * item, so this edits form state and Save publishes it like everything else.
+ */
+function SectionsEditor({
+  sections,
+  counts,
+  onAdd,
+  onRename,
+  onRemove,
+}: {
+  sections: string[]
+  /** How many items carry each section, so a delete can say what it will empty. */
+  counts: Record<string, number>
+  onAdd: (name: string) => void
+  onRename: (from: string, to: string) => void
+  onRemove: (name: string) => void
+}) {
+  const [draft, setDraft] = useState('')
+  const [editing, setEditing] = useState<string | null>(null)
+  const [rename, setRename] = useState('')
+
+  const clash = (name: string, except?: string) =>
+    sections.some((other) => other.toLowerCase() === name.toLowerCase() && other !== except)
+
+  const add = () => {
+    const value = draft.trim()
+    // Case-insensitive, for the same reason the picker uses chips: "Snacks"
+    // and "snacks" published as two headings is the bug this whole panel is
+    // here to stop.
+    if (!value || clash(value)) {
+      setDraft('')
+      return
+    }
+    onAdd(value)
+    setDraft('')
+  }
+
+  const commitRename = () => {
+    if (editing === null) return
+    const value = rename.trim()
+    if (value && value !== editing && !clash(value, editing)) onRename(editing, value)
+    setEditing(null)
+  }
+
+  return (
+    <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Menu sections
+        </h2>
+        <span className="font-mono text-[10px] text-white/30">
+          {sections.length} {sections.length === 1 ? 'section' : 'sections'}
+        </span>
+      </div>
+
+      <p className="text-[13px] leading-relaxed text-white/45">
+        The headings your menu is grouped under, like Snacks or Drinks. Rename one here and every
+        item under it follows. Optional — a menu with no sections is one plain list.
+      </p>
+
+      {sections.length > 0 && (
+        <ul className="space-y-2">
+          {sections.map((section) => {
+            const used = counts[section] ?? 0
+            return (
+              <li
+                key={section}
+                className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
+              >
+                {editing === section ? (
+                  <>
+                    <input
+                      autoFocus
+                      aria-label={`New name for the ${section} section`}
+                      value={rename}
+                      onChange={(event) => setRename(event.target.value)}
+                      // Enter here would otherwise submit the whole venture,
+                      // the same trap the slots field guards against.
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          commitRename()
+                        }
+                        if (event.key === 'Escape') setEditing(null)
+                      }}
+                      maxLength={40}
+                      className={`${inputClass} min-w-0 flex-1`}
+                    />
+                    <Button type="button" variant="secondary" onClick={commitRename}>
+                      <Check size={13} aria-hidden="true" />
+                      Save
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-white/85">
+                      {section}
+                    </span>
+                    <span className="font-mono text-[10px] text-white/30">
+                      {used} {used === 1 ? 'item' : 'items'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(section)
+                        setRename(section)
+                      }}
+                      aria-label={`Rename the ${section} section`}
+                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:text-white active:scale-[0.94]"
+                    >
+                      <Pencil size={13} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRemove(section)}
+                      // Says what it costs, because the items are not deleted
+                      // with it — they come back as ungrouped, which is not
+                      // obvious from a bin icon alone.
+                      title={
+                        used === 0
+                          ? 'Remove this section'
+                          : `Remove this section. Its ${used} ${used === 1 ? 'item stays' : 'items stay'} on the menu, ungrouped.`
+                      }
+                      aria-label={`Remove the ${section} section`}
+                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                    >
+                      <Trash2 size={13} aria-hidden="true" />
+                    </button>
+                  </>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          id="venture-section-input"
+          aria-label="New section name"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            add()
+          }}
+          maxLength={40}
+          placeholder="Snacks"
+          className={inputClass}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={add}
+          disabled={draft.trim() === ''}
+          className="shrink-0"
+        >
+          <Plus size={13} aria-hidden="true" />
+          Add
+        </Button>
+      </div>
+    </section>
   )
 }
 
@@ -215,9 +409,20 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const [photos, setPhotos] = useState<StoredImage[]>(initial?.photos ?? [])
   const [logo, setLogo] = useState<StoredImage | undefined>(initial?.logo)
   const [deliverySlots, setDeliverySlots] = useState<string[]>(initial?.deliverySlots ?? [])
+  const [menuDensity, setMenuDensity] = useState<MenuDensity>(initial?.menuDensity ?? 'default')
   const [items, setItems] = useState<MenuItemDraft[]>(
     initial?.items?.length ? initial.items : [newDraft()],
   )
+
+  /**
+   * Sections created in the panel above that nothing has been filed under yet.
+   *
+   * They cannot live on the items — being able to make one first is the point —
+   * and they are not persisted either: a section is a string on a menu item, so
+   * an empty one has nothing to save and is gone on reload. It exists for the
+   * length of this edit, which is exactly as long as it is useful.
+   */
+  const [emptySections, setEmptySections] = useState<string[]>([])
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -254,8 +459,36 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const patchItem = (key: string, patch: Partial<MenuItemDraft>) =>
     setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
 
-  /** Every section already in use, for the per-item chips. */
-  const knownSections = [...new Set(items.map((item) => item.category.trim()).filter(Boolean))]
+  /** Every section on this menu — in use or just created — for the per-item
+   *  chips and for the manager panel. */
+  const knownSections = [
+    ...new Set([...items.map((item) => item.category.trim()).filter(Boolean), ...emptySections]),
+  ]
+
+  const sectionCounts: Record<string, number> = {}
+  for (const section of knownSections) sectionCounts[section] = 0
+  for (const item of items) {
+    const section = item.category.trim()
+    if (section) sectionCounts[section] += 1
+  }
+
+  /** One rename, applied to every item carrying the old name. Doing this from
+   *  the item rows themselves is what was impossible before. */
+  const renameSection = (from: string, to: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.category.trim() === from ? { ...item, category: to } : item)),
+    )
+    setEmptySections((prev) => prev.map((name) => (name === from ? to : name)))
+  }
+
+  /** Removing a section ungroups its items rather than deleting them. Deleting
+   *  a heading must never delete stock. */
+  const removeSection = (name: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.category.trim() === name ? { ...item, category: '' } : item)),
+    )
+    setEmptySections((prev) => prev.filter((other) => other !== name))
+  }
 
   const soldOutCount = items.filter((item) => !item.inStock && item.name.trim() !== '').length
 
@@ -292,6 +525,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           phone: digits,
           photos,
           deliverySlots,
+          menuDensity,
           logo,
         },
         items: filled.map((item) => ({
@@ -397,6 +631,30 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
             onChange={setPhotos}
           />
         </section>
+
+        <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+          <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            Menu layout
+          </h2>
+          <p className="text-[13px] leading-relaxed text-white/45">
+            Where your menu starts for everyone who opens it. Buyers can resize it on their own
+            device if they prefer, so this is your default rather than a lock.
+          </p>
+          <Select
+            label="Item size on your page"
+            value={menuDensity}
+            options={DENSITY_OPTIONS}
+            onChange={setMenuDensity}
+          />
+        </section>
+
+        <SectionsEditor
+          sections={knownSections}
+          counts={sectionCounts}
+          onAdd={(name) => setEmptySections((prev) => [...prev, name])}
+          onRename={renameSection}
+          onRemove={removeSection}
+        />
 
         <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
           <div className="flex items-baseline justify-between gap-3">

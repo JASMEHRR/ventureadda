@@ -48,8 +48,42 @@
      working with appearance.ts never having run. */
   --backdrop-dim: 0;
 
-  /* Dark app: keeps scrollbars and native form controls from rendering light. */
+  /* Follows the theme, so scrollbars and native controls flip with it. Set on
+     the element by lib/appearance.ts; this is the default for a first paint
+     before it runs. */
   color-scheme: dark;
+
+  /* Whitens the backdrop photograph, the mirror of --backdrop-dim. Day mode
+     needs it: the shipped backdrop is a night sky, and dark ink on light glass
+     over it would be unreadable. 0 in night mode, so it costs nothing there. */
+  --backdrop-wash: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   DAY MODE.
+
+   The whole flip is a token remap, which is what the --color-white note above
+   was written for: every surface, border and text colour in this app is white
+   at a tuned alpha, so turning that one value into ink turns the entire system
+   over at once. Only the four rules that hard-code rgb(255 255 255) — the
+   glass classes, which have to stay light-tinted in both themes — need a
+   second declaration further down.
+
+   Brand cyan moves too. #22d3ee is a 1.9:1 contrast against a white panel;
+   as body-adjacent label text that is unreadable, so day mode swaps in the
+   darker end of the same ramp and keeps the hue.
+--------------------------------------------------------------------------- */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-white: #0b1220;
+  --color-app: #eef2f8;
+  --color-surface: #ffffff;
+
+  --color-brand-300: #0e7490;
+  --color-brand-400: #0891b2;
+
+  --backdrop-wash: 0.86;
 }
 
 @layer base {
@@ -151,6 +185,58 @@
     box-shadow:
       inset 0 1.5px 3px rgba(0, 0, 0, 0.25),
       0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  /* The glass itself stays white-tinted in day mode — glass is lighter than
+     what is behind it in both themes — but at a fill heavy enough to carry
+     dark text, and with a dark edge, because a white border on a white panel
+     is no border at all. Kept as overrides rather than variables so each
+     theme's values can be read as the numbers they are. */
+  :root[data-theme='light'] .liquid-glass-panel {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(0.72 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.52 * var(--glass-opacity))) 100%
+    );
+    border-color: rgba(11, 18, 32, calc(0.1 * var(--glass-opacity)));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+      0 12px 36px -12px rgba(11, 18, 32, 0.28);
+  }
+
+  :root[data-theme='light'] .liquid-glass-highlight {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(0.78 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.55 * var(--glass-opacity))) 100%
+    );
+    border-color: rgba(11, 18, 32, calc(0.14 * var(--glass-opacity)));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+      0 16px 40px -12px rgba(11, 18, 32, 0.32);
+  }
+
+  :root[data-theme='light'] .liquid-glass-input {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(11, 18, 32, 0.14);
+    box-shadow: inset 0 1.5px 3px rgba(11, 18, 32, 0.08);
+  }
+
+  :root[data-theme='light'] .liquid-glass-input:focus {
+    border-color: rgba(11, 18, 32, 0.28);
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow:
+      inset 0 1.5px 3px rgba(11, 18, 32, 0.08),
+      0 0 12px rgba(11, 18, 32, 0.06);
+  }
+
+  :root[data-theme='light'] .glass-shimmer::before {
+    background: linear-gradient(
+      45deg,
+      transparent 45%,
+      rgba(11, 18, 32, 0.05) 50%,
+      transparent 55%
+    );
   }
 
   /* Hover shimmer sweep. Opt-in — not applied to every glass element.

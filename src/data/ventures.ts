@@ -14,10 +14,10 @@ import {
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { reportError } from '../lib/errors'
-import { CATEGORIES } from './types'
-import type { Category, MenuItem, StoredImage, Venture, VentureStatus } from './types'
+import { CATEGORIES, MENU_DENSITIES } from './types'
+import type { Category, MenuDensity, MenuItem, StoredImage, Venture, VentureStatus } from './types'
 
-export type { Category, MenuItem, StoredImage, Venture, VentureStatus }
+export type { Category, MenuDensity, MenuItem, StoredImage, Venture, VentureStatus }
 export { CATEGORIES, categoryName } from './types'
 
 /**
@@ -71,6 +71,9 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
           (slot): slot is string => typeof slot === 'string' && slot.trim() !== '',
         )
       : [],
+    menuDensity: MENU_DENSITIES.includes(data.menuDensity as MenuDensity)
+      ? (data.menuDensity as MenuDensity)
+      : 'default',
     status: (data.status ?? 'pending') as VentureStatus,
     rejectionReason: data.rejectionReason,
     clickCount: typeof data.clickCount === 'number' ? data.clickCount : 0,
@@ -257,6 +260,7 @@ export type VentureInput = {
   phone: string
   photos: StoredImage[]
   deliverySlots: string[]
+  menuDensity: MenuDensity
   logo?: StoredImage
 }
 

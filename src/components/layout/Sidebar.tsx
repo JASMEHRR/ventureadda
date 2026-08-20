@@ -106,7 +106,7 @@ function SidebarLink({
             {badge > 0 && collapsed && (
               <span
                 aria-hidden="true"
-                className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-brand-400 ring-2 ring-[#0a0d12]"
+                className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-brand-400 ring-2 ring-app"
               />
             )}
           </span>

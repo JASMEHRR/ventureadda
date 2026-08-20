@@ -42,6 +42,13 @@ export type Venture = {
   deliverySlots: string[]
   status: VentureStatus
   rejectionReason?: string
+  /**
+   * The grid this seller wants their own menu shown in. Absent on every
+   * venture written before this field existed, and 'default' is exactly what
+   * those were rendered as, so the reader fills it in rather than treating it
+   * as a missing setting.
+   */
+  menuDensity: MenuDensity
   clickCount: number
   /**
    * Placeholder content, not a real business.
@@ -59,6 +66,33 @@ export type Venture = {
   // could be moved without leaving anything to delete. Averages are computed
   // from the reviews collection instead, which means the only way to shift a
   // score is to leave a review a moderator can remove.
+}
+
+/**
+ * How tightly a menu is packed into its grid.
+ *
+ * The seller picks one, because they are the only person who knows what their
+ * items look like: four photographed cakes want the room, forty stationery
+ * items at ₹10 each do not, and a single grid tuned for the average serves
+ * neither. A buyer can still override it for their own screen — see
+ * `menuDensity` in lib/appearance.ts — which is why this is a default rather
+ * than a lock.
+ */
+export type MenuDensity = 'roomy' | 'default' | 'dense'
+
+export const MENU_DENSITIES: MenuDensity[] = ['roomy', 'default', 'dense']
+
+/**
+ * Column counts per density, smallest breakpoint first.
+ *
+ * Written out as whole class strings rather than assembled from parts, because
+ * Tailwind scans source text for complete class names — `grid-cols-${n}` is a
+ * class that never reaches the stylesheet.
+ */
+export const MENU_GRID_CLASS: Record<MenuDensity, string> = {
+  roomy: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  default: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
+  dense: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6',
 }
 
 export type MenuItem = {

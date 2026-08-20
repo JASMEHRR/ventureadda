@@ -69,6 +69,20 @@ export default function AtmosphereBackdrop() {
         index.css, so this is invisible until somebody asks for it.
       */}
       <div className="absolute inset-0 bg-black opacity-[var(--backdrop-dim)]" />
+
+      {/*
+        Day mode's half of the same trick. The backdrop is a night sky and the
+        panels above it turn white with dark text, so without this the app
+        reads as light panels floating on midnight — the one combination the
+        glass cannot survive. A flat sheet rather than a filter, for the same
+        stacking-context reason as the dimmer, and the literal hex rather than
+        a token because this is the paper colour of day mode specifically,
+        not a value that should follow the theme.
+      */}
+      <div
+        className="absolute inset-0 opacity-[var(--backdrop-wash)]"
+        style={{ background: '#eef2f8' }}
+      />
     </div>
   )
 }

@@ -95,7 +95,7 @@ export default function PhotoUploader({
             {/* Only when there is an order to have. One photo is not a cover,
                 it is the photo. */}
             {photos.length > 1 && index === 0 && (
-              <span className="absolute top-1 left-1 rounded-full bg-brand-500/90 px-1.5 py-0.5 font-mono text-[8px] font-extrabold tracking-wider text-[#06202a] uppercase">
+              <span className="absolute top-1 left-1 rounded-full bg-brand-500/90 px-1.5 py-0.5 font-mono text-[8px] font-extrabold tracking-wider text-app uppercase">
                 Cover
               </span>
             )}

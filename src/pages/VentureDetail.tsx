@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, Clock, Minus, Plus, SearchX, ShoppingCart } from 'lucide-react'
+import {
+  ArrowLeft,
+  ChevronDown,
+  Clock,
+  Grid2x2,
+  Grid3x3,
+  LayoutGrid,
+  Minus,
+  Plus,
+  SearchX,
+  ShoppingCart,
+} from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import ReviewSection from '../components/ReviewSection'
@@ -11,10 +22,70 @@ import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
 import type { MenuItem } from '../data/ventures'
+import { MENU_GRID_CLASS } from '../data/types'
+import type { MenuDensity } from '../data/types'
+import { resolveMenuDensity, useAppearance } from '../lib/appearance'
 import { cartQuantity, cartTotal, setCartQuantity, useCart } from '../data/cart'
 import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
+
+/**
+ * The reader's grid size for this menu, three buttons wide.
+ *
+ * The seller's choice is the starting point and stays the starting point —
+ * 'store' is what everybody arrives on. These overrule it for this device
+ * only, because a grid that is right on the seller's phone is not necessarily
+ * right on a laptop, and somebody scanning forty items for one price wants
+ * them packed however the seller feels about it.
+ *
+ * Written straight to the same per-device store the theme and glass knobs use,
+ * so the choice holds across every venture and survives a reload. There is no
+ * "back to the seller's" button: switching back is picking whichever of the
+ * three matches, and a fourth control to undo the other three is more UI than
+ * the decision is worth.
+ */
+function DensityPicker({
+  value,
+  onChange,
+}: {
+  value: MenuDensity
+  onChange: (next: MenuDensity) => void
+}) {
+  const choices: { density: MenuDensity; label: string; Icon: typeof LayoutGrid }[] = [
+    { density: 'roomy', label: 'Large items', Icon: LayoutGrid },
+    { density: 'default', label: 'Medium items', Icon: Grid2x2 },
+    { density: 'dense', label: 'Small items', Icon: Grid3x3 },
+  ]
+  return (
+    <div
+      role="group"
+      aria-label="Item size"
+      className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1"
+    >
+      {choices.map(({ density, label, Icon }) => {
+        const active = value === density
+        return (
+          <button
+            key={density}
+            type="button"
+            aria-pressed={active}
+            title={label}
+            aria-label={label}
+            onClick={() => onChange(density)}
+            className={`rounded-full p-1.5 transition duration-150 active:scale-[0.94] ${
+              active
+                ? 'bg-brand-500/20 text-brand-300'
+                : 'text-white/40 hover:bg-white/8 hover:text-white'
+            }`}
+          >
+            <Icon size={14} aria-hidden="true" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 /**
  * How many more of this item may be added.
@@ -166,6 +237,7 @@ export default function VentureDetail() {
    * ventures, and is checked out from /cart.
    */
   const cart = useCart()
+  const [appearance, updateAppearance] = useAppearance()
   const [localCounts, setLocalCounts] = useState<Record<string, number>>({})
   /** Category name -> collapsed. Absent means expanded — the default, so a
    *  venture with one section never opens on a page that looks empty. */
@@ -261,6 +333,10 @@ export default function VentureDetail() {
   }
 
   const v = venture.data
+
+  // The seller's layout unless this reader has asked for another one, which is
+  // the whole contract: the store sets the default, the visitor overrules it.
+  const density = resolveMenuDensity(appearance.menuDensity, v.menuDensity)
 
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
@@ -392,15 +468,21 @@ export default function VentureDetail() {
       </div>
 
       <section className="space-y-3">
-        <header className="flex items-baseline justify-between gap-3 px-1">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-1">
           <h2 className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Menu
           </h2>
-          <span className="font-mono text-[10px] font-bold text-white/30">
-            {needle
-              ? `${matching.length} of ${menu.data?.length ?? 0} items`
-              : 'Add what you want, then open your cart'}
-          </span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="truncate font-mono text-[10px] font-bold text-white/30">
+              {needle
+                ? `${matching.length} of ${menu.data?.length ?? 0} items`
+                : 'Add what you want, then open your cart'}
+            </span>
+            <DensityPicker
+              value={density}
+              onChange={(menuDensity) => updateAppearance({ menuDensity })}
+            />
+          </div>
         </header>
 
         {menu.data?.length === 0 && (
@@ -478,7 +560,7 @@ export default function VentureDetail() {
                   </button>
                 )}
                 {!collapsed && (
-                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                  <div className={`grid gap-2.5 ${MENU_GRID_CLASS[density]}`}>
                     {group.items.map((item) => (
                       <ItemCard
                         key={item.id}
@@ -523,7 +605,7 @@ export default function VentureDetail() {
               navigation so the back button returns to the menu. */}
           <Link
             to="/cart"
-            className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/15 bg-[#0a0d12]/95 px-5 py-3.5 text-left shadow-[0_20px_50px_rgba(0,0,0,0.75)] backdrop-blur-xl transition duration-150 hover:border-white/25 active:scale-[0.98]"
+            className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/15 bg-surface/95 px-5 py-3.5 text-left shadow-[0_20px_50px_rgba(0,0,0,0.75)] backdrop-blur-xl transition duration-150 hover:border-white/25 active:scale-[0.98]"
           >
             <ShoppingCart size={18} className="shrink-0 text-brand-400" aria-hidden="true" />
             <span className="min-w-0 flex-1">

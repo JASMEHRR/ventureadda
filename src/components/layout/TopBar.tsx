@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Search, ShoppingCart } from 'lucide-react'
+import { Moon, Plus, Search, ShoppingCart, Sun } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
@@ -10,6 +10,7 @@ import { cartCount, useCart } from '../../data/cart'
 import { pageTitle } from '../../navigation'
 import { useShellSearch } from './useShellSearch'
 import { useAuth } from '../../auth/AuthProvider'
+import { resolveTheme, useAppearance } from '../../lib/appearance'
 
 /** Where the browse controls point. '/' is the landing page. */
 const BROWSE_PATH = '/browse'
@@ -69,6 +70,18 @@ export default function TopBar() {
   // what the box searches or where it writes.
   const { draft, setDraft, placeholder, label } = useShellSearch()
 
+  /**
+   * Day/night, one tap, in the chrome rather than only in Settings.
+   *
+   * Tapping always writes an explicit 'dark' or 'light' — never back to
+   * 'auto' — because someone reaching for this button is overruling whatever
+   * their phone decided, and a cycle that passed through 'auto' would land
+   * them on the theme they just left. 'Follow my system' is still there in
+   * Settings, which is the right place for a setting you choose once.
+   */
+  const [appearance, updateAppearance] = useAppearance()
+  const dark = resolveTheme(appearance.theme) === 'dark'
+
   const setCategory = (value: string) => {
     const params = new URLSearchParams(searchParams)
     if (value === 'all') params.delete('category')
@@ -85,13 +98,21 @@ export default function TopBar() {
       `md:top-6` match the shell's own padding, so it keeps floating with the
       backdrop visible around it rather than snapping flush to the edge.
 
-      The extra background under the glass is not decoration. Glass takes its
-      contrast from what is behind it, and what passes behind this while
-      scrolling is a grid of product photographs; without an opaque layer the
-      row became unreadable over a white-background sticker every time one
-      slid under it.
+      The tint under the glass is not decoration. Glass takes its contrast from
+      what is behind it, and what passes behind this while scrolling is a grid
+      of product photographs; with nothing at all under it the row became
+      unreadable over a white-background sticker every time one slid under it.
+
+      It used to be a near-solid #0a0d12 at 85%, which fixed that by giving up
+      on being glass — the bar was a dark slab with a blur it no longer needed.
+      A 40% wash of the app colour plus a heavier blur is the version that
+      still reads through: the photographs move underneath as smeared colour
+      rather than as detail, which is enough separation for text and keeps the
+      bar part of the same material as everything below it. `bg-app` rather
+      than a hex, so the tint turns over with the theme instead of staying
+      midnight blue on a white page.
     */
-    <header className="liquid-glass-panel sticky top-3 z-40 flex flex-wrap items-center gap-2 rounded-[1.5rem] bg-[#0a0d12]/85 px-3 py-2.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4 sm:py-3 md:top-6">
+    <header className="liquid-glass-panel sticky top-3 z-40 flex flex-wrap items-center gap-2 rounded-[1.5rem] bg-app/40 px-3 py-2.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:gap-3 sm:px-4 sm:py-3 md:top-6">
       {/* Wordmark only below `md`, where the sidebar that carries it is hidden.
           On desktop it would be on screen twice. */}
       {/* The mark without the wordmark, deliberately. The note above is about a
@@ -163,6 +184,16 @@ export default function TopBar() {
           </Button>
         )}
 
+        <button
+          type="button"
+          onClick={() => updateAppearance({ theme: dark ? 'light' : 'dark' })}
+          aria-label={dark ? 'Switch to day mode' : 'Switch to night mode'}
+          title={dark ? 'Day mode' : 'Night mode'}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+        >
+          {dark ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
+        </button>
+
         {/* Immediately left of the account tile, which is the corner every
             shopping site puts it in — and the count is in the accessible name
             rather than only in the pill, so it is not a decoration a screen
@@ -180,7 +211,7 @@ export default function TopBar() {
           {items > 0 && (
             <span
               aria-hidden="true"
-              className="absolute -top-1 -right-1 min-w-4 rounded-full bg-brand-400 px-1 text-center font-mono text-[9px] font-extrabold text-[#06202a] ring-2 ring-[#0a0d12]"
+              className="absolute -top-1 -right-1 min-w-4 rounded-full bg-brand-400 px-1 text-center font-mono text-[9px] font-extrabold text-app ring-2 ring-app"
             >
               {items > 99 ? '99+' : items}
             </span>
