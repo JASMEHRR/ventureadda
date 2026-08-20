@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { Moon, Plus, Search, ShoppingCart, Sun } from 'lucide-react'
+import { Moon, Plus, Search, ShoppingCart, Sun, UserRound, X } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
@@ -82,6 +83,30 @@ export default function TopBar() {
   const [appearance, updateAppearance] = useAppearance()
   const dark = resolveTheme(appearance.theme) === 'dark'
 
+  /**
+   * Below `sm` the search field lives behind its own icon.
+   *
+   * It used to hold a whole line of the bar to itself at every width, which
+   * put the phone header at 167px — a fifth of the screen, permanently, for a
+   * control most visits never touch. From `sm` up there is room for it beside
+   * everything else and it stays where it was.
+   *
+   * A live search can never be the hidden thing: `expanded` is the toggle OR a
+   * non-empty box, so filtered results are never on screen with no visible
+   * sign of what filtered them. That also settles what the X does — it clears
+   * the search and collapses in one tap, which is the same action from the
+   * reader's side ("stop searching") rather than two.
+   */
+  const [searchOpen, setSearchOpen] = useState(false)
+  const expanded = searchOpen || draft !== ''
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // Opening a field nobody can type in is a tap that did nothing. Only on the
+  // way open, so re-renders while typing do not fight the caret.
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus()
+  }, [searchOpen])
+
   const setCategory = (value: string) => {
     const params = new URLSearchParams(searchParams)
     if (value === 'all') params.delete('category')
@@ -149,21 +174,49 @@ export default function TopBar() {
         value={category}
         options={CATEGORY_OPTIONS}
         onChange={setCategory}
-        className="w-40 shrink-0 sm:w-48"
+        // w-24 below `sm` is not a round number picked for looks: with the
+        // wordmark, the search opener, the theme toggle, the cart and the
+        // account tile beside it, anything wider is the 4px that pushes the
+        // account group onto a second line of a 375px header. The trigger
+        // truncates, and the full name of every category is in the menu.
+        className="w-24 shrink-0 sm:w-48"
         triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[14px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
       />
 
-      {/* EVERY WIDTH. It lived in the sidebar for a while, which put it out of
-          reach on the pages where people search most and hid it entirely on a
-          phone. One box, always in the same corner, is worth more than a
-          tidier column. */}
-      <div className="relative order-last w-full min-w-40 flex-1 sm:order-none sm:w-auto">
+      {/* The opener, below `sm` only. Above that the field itself is on the
+          row and a button to reveal what is already visible is noise. */}
+      <button
+        type="button"
+        onClick={() => {
+          if (expanded) setDraft('')
+          setSearchOpen(!expanded)
+        }}
+        aria-expanded={expanded}
+        aria-controls="shell-search"
+        aria-label={expanded ? 'Close search' : label}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94] sm:hidden"
+      >
+        {expanded ? <X size={17} aria-hidden="true" /> : <Search size={17} aria-hidden="true" />}
+      </button>
+
+      {/* EVERY WIDTH FROM `sm`. It lived in the sidebar for a while, which put
+          it out of reach on the pages where people search most and hid it
+          entirely on a phone. One box, always in the same corner, is worth
+          more than a tidier column — it is only folded away on the width where
+          a permanent line of the header is the more expensive of the two. */}
+      <div
+        id="shell-search"
+        className={`relative order-last w-full min-w-40 flex-1 sm:order-none sm:block sm:w-auto ${
+          expanded ? '' : 'hidden'
+        }`}
+      >
         <Search
           size={14}
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-white/30"
         />
         <input
+          ref={searchRef}
           type="search"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -227,9 +280,25 @@ export default function TopBar() {
             <Avatar name={account} />
           </Link>
         ) : (
-          <Button variant="secondary" to="/signin">
-            Sign in
-          </Button>
+          <>
+            {/* Icon only below `sm`. The words cost ~102px on a row that has
+                to hold the wordmark, the category filter, search, the theme
+                toggle and the cart on a 375px screen — and this is the one
+                item on it whose meaning survives being an icon, because a
+                head-and-shoulders glyph in the account corner is the most
+                established icon on the web. The label stays in the
+                accessible name. */}
+            <Link
+              to="/signin"
+              aria-label="Sign in"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94] sm:hidden"
+            >
+              <UserRound size={17} aria-hidden="true" />
+            </Link>
+            <Button variant="secondary" to="/signin" className="hidden sm:inline-flex">
+              Sign in
+            </Button>
+          </>
         )}
       </div>
     </header>
