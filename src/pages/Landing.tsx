@@ -16,6 +16,8 @@ import Reveal from '../components/ui/Reveal'
 import VentureCard from '../components/ui/VentureCard'
 import { categoryName } from '../data/types'
 import type { Venture } from '../data/types'
+import { listVentures } from '../data/ventures'
+import { useAsyncData } from '../hooks/useAsyncData'
 import { useAuth } from '../auth/AuthProvider'
 
 /**
@@ -72,14 +74,34 @@ const OWNER_POINTS: { icon: LucideIcon; title: string; body: string }[] = [
   },
 ]
 
+/** Shown first in the product shot, whatever else is live. */
+const FEATURED_VENTURE = 'glood'
+
 /**
- * Cards for the product shot above the fold.
+ * The three ventures in the shot above the fold, real ones first.
+ *
+ * Glood leads, by name, because it is the venture this site is being shown
+ * around for — a hand-set feature slot, not a ranking the data can express.
+ * After it, the most-opened ventures, which is the closest thing to "worth
+ * seeing first" that exists without asking anyone to maintain a list.
+ */
+function featuredVentures(live: Venture[]): Venture[] {
+  const ranked = [...live].sort((a, b) => {
+    const pinned = (v: Venture) => (v.name.trim().toLowerCase() === FEATURED_VENTURE ? 0 : 1)
+    return pinned(a) - pinned(b) || b.clickCount - a.clickCount
+  })
+  return ranked.slice(0, 3)
+}
+
+/**
+ * Fallback cards for the product shot, for the moment before the real ones
+ * arrive and for the case where the read fails or nothing is live yet.
  *
  * Built from the same demo photographs the seed data uses, and rendered through
  * the real VentureCard. They are illustrative of the interface, not claims that
  * these ventures exist — which is why the frame around them is aria-hidden and
- * inert, and why there are no ratings or counts on them. Nothing here asserts
- * that anybody has used the site.
+ * inert whenever these are what is showing, and why there are no ratings or
+ * counts on them. Nothing here asserts that anybody has used the site.
  */
 const PREVIEW_VENTURES: Venture[] = [
   {
@@ -157,6 +179,12 @@ function Eyebrow({ children }: { children: string }) {
 export default function Landing() {
   const { status } = useAuth()
 
+  // One public read, and the landing page is worth it: this is the only thing
+  // on the page that proves the site has anything on it. A failed or empty
+  // read falls back to the demo cards rather than to a hole above the fold.
+  const live = useAsyncData(() => listVentures(), [])
+  const showcase = featuredVentures(live.data ?? [])
+
   return (
     <div className="min-h-screen">
       {/* Marketing header, not the app shell's. Three things only: who this is,
@@ -215,21 +243,32 @@ export default function Landing() {
           rounded-t-[1.75rem] and no bottom radius, so the image is cropped by
           the fold rather than ending in a tidy box.
 
-          These are the real VentureCard components rendered with the demo
-          photographs, not a drawing of them — so this cannot drift out of date
-          the way a PNG of the UI would. It is decorative here: aria-hidden and
-          pointer-events-none, because the cards link to ventures that a visitor
-          has not been shown yet, and a screenshot you can accidentally click is
-          worse than one you cannot. */}
-      <div className="px-6" aria-hidden="true">
+          REAL VENTURES, AND THEREFORE REAL LINKS. These used to be three
+          invented businesses behind aria-hidden and pointer-events-none: a
+          screenshot you could not click, because the cards named ventures that
+          did not exist. Now it is whatever is actually live — Glood first —
+          which makes the most prominent thing on the page also the most useful
+          one on it. Tapping a card opens that venture, which is where a
+          stranger arriving from a WhatsApp link wanted to go anyway.
+
+          The demo cards stay for the moment before the read resolves and for
+          the case where it fails or nothing is live, and they keep the
+          aria-hidden, inert treatment they have always had, because in that
+          state they are still illustrations of businesses that do not exist. */}
+      <div className="px-6" aria-hidden={showcase.length === 0 ? true : undefined}>
         <div className="mx-auto max-w-6xl">
           <div className="liquid-glass-highlight rounded-t-[1.75rem] px-4 pt-4 pb-0 sm:px-6 sm:pt-6">
-            <div className="pointer-events-none grid max-h-[26rem] grid-cols-2 gap-3 overflow-hidden select-none lg:grid-cols-3">
-              {PREVIEW_VENTURES.map((venture) => (
+            <div
+              className={`grid max-h-[26rem] grid-cols-2 gap-3 overflow-hidden lg:grid-cols-3 ${
+                showcase.length === 0 ? 'pointer-events-none select-none' : ''
+              }`}
+            >
+              {(showcase.length > 0 ? showcase : PREVIEW_VENTURES).map((venture, index) => (
                 <VentureCard
                   key={venture.id}
                   venture={venture}
                   categoryName={categoryName(venture.categoryId)}
+                  index={index}
                 />
               ))}
             </div>
