@@ -7,7 +7,7 @@ export default function Avatar({ name, className = '' }: { name: string; classNa
   return (
     <span
       aria-hidden="true"
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-[14.5px] font-bold text-brand-300 ${className}`}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-[15.5px] font-bold text-brand-300 ${className}`}
     >
       {initial}
     </span>

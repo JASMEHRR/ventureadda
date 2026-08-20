@@ -183,10 +183,10 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
     <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
             Add items faster
           </p>
-          <p className="mt-1 text-[14px] text-white/45">
+          <p className="mt-1 text-[15px] text-white/45">
             Photograph your menu, paste a list, or say the items out loud. You can always type
             them instead.
           </p>
@@ -241,7 +241,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
         <div className="mt-3.5">
           <label
             htmlFor="menu-paste"
-            className="mb-1.5 block font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+            className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
           >
             One item per line
           </label>
@@ -251,9 +251,9 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
             value={pasted}
             onChange={(event) => setPasted(event.target.value)}
             placeholder={'Chocolate Fudge Cake, 450, Dark chocolate, serves four\nWalnut Brownie Box, 280, Six pieces\nMasala Chai, 20'}
-            className="liquid-glass-input w-full resize-y rounded-xl px-4 py-2.5 font-mono text-[14.5px] text-white placeholder-white/25"
+            className="liquid-glass-input w-full resize-y rounded-xl px-4 py-2.5 font-mono text-[15.5px] text-white placeholder-white/25"
           />
-          <p className="mt-1.5 text-[14px] text-white/35">
+          <p className="mt-1.5 text-[15px] text-white/35">
             Name, price, description. Pasting straight from a spreadsheet works — the header row
             is ignored.
           </p>
@@ -270,14 +270,14 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
 
       {mode === 'voice' && (
         <div className="mt-3.5">
-          <p className="text-[14px] leading-relaxed text-white/45">
+          <p className="text-[15px] leading-relaxed text-white/45">
             Say the item then its price — “chocolate cake two hundred rupees, brownie eighty”.
             Pause between items or say “next”.
           </p>
 
           <div
             aria-live="polite"
-            className="liquid-glass-input mt-2.5 min-h-[4.5rem] rounded-xl px-4 py-2.5 text-[15px] text-white/80"
+            className="liquid-glass-input mt-2.5 min-h-[4.5rem] rounded-xl px-4 py-2.5 text-[16px] text-white/80"
           >
             {heard || (
               <span className="text-white/30">
@@ -309,12 +309,12 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
       )}
 
       {error && (
-        <p role="alert" className="mt-2.5 text-[14px] text-red-400">
+        <p role="alert" className="mt-2.5 text-[15px] text-red-400">
           {error}
         </p>
       )}
       {note && !error && (
-        <p role="status" className="mt-2.5 text-[14px] text-brand-300">
+        <p role="status" className="mt-2.5 text-[15px] text-brand-300">
           {note}
         </p>
       )}

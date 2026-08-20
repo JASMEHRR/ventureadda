@@ -148,25 +148,25 @@ function ItemCard({
           </span>
         )}
         {!sellable && (
-          <span className="absolute top-2 left-2 rounded-full border border-red-500/40 bg-black/75 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-red-300 uppercase">
+          <span className="absolute top-2 left-2 rounded-full border border-red-500/40 bg-black/75 px-2.5 py-1 font-mono text-[12.5px] font-bold tracking-wider text-red-300 uppercase">
             Sold out
           </span>
         )}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
-        <p className="line-clamp-2 text-[15px] font-bold text-white">{item.name}</p>
-        <p className="mt-auto font-mono text-[14.5px] font-bold text-white/90">₹{item.price}</p>
+        <p className="line-clamp-2 text-[16px] font-bold text-white">{item.name}</p>
+        <p className="mt-auto font-mono text-[15.5px] font-bold text-white/90">₹{item.price}</p>
 
         {!sellable ? (
-          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[11.5px] font-bold tracking-wide text-white/40 uppercase">
+          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[13px] font-bold tracking-wide text-white/40 uppercase">
             Unavailable
           </p>
         ) : quantity === 0 ? (
           <button
             type="button"
             onClick={() => onSetQuantity(1)}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-1.5 text-[12.5px] font-bold tracking-wide text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.96]"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-1.5 text-[14px] font-bold tracking-wide text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.96]"
           >
             <Plus size={12} aria-hidden="true" />
             Add
@@ -187,7 +187,7 @@ function ItemCard({
             <span
               aria-live="polite"
               aria-atomic="true"
-              className="font-mono text-[14.5px] font-extrabold text-brand-300"
+              className="font-mono text-[15.5px] font-extrabold text-brand-300"
             >
               <span className="sr-only">{item.name}, </span>
               {quantity}
@@ -211,12 +211,12 @@ function ItemCard({
         {/* Only once the ceiling is close enough to matter. "37 left" on a
             sticker sheet is noise; "2 left" is why you order now. */}
         {sellable && item.stock !== undefined && left <= 5 && (
-          <p className="font-mono text-[11px] font-bold text-amber-400">
+          <p className="font-mono text-[12.5px] font-bold text-amber-400">
             {left === 0 ? 'That is all of them' : `${left} left`}
           </p>
         )}
         {showAsked && (
-          <p className="font-mono text-[11px] font-bold text-brand-400">
+          <p className="font-mono text-[12.5px] font-bold text-brand-400">
             {askedCount.toLocaleString('en-IN')} asked
           </p>
         )}
@@ -304,7 +304,7 @@ export default function VentureDetail() {
 
   if (venture.error || menu.error) {
     return (
-      <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[15px] text-red-400">
+      <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[16px] text-red-400">
         Could not load this listing: {(venture.error ?? menu.error)?.message}
       </p>
     )
@@ -395,7 +395,7 @@ export default function VentureDetail() {
     <div className="space-y-4">
       <Link
         to="/browse"
-        className="inline-flex items-center gap-2 rounded-full px-1 py-1 font-mono text-[11.5px] font-bold tracking-[0.18em] text-white/40 uppercase transition-colors hover:text-white"
+        className="inline-flex items-center gap-2 rounded-full px-1 py-1 font-mono text-[13px] font-bold tracking-[0.18em] text-white/40 uppercase transition-colors hover:text-white"
       >
         <ArrowLeft size={13} aria-hidden="true" />
         All ventures
@@ -405,7 +405,7 @@ export default function VentureDetail() {
           they have tapped an item has already tried to message a business that
           does not exist. */}
       {v.isDemo && (
-        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5 text-[15px] leading-relaxed text-amber-300">
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5 text-[16px] leading-relaxed text-amber-300">
           <span className="font-bold">Demo listing.</span> This one is here to show what a
           finished entry looks like. The business is not real and the number does not reach
           anyone.
@@ -448,7 +448,7 @@ export default function VentureDetail() {
           {/* A heading, not a paragraph: the shell's only h1 is the static
               "Venture", so navigating this page by headings would otherwise
               never reach the name of the venture it is about. */}
-          <h2 className="min-w-0 flex-1 text-[22px] leading-tight font-extrabold text-white">
+          <h2 className="min-w-0 flex-1 text-[23px] leading-tight font-extrabold text-white">
             {v.name}
           </h2>
         </div>
@@ -456,12 +456,12 @@ export default function VentureDetail() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="flex items-center gap-1.5 text-white/40">
             <Clock size={12} aria-hidden="true" />
-            <span className="font-mono text-[11.5px] tracking-wider uppercase">{v.hours}</span>
+            <span className="font-mono text-[13px] tracking-wider uppercase">{v.hours}</span>
           </span>
         </div>
 
-        <p className="mt-3 text-[15.5px] leading-relaxed text-white/70">{v.description}</p>
-        <p className="mt-3 font-mono text-[11.5px] tracking-[0.18em] text-white/30 uppercase">
+        <p className="mt-3 text-[16.5px] leading-relaxed text-white/70">{v.description}</p>
+        <p className="mt-3 font-mono text-[13px] tracking-[0.18em] text-white/30 uppercase">
           Run by {v.ownerUsername}
         </p>
         </section>
@@ -469,11 +469,11 @@ export default function VentureDetail() {
 
       <section className="space-y-3">
         <header className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Menu
           </h2>
           <div className="flex min-w-0 items-center gap-3">
-            <span className="truncate font-mono text-[11.5px] font-bold text-white/30">
+            <span className="truncate font-mono text-[13px] font-bold text-white/30">
               {needle
                 ? `${matching.length} of ${menu.data?.length ?? 0} items`
                 : 'Add what you want, then open your cart'}
@@ -486,7 +486,7 @@ export default function VentureDetail() {
         </header>
 
         {menu.data?.length === 0 && (
-          <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[15px] text-white/45">
+          <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[16px] text-white/45">
             Nothing on the menu yet.
           </p>
         )}
@@ -498,12 +498,12 @@ export default function VentureDetail() {
             with from a shared link does not take the page with it. */}
         {needle !== '' && matching.length === 0 && (menu.data?.length ?? 0) > 0 && (
           <div className="liquid-glass-panel rounded-2xl px-5 py-6 text-center">
-            <p className="text-[15px] text-white/60">
+            <p className="text-[16px] text-white/60">
               Nothing on this menu matches &ldquo;{menuQuery.trim()}&rdquo;.
             </p>
             <Link
               to={`/venture/${v.id}`}
-              className="mt-2 inline-block font-mono text-[12.5px] font-bold tracking-wider text-brand-400 uppercase transition hover:text-brand-300"
+              className="mt-2 inline-block font-mono text-[14px] font-bold tracking-wider text-brand-400 uppercase transition hover:text-brand-300"
             >
               Show the whole menu
             </Link>
@@ -523,7 +523,7 @@ export default function VentureDetail() {
                   key={group.category}
                   type="button"
                   onClick={() => jumpToCategory(group.category)}
-                  className="shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[14.5px] font-bold whitespace-nowrap text-white/80 transition duration-150 hover:border-brand-400/40 hover:bg-brand-500/15 hover:text-brand-300 active:scale-[0.96]"
+                  className="shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[15.5px] font-bold whitespace-nowrap text-white/80 transition duration-150 hover:border-brand-400/40 hover:bg-brand-500/15 hover:text-brand-300 active:scale-[0.96]"
                 >
                   {group.category}
                 </button>
@@ -553,8 +553,8 @@ export default function VentureDetail() {
                       aria-hidden="true"
                       className={`shrink-0 text-brand-400 transition-transform duration-150 ${collapsed ? '-rotate-90' : ''}`}
                     />
-                    <span className="text-[18px] font-extrabold text-white">{group.category}</span>
-                    <span className="font-mono text-[12.5px] font-bold text-white/35">
+                    <span className="text-[19px] font-extrabold text-white">{group.category}</span>
+                    <span className="font-mono text-[14px] font-bold text-white/35">
                       {group.items.length}
                     </span>
                   </button>
@@ -582,7 +582,7 @@ export default function VentureDetail() {
       <ReviewSection ventureId={v.id} ownerId={v.ownerId} />
 
       {/* Also on bare backdrop, and smaller again — see the note in SignIn. */}
-      <p className="px-1 pb-2 text-center font-mono text-[11px] tracking-[0.18em] text-white/50 uppercase">
+      <p className="px-1 pb-2 text-center font-mono text-[12.5px] tracking-[0.18em] text-white/50 uppercase">
         You pay the seller directly
       </p>
 
@@ -609,12 +609,12 @@ export default function VentureDetail() {
           >
             <ShoppingCart size={18} className="shrink-0 text-brand-400" aria-hidden="true" />
             <span className="min-w-0 flex-1">
-              <span className="block text-[14.5px] font-bold text-white">
+              <span className="block text-[15.5px] font-bold text-white">
                 {mine.length} {mine.length === 1 ? 'item' : 'items'} from {v.name}
               </span>
-              <span className="block text-[12.5px] text-white/50">Go to cart to order</span>
+              <span className="block text-[14px] text-white/50">Go to cart to order</span>
             </span>
-            <span className="shrink-0 font-mono text-[16px] font-extrabold text-brand-400">
+            <span className="shrink-0 font-mono text-[17px] font-extrabold text-brand-400">
               ₹{mineTotal}
             </span>
           </Link>

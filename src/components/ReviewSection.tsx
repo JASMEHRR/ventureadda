@@ -74,16 +74,16 @@ export default function ReviewSection({
   return (
     <section className="space-y-3">
       <header className="flex flex-wrap items-baseline justify-between gap-3 px-1">
-        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Reviews
         </h2>
         {summary.count > 0 && (
           <span className="flex items-center gap-2">
             <StarDisplay value={summary.average} />
-            <span className="font-mono text-[13.5px] font-bold text-white">
+            <span className="font-mono text-[15px] font-bold text-white">
               {summary.average.toFixed(1)}
             </span>
-            <span className="font-mono text-[11.5px] text-white/30">
+            <span className="font-mono text-[13px] text-white/30">
               {summary.count} {summary.count === 1 ? 'review' : 'reviews'}
             </span>
           </span>
@@ -93,7 +93,7 @@ export default function ReviewSection({
       {/* Owners cannot review their own venture — the rules refuse it, and
           saying so here is friendlier than a permission error. */}
       {isOwner && (
-        <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[15px] text-white/45">
+        <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[16px] text-white/45">
           This is your venture, so you cannot review it.
         </p>
       )}
@@ -110,13 +110,13 @@ export default function ReviewSection({
           {!started ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[15.5px] font-bold text-white">
+                <p className="text-[16.5px] font-bold text-white">
                   {mine ? 'You reviewed this' : 'Been here? Say how it went.'}
                 </p>
                 {mine && (
                   <span className="mt-1 flex items-center gap-2">
                     <StarDisplay value={mine.rating} size={12} />
-                    <span className="text-[14.5px] text-white/45">{mine.comment || 'No comment'}</span>
+                    <span className="text-[15.5px] text-white/45">{mine.comment || 'No comment'}</span>
                   </span>
                 )}
               </div>
@@ -127,7 +127,7 @@ export default function ReviewSection({
           ) : (
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <span className="mb-1.5 block font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+                <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
                   Your rating
                 </span>
                 <StarInput value={rating} onChange={setRating} />
@@ -158,7 +158,7 @@ export default function ReviewSection({
 
       {!isOwner && status !== 'loading' && !profile && (
         <div className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
-          <p className="text-[15px] text-white/50">Sign in to leave a review. Any account works.</p>
+          <p className="text-[16px] text-white/50">Sign in to leave a review. Any account works.</p>
           <Button variant="secondary" to="/signin">
             Sign in
           </Button>
@@ -166,7 +166,7 @@ export default function ReviewSection({
       )}
 
       {reviews.error && (
-        <p className="liquid-glass-panel rounded-2xl px-5 py-4 text-[15px] text-red-400">
+        <p className="liquid-glass-panel rounded-2xl px-5 py-4 text-[16px] text-red-400">
           Could not load reviews: {reviews.error.message}
         </p>
       )}
@@ -176,7 +176,7 @@ export default function ReviewSection({
       )}
 
       {reviews.data && all.length === 0 && (
-        <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[15px] text-white/45">
+        <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[16px] text-white/45">
           No reviews yet.
         </p>
       )}
@@ -188,19 +188,19 @@ export default function ReviewSection({
               <Avatar name={review.username} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                  <span className="text-[15px] font-bold text-white">{review.username}</span>
+                  <span className="text-[16px] font-bold text-white">{review.username}</span>
                   {!review.deleted && <StarDisplay value={review.rating} size={11} />}
-                  <time className="font-mono text-[11.5px] tracking-wider text-white/30">
+                  <time className="font-mono text-[13px] tracking-wider text-white/30">
                     {dateLabel(review.createdAt)}
                   </time>
                 </div>
                 {review.deleted ? (
-                  <p className="mt-1 text-[15px] text-white/25 italic">
+                  <p className="mt-1 text-[16px] text-white/25 italic">
                     Review removed by a moderator
                   </p>
                 ) : (
                   review.comment && (
-                    <p className="mt-1 text-[15px] leading-relaxed break-words text-white/70">
+                    <p className="mt-1 text-[16px] leading-relaxed break-words text-white/70">
                       {review.comment}
                     </p>
                   )
@@ -245,7 +245,7 @@ export default function ReviewSection({
           </>
         }
       >
-        <p className="text-[15px] leading-relaxed text-white/70">
+        <p className="text-[16px] leading-relaxed text-white/70">
           The comment is erased, not hidden, and the star rating stops counting toward the average —
           otherwise removing a malicious one-star would take the words and leave the damage. Who
           wrote it and when stays visible to you.

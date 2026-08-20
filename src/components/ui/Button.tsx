@@ -11,8 +11,28 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'what
  */
 const base =
   'inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 ' +
-  'text-[13.5px] font-bold uppercase tracking-wider transition duration-150 ' +
+  'text-[15px] font-bold uppercase tracking-wider transition duration-150 ' +
   'active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40'
+
+/**
+ * The base shape, minus its display when the caller supplies one of their own.
+ *
+ * `<Button className="hidden sm:inline-flex">` silently did nothing before
+ * this. Both `hidden` and the base's `inline-flex` are display utilities in
+ * the same Tailwind layer, so which one wins is decided by their order in the
+ * generated stylesheet, not by their order in the class attribute — and
+ * `inline-flex` won. The top bar's All and Add venture buttons were meant to
+ * be hidden on a phone, were on screen at every width, and pushed the row off
+ * the side of a 375px screen.
+ *
+ * Dropping the base display whenever the caller names one puts the decision
+ * back where it was written, for every caller rather than for the two that
+ * happened to hit it.
+ */
+const DISPLAY = /(?:^|\s)(?:hidden|flex|inline-flex|block|inline-block|inline|grid)(?:\s|$)/
+
+const shape = (className: string) =>
+  DISPLAY.test(className) ? base.replace('inline-flex ', '') : base
 
 const variants: Record<ButtonVariant, string> = {
   // §5 table, verbatim.
@@ -68,7 +88,7 @@ export default function Button(props: ButtonProps | LinkProps | ExternalProps) {
   if ('to' in props && props.to !== undefined) {
     const { to, variant: _variant, className: _className, children: _children, ...rest } = props
     return (
-      <Link to={to} className={`${base} ${variants[variant]} ${className}`} {...rest}>
+      <Link to={to} className={`${shape(className)} ${variants[variant]} ${className}`} {...rest}>
         {children}
       </Link>
     )
@@ -77,7 +97,7 @@ export default function Button(props: ButtonProps | LinkProps | ExternalProps) {
   if ('href' in props && props.href !== undefined) {
     const { variant: _variant, className: _className, children: _children, ...rest } = props
     return (
-      <a className={`${base} ${variants[variant]} ${className}`} {...rest}>
+      <a className={`${shape(className)} ${variants[variant]} ${className}`} {...rest}>
         {children}
       </a>
     )
@@ -101,7 +121,7 @@ export default function Button(props: ButtonProps | LinkProps | ExternalProps) {
       // live for the whole submit, so a double tap submits twice.
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`${base} ${variants[variant]} ${className}`}
+      className={`${shape(className)} ${variants[variant]} ${className}`}
       {...rest}
     >
       {loading && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}

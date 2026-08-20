@@ -70,16 +70,16 @@ function OrderCard({ order }: { order: Order }) {
         <div className="min-w-0">
           <Link
             to={`/venture/${order.ventureId}`}
-            className="text-[16px] font-bold text-white transition-colors hover:text-brand-300"
+            className="text-[17px] font-bold text-white transition-colors hover:text-brand-300"
           >
             {order.ventureName}
           </Link>
-          <p className="font-mono text-[11.5px] tracking-wider text-white/35 uppercase">
+          <p className="font-mono text-[13px] tracking-wider text-white/35 uppercase">
             {when(order.createdAt)}
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider uppercase ${STATUS_STYLE[order.status]}`}
+          className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[12.5px] font-bold tracking-wider uppercase ${STATUS_STYLE[order.status]}`}
         >
           {state.label}
         </span>
@@ -87,10 +87,10 @@ function OrderCard({ order }: { order: Order }) {
 
       <ul className="space-y-1">
         {order.lines.map((line) => (
-          <li key={line.itemId + line.name} className="flex items-baseline gap-2 text-[15px]">
+          <li key={line.itemId + line.name} className="flex items-baseline gap-2 text-[16px]">
             <span className="font-mono font-bold text-brand-400">{line.quantity}×</span>
             <span className="min-w-0 flex-1 truncate text-white/80">{line.name}</span>
-            <span className="shrink-0 font-mono text-[14px] text-white/45">
+            <span className="shrink-0 font-mono text-[15px] text-white/45">
               ₹{line.price * line.quantity}
             </span>
           </li>
@@ -98,13 +98,13 @@ function OrderCard({ order }: { order: Order }) {
       </ul>
 
       <div className="flex items-center justify-between border-t border-white/8 pt-2.5">
-        <span className="font-mono text-[11px] font-bold tracking-[0.18em] text-white/35 uppercase">
+        <span className="font-mono text-[12.5px] font-bold tracking-[0.18em] text-white/35 uppercase">
           {PAYMENT_LABEL[order.payment]}
         </span>
-        <span className="font-mono text-[16px] font-extrabold text-brand-400">₹{order.total}</span>
+        <span className="font-mono text-[17px] font-extrabold text-brand-400">₹{order.total}</span>
       </div>
 
-      <dl className="space-y-1.5 border-t border-white/8 pt-2.5 text-[14.5px]">
+      <dl className="space-y-1.5 border-t border-white/8 pt-2.5 text-[15.5px]">
         <div className="flex items-start gap-2">
           <dt className="sr-only">Going to</dt>
           <MapPin size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
@@ -124,7 +124,7 @@ function OrderCard({ order }: { order: Order }) {
         </div>
       </dl>
 
-      <p className="text-[14px] leading-relaxed text-white/45">{state.detail}</p>
+      <p className="text-[15px] leading-relaxed text-white/45">{state.detail}</p>
 
       {order.status !== 'completed' && (
         <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-3">
@@ -156,17 +156,17 @@ export default function MyOrders() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="liquid-glass-panel rounded-3xl px-5 py-4">
-        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Your orders
         </h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-white/50">
+        <p className="mt-2 text-[16px] leading-relaxed text-white/50">
           Everything you have ordered. The status is the seller&rsquo;s own note on the order, not
           a payment record: no money moves through this site.
         </p>
       </header>
 
       {fetched.error && (
-        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[15px] text-red-400">
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[16px] text-red-400">
           Could not load your orders: {fetched.error.message}
         </p>
       )}
@@ -189,7 +189,7 @@ export default function MyOrders() {
 
       {open.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
             In progress · {open.length}
           </h3>
           {open.map((order) => (
@@ -200,7 +200,7 @@ export default function MyOrders() {
 
       {done.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
             Done · {done.length}
           </h3>
           {done.map((order) => (

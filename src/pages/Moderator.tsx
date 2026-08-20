@@ -68,24 +68,24 @@ function VentureRow({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[11px] tracking-[0.22em] text-white/30 uppercase">
+          <p className="font-mono text-[12.5px] tracking-[0.22em] text-white/30 uppercase">
             {categoryName(venture.categoryId)}
           </p>
-          <h3 className="mt-1 truncate text-[17px] font-extrabold text-white">{venture.name}</h3>
-          <p className="mt-0.5 truncate text-[14.5px] text-white/45">
+          <h3 className="mt-1 truncate text-[18px] font-extrabold text-white">{venture.name}</h3>
+          <p className="mt-0.5 truncate text-[15.5px] text-white/45">
             {venture.ownerUsername} · {venture.hours}
           </p>
-          <p className="mt-2 line-clamp-2 text-[14.5px] leading-snug text-white/55">
+          <p className="mt-2 line-clamp-2 text-[15.5px] leading-snug text-white/55">
             {venture.description}
           </p>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="flex items-center gap-1.5 font-mono text-[11.5px] text-white/35">
+            <span className="flex items-center gap-1.5 font-mono text-[13px] text-white/35">
               <MousePointerClick size={11} aria-hidden="true" />
               {venture.clickCount} opens
             </span>
             {inquiries !== undefined && (
-              <span className="flex items-center gap-1.5 font-mono text-[11.5px] text-brand-400">
+              <span className="flex items-center gap-1.5 font-mono text-[13px] text-brand-400">
                 <MessageCircle size={11} aria-hidden="true" />
                 {inquiries} enquiries
               </span>
@@ -248,10 +248,10 @@ export default function Moderator() {
       </div>
 
       <div className="liquid-glass-panel space-y-2 rounded-2xl p-4">
-        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Site backdrop
         </h2>
-        <p className="text-[14px] text-white/45">
+        <p className="text-[15px] text-white/45">
           Shown behind the whole app, to every visitor. Leave empty for the default.
         </p>
         <PhotoUploader
@@ -268,7 +268,7 @@ export default function Moderator() {
           lives in the owner-only panel below, because only the owner can
           write isModerator per the rules. */}
       <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
-        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Users ({users.data?.length ?? 0})
         </h2>
 
@@ -280,7 +280,7 @@ export default function Moderator() {
           placeholder="username or email"
         />
 
-        {users.error && <p className="text-[14.5px] text-red-300">{users.error.message}</p>}
+        {users.error && <p className="text-[15.5px] text-red-300">{users.error.message}</p>}
         {users.loading && <LoadingLine label="Loading users…" />}
 
         <div className="space-y-2">
@@ -304,11 +304,11 @@ export default function Moderator() {
                   className={entry.isModerator ? 'text-brand-400' : 'text-white/20'}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-bold text-white">{entry.username}</p>
-                  <p className="truncate text-[13.5px] text-white/40">{entry.email}</p>
+                  <p className="truncate text-[16px] font-bold text-white">{entry.username}</p>
+                  <p className="truncate text-[15px] text-white/40">{entry.email}</p>
                 </div>
                 {entry.email === OWNER_EMAIL ? (
-                  <span className="shrink-0 font-mono text-[11px] font-bold tracking-wider text-white/30 uppercase">
+                  <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-white/30 uppercase">
                     Owner
                   </span>
                 ) : isOwner ? (
@@ -326,7 +326,7 @@ export default function Moderator() {
                   </Button>
                 ) : (
                   entry.isModerator && (
-                    <span className="shrink-0 font-mono text-[11px] font-bold tracking-wider text-brand-400 uppercase">
+                    <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-brand-400 uppercase">
                       Moderator
                     </span>
                   )
@@ -341,10 +341,10 @@ export default function Moderator() {
           fail — better to just not offer it. */}
       {isOwner && (
         <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
-          <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Moderators
           </h2>
-          <p className="text-[14px] text-white/45">
+          <p className="text-[15px] text-white/45">
             Look up anyone by their username to grant or remove moderator access.
           </p>
 
@@ -372,7 +372,7 @@ export default function Moderator() {
           </div>
 
           {moderatorResult === 'not-found' && (
-            <p className="text-[14.5px] text-white/45">No account with that username.</p>
+            <p className="text-[15.5px] text-white/45">No account with that username.</p>
           )}
 
           {moderatorResult && moderatorResult !== 'not-found' && (
@@ -383,13 +383,13 @@ export default function Moderator() {
                 className={moderatorResult.isModerator ? 'text-brand-400' : 'text-white/25'}
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-bold text-white">
+                <p className="truncate text-[16px] font-bold text-white">
                   {moderatorResult.username}
                 </p>
-                <p className="truncate text-[13.5px] text-white/40">{moderatorResult.email}</p>
+                <p className="truncate text-[15px] text-white/40">{moderatorResult.email}</p>
               </div>
               {moderatorResult.email === OWNER_EMAIL ? (
-                <span className="font-mono text-[11.5px] tracking-wider text-white/30 uppercase">
+                <span className="font-mono text-[13px] tracking-wider text-white/30 uppercase">
                   Owner
                 </span>
               ) : (
@@ -405,7 +405,7 @@ export default function Moderator() {
           )}
 
           <div className="space-y-3 border-t border-white/8 pt-3.5">
-            <p className="text-[14px] text-white/45">
+            <p className="text-[15px] text-white/45">
               Pre-approve an address that has not signed up yet. It can then sign in and post like
               a Thapar account — and if you also check "make moderator", it becomes one the moment
               it first signs in.
@@ -431,7 +431,7 @@ export default function Moderator() {
                 Approve
               </Button>
             </div>
-            <label className="flex items-center gap-2 text-[14.5px] text-white/60">
+            <label className="flex items-center gap-2 text-[15.5px] text-white/60">
               <input
                 type="checkbox"
                 checked={approveAsModerator}
@@ -448,11 +448,11 @@ export default function Moderator() {
                     key={entry.email}
                     className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5"
                   >
-                    <span className="min-w-0 flex-1 truncate text-[14.5px] text-white/80">
+                    <span className="min-w-0 flex-1 truncate text-[15.5px] text-white/80">
                       {entry.email}
                     </span>
                     {entry.moderator && (
-                      <span className="shrink-0 font-mono text-[11px] font-bold tracking-wider text-brand-400 uppercase">
+                      <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-brand-400 uppercase">
                         Moderator
                       </span>
                     )}
@@ -480,7 +480,7 @@ export default function Moderator() {
             type="button"
             onClick={() => setTab(value)}
             aria-current={tab === value ? 'true' : undefined}
-            className={`flex-1 rounded-xl px-4 py-2.5 font-mono text-[12.5px] tracking-wider uppercase transition duration-150 active:scale-[0.98] ${
+            className={`flex-1 rounded-xl px-4 py-2.5 font-mono text-[14px] tracking-wider uppercase transition duration-150 active:scale-[0.98] ${
               tab === value
                 ? 'bg-white/15 font-extrabold text-white'
                 : 'font-bold text-white/40 hover:bg-white/[0.07] hover:text-white/85'
@@ -494,7 +494,7 @@ export default function Moderator() {
       {notice && (
         <p
           role="status"
-          className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[15px] text-white/70"
+          className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[16px] text-white/70"
         >
           {notice}
         </p>
@@ -503,7 +503,7 @@ export default function Moderator() {
       {tab === 'pending' && (
         <div className="space-y-2.5">
           {pending.error && (
-            <p className="liquid-glass-panel rounded-2xl px-5 py-4 text-[15px] text-red-400">
+            <p className="liquid-glass-panel rounded-2xl px-5 py-4 text-[16px] text-red-400">
               {pending.error.message}
             </p>
           )}
@@ -511,7 +511,7 @@ export default function Moderator() {
             <LoadingLine label="Loading the queue…" inset={false} />
           )}
           {pending.data?.length === 0 && (
-            <p className="liquid-glass-panel rounded-3xl px-6 py-12 text-center text-[15px] text-white/45">
+            <p className="liquid-glass-panel rounded-3xl px-6 py-12 text-center text-[16px] text-white/45">
               Nothing waiting. New submissions land here.
             </p>
           )}
@@ -543,7 +543,7 @@ export default function Moderator() {
               </Button>
               <Link
                 to={`/venture/${venture.id}`}
-                className="ml-auto font-mono text-[11.5px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="ml-auto font-mono text-[13px] tracking-wider text-white/40 uppercase transition hover:text-white"
               >
                 Preview
               </Link>
@@ -555,7 +555,7 @@ export default function Moderator() {
       {tab === 'live' && (
         <div className="space-y-2.5">
           {live.error && (
-            <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[15px] text-red-400">
+            <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[16px] text-red-400">
               {live.error.message}
             </p>
           )}
@@ -580,7 +580,7 @@ export default function Moderator() {
               next to the listings rather than buried in a settings page. */}
           {live.data?.some((venture) => venture.isDemo) && (
             <div className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
-              <p className="text-[15px] text-white/50">
+              <p className="text-[16px] text-white/50">
                 {live.data.filter((venture) => venture.isDemo).length} of these are demo listings.
               </p>
               <Button variant="danger" loading={busy} onClick={removeSeed}>
@@ -607,7 +607,7 @@ export default function Moderator() {
               </Button>
               <Link
                 to={`/venture/${venture.id}`}
-                className="ml-auto font-mono text-[11.5px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="ml-auto font-mono text-[13px] tracking-wider text-white/40 uppercase transition hover:text-white"
               >
                 View
               </Link>
@@ -640,7 +640,7 @@ export default function Moderator() {
           </>
         }
       >
-        <p className="text-[15px] leading-relaxed text-white/70">
+        <p className="text-[16px] leading-relaxed text-white/70">
           This deletes the listing and its whole menu, including the enquiry counts. It cannot be
           undone. Rejecting instead keeps the record and lets the owner fix it.
         </p>

@@ -40,7 +40,7 @@ export default function StockToggle({
           role="radio"
           aria-checked={value === on}
           onClick={() => onChange(on)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[11.5px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.96] ${
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[13px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.96] ${
             value === on ? active : 'text-white/35 hover:text-white/70'
           }`}
         >

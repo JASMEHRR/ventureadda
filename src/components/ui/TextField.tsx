@@ -12,10 +12,10 @@ import Field from './Field'
  * by keyboard.
  */
 export const inputClass =
-  'liquid-glass-input w-full rounded-xl px-4 py-2.5 text-[15px] text-white placeholder-white/30'
+  'liquid-glass-input w-full rounded-xl px-4 py-2.5 text-[16px] text-white placeholder-white/30'
 
 /** Leaves room for the glyph sitting inside the field. */
-const withIcon = 'liquid-glass-input w-full rounded-xl py-2.5 pr-4 pl-10 text-[15px] text-white placeholder-white/30'
+const withIcon = 'liquid-glass-input w-full rounded-xl py-2.5 pr-4 pl-10 text-[16px] text-white placeholder-white/30'
 
 type TextFieldProps = {
   id: string

@@ -34,7 +34,7 @@ export default function Field({
     <div className={className}>
       <label
         htmlFor={id}
-        className="mb-1.5 block font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+        className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
       >
         {label}
       </label>
@@ -42,11 +42,11 @@ export default function Field({
       {/* One slot, not two stacked messages. An error that appears below a hint
           leaves the hint contradicting it. */}
       {error ? (
-        <p role="alert" className="mt-1.5 text-[14px] text-red-400">
+        <p role="alert" className="mt-1.5 text-[15px] text-red-400">
           {error}
         </p>
       ) : (
-        hint && <p className="mt-1.5 text-[14px] text-white/35">{hint}</p>
+        hint && <p className="mt-1.5 text-[15px] text-white/35">{hint}</p>
       )}
     </div>
   )

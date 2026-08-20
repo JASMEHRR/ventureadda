@@ -170,7 +170,7 @@ function Section({
 
 function Eyebrow({ children }: { children: string }) {
   return (
-    <p className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+    <p className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
       {children}
     </p>
   )
@@ -189,10 +189,27 @@ export default function Landing() {
   return (
     <div className="min-h-screen">
       {/* Marketing header, not the app shell's. Three things only: who this is,
-          the way in, and the way to sign in. */}
-      <header className="flex items-center gap-3 px-6 py-5">
-        <Link to="/">
-          <Logo />
+          the way in, and the way to sign in.
+
+          PINNED, like the app's own bar. This page is long — problem, how it
+          works, payment, the closing ask — and the two things it exists to do,
+          Browse and Sign in, were only reachable from the very top. Scrolling
+          back up to act on a page that just talked you into acting is the one
+          thing a landing page must not ask for. Same glass, same tint and the
+          same z-40 as the shell's TopBar, so the two read as one bar across
+          the site rather than as two different headers. */}
+      <header className="liquid-glass-panel sticky top-0 z-40 flex items-center gap-2 border-x-0 border-t-0 bg-app/40 px-4 py-4 backdrop-blur-2xl sm:gap-3 sm:px-6 sm:py-5">
+        {/* Mark only below `sm`. At the current type size the wordmark is
+            ~197px, which with Browse and Sign in beside it is wider than a
+            375px phone — the row ran off the side of the screen. The name
+            stays in the accessible tree either way. */}
+        <Link to="/" className="shrink-0">
+          <span className="sm:hidden">
+            <Logo markOnly size={26} />
+          </span>
+          <span className="hidden sm:block">
+            <Logo />
+          </span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="ghost" to="/browse">
@@ -222,7 +239,7 @@ export default function Landing() {
           {/* white/70, not the white/45 used for body copy on glass. This sits
               on the bare photographic backdrop, which supplies no dark fill of
               its own. */}
-          <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-relaxed text-white/70 sm:text-[18px]">
+          <p className="mx-auto mt-5 max-w-2xl text-[18px] leading-relaxed text-white/70 sm:text-[19px]">
             Students at Thapar are baking, thrifting, printing, repairing and selling — and
             all of it lives in WhatsApp messages that scroll away by evening. VentureAdda puts
             every one of them in a single place you can search.
@@ -266,7 +283,7 @@ export default function Landing() {
         <div className="mx-auto max-w-3xl">
           <div className="mb-4 text-center">
             <Eyebrow>Exclusive</Eyebrow>
-            <p className="mt-2 text-[15px] text-white/45">
+            <p className="mt-2 text-[16px] text-white/45">
               Live on VentureAdda right now. Tap one to see the whole menu.
             </p>
           </div>
@@ -297,7 +314,7 @@ export default function Landing() {
           <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
             Everything is in the group chat, and the group chat forgets.
           </h2>
-          <div className="mt-6 space-y-4 text-[16px] leading-relaxed text-white/70 sm:text-[17px]">
+          <div className="mt-6 space-y-4 text-[17px] leading-relaxed text-white/70 sm:text-[18px]">
             <p>
               To find one brownie seller you scroll hundreds of messages, past fest
               announcements and lost-and-found and someone asking for notes. If you did not
@@ -330,12 +347,12 @@ export default function Landing() {
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/15 text-brand-300">
                     <step.icon size={17} aria-hidden="true" />
                   </span>
-                  <span className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-white/30 uppercase">
+                  <span className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-white/30 uppercase">
                     Step {index + 1}
                   </span>
                 </div>
-                <h3 className="mt-4 text-[18px] font-extrabold text-white">{step.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-white/55">{step.body}</p>
+                <h3 className="mt-4 text-[19px] font-extrabold text-white">{step.title}</h3>
+                <p className="mt-2 text-[16px] leading-relaxed text-white/55">{step.body}</p>
               </div>
             </Reveal>
           ))}
@@ -350,7 +367,7 @@ export default function Landing() {
             <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
               List it once. Stay findable.
             </h2>
-            <p className="mt-5 text-[16px] leading-relaxed text-white/70 sm:text-[17px]">
+            <p className="mt-5 text-[17px] leading-relaxed text-white/70 sm:text-[18px]">
               If you make or sell anything on campus, this is a permanent page for it —
               photographs, hours, prices, and a WhatsApp button that tells you which item
               someone is asking about.
@@ -371,8 +388,8 @@ export default function Landing() {
                     <point.icon size={16} aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-[16px] font-extrabold text-white">{point.title}</h3>
-                    <p className="mt-1 text-[15px] leading-relaxed text-white/55">
+                    <h3 className="text-[17px] font-extrabold text-white">{point.title}</h3>
+                    <p className="mt-1 text-[16px] leading-relaxed text-white/55">
                       {point.body}
                     </p>
                   </div>
@@ -400,7 +417,7 @@ export default function Landing() {
             </h2>
             {/* max-w-2xl: this is the longest prose on the page and the one
                 paragraph everyone must actually finish. */}
-            <div className="mt-5 max-w-2xl space-y-4 text-[16px] leading-relaxed text-white/70 sm:text-[17px]">
+            <div className="mt-5 max-w-2xl space-y-4 text-[17px] leading-relaxed text-white/70 sm:text-[18px]">
               <p>
                 There is no cart, no checkout and no payment page. When you find something you
                 want, you message the seller on WhatsApp and the two of you settle it directly
@@ -423,7 +440,7 @@ export default function Landing() {
           <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
             Have a look at what is on campus.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-white/70">
+          <p className="mx-auto mt-4 max-w-xl text-[17px] leading-relaxed text-white/70">
             Browsing needs no account. You only sign in to list a venture or post in chat.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -439,7 +456,7 @@ export default function Landing() {
       </Section>
 
       <footer className="px-6 pb-10">
-        <p className="text-center font-mono text-[11px] tracking-[0.22em] text-white/25 uppercase">
+        <p className="text-center font-mono text-[12.5px] tracking-[0.22em] text-white/25 uppercase">
           VentureAdda · Thapar Institute · No payments on site
         </p>
       </footer>

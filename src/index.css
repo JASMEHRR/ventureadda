@@ -94,7 +94,7 @@
   body {
     /* 15px body, not Ascend's 11–12px. Ascend is a dense desktop dashboard for
        one motivated user; this is a consumer site read on phones. */
-    @apply bg-app font-plus text-[16px] text-white/95 antialiased;
+    @apply bg-app font-plus text-[17px] text-white/95 antialiased;
   }
 
   /* Visible focus ring — spec GAP. Ascend has none and relies on browser

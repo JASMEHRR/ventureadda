@@ -139,7 +139,7 @@ export default function TopBar() {
           sidebar: where you are. From `md` up only, because below that the
           search field needs the row and the bottom bar already shows the
           current section. */}
-      <span className="hidden min-w-0 truncate font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/45 uppercase md:inline">
+      <span className="hidden min-w-0 truncate font-mono text-[14px] font-extrabold tracking-[0.18em] text-white/45 uppercase md:inline">
         {pageTitle(pathname)}
       </span>
 
@@ -150,7 +150,7 @@ export default function TopBar() {
         options={CATEGORY_OPTIONS}
         onChange={setCategory}
         className="w-40 shrink-0 sm:w-48"
-        triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[12.5px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
+        triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[14px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
       />
 
       {/* EVERY WIDTH. It lived in the sidebar for a while, which put it out of
@@ -169,7 +169,7 @@ export default function TopBar() {
           onChange={(event) => setDraft(event.target.value)}
           placeholder={placeholder}
           aria-label={label}
-          className="liquid-glass-input w-full rounded-full py-2 pr-4 pl-10 text-[14.5px] text-white placeholder-white/30"
+          className="liquid-glass-input w-full rounded-full py-2 pr-4 pl-10 text-[15.5px] text-white placeholder-white/30"
         />
       </div>
 
@@ -211,7 +211,7 @@ export default function TopBar() {
           {items > 0 && (
             <span
               aria-hidden="true"
-              className="absolute -top-1 -right-1 min-w-4 rounded-full bg-brand-400 px-1 text-center font-mono text-[11px] font-extrabold text-app ring-2 ring-app"
+              className="absolute -top-1 -right-1 min-w-4 rounded-full bg-brand-400 px-1 text-center font-mono text-[12.5px] font-extrabold text-app ring-2 ring-app"
             >
               {items > 99 ? '99+' : items}
             </span>

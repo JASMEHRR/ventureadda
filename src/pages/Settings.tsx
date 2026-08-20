@@ -44,11 +44,11 @@ function Slider({
       <div className="flex items-baseline justify-between gap-3">
         <label
           htmlFor={id}
-          className="font-mono text-[11px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+          className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
         >
           {label}
         </label>
-        <span className="font-mono text-[12.5px] font-bold text-brand-400">{format(value)}</span>
+        <span className="font-mono text-[14px] font-bold text-brand-400">{format(value)}</span>
       </div>
       <input
         id={id}
@@ -63,7 +63,7 @@ function Slider({
         // the whole touch target, and this one already announces its value.
         className="mt-2 w-full accent-brand-400"
       />
-      <p className="mt-1 text-[14px] leading-relaxed text-white/40">{hint}</p>
+      <p className="mt-1 text-[15px] leading-relaxed text-white/40">{hint}</p>
     </div>
   )
 }
@@ -80,10 +80,10 @@ export default function Settings() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="liquid-glass-panel rounded-3xl px-5 py-4">
-        <h2 className="font-mono text-[11.5px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Settings
         </h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-white/50">
+        <p className="mt-2 text-[16px] leading-relaxed text-white/50">
           These apply to this device only, and take effect immediately.
         </p>
       </header>
@@ -91,7 +91,7 @@ export default function Settings() {
       <section className="liquid-glass-panel space-y-5 rounded-3xl p-5">
         <div className="flex items-center gap-2.5">
           <Eye size={15} className="shrink-0 text-brand-400" aria-hidden="true" />
-          <h3 className="text-[16px] font-bold text-white">Appearance</h3>
+          <h3 className="text-[17px] font-bold text-white">Appearance</h3>
         </div>
 
         <ChoiceGroup
@@ -181,12 +181,12 @@ export default function Settings() {
       <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
         <div className="flex items-center gap-2.5">
           <Bell size={15} className="shrink-0 text-brand-400" aria-hidden="true" />
-          <h3 className="text-[16px] font-bold text-white">Notifications</h3>
+          <h3 className="text-[17px] font-bold text-white">Notifications</h3>
         </div>
 
         {profile ? (
           <>
-            <p className="text-[15px] leading-relaxed text-white/50">
+            <p className="text-[16px] leading-relaxed text-white/50">
               Sellers can be told on this device when an order comes in. It is per device, so
               turning it on here does not cover your phone.
             </p>
@@ -196,7 +196,7 @@ export default function Settings() {
             <PushToggle uid={profile.uid} />
           </>
         ) : (
-          <p className="text-[15px] leading-relaxed text-white/50">
+          <p className="text-[16px] leading-relaxed text-white/50">
             <Link to="/signin" className="text-brand-400 underline underline-offset-2">
               Sign in
             </Link>{' '}
