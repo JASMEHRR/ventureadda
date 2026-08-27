@@ -7,6 +7,7 @@ import Button from './components/ui/Button'
 import EmptyState from './components/ui/EmptyState'
 import LoadingLine from './components/ui/LoadingLine'
 import { AuthProvider } from './auth/AuthProvider'
+import MaintenanceGate from './components/MaintenanceGate'
 import Landing from './pages/Landing'
 import Browse from './pages/Browse'
 
@@ -44,6 +45,10 @@ const DesignDemo = lazy(() => import('./pages/DesignDemo'))
 export default function App() {
   return (
     <AuthProvider>
+      {/* Inside the provider because it needs to know whether you are a
+          moderator, and outside the router because a closed site is closed on
+          every route — there is no page worth serving from behind the sign. */}
+      <MaintenanceGate>
       <BrowserRouter>
         <AtmosphereBackdrop />
         {/* One boundary around the routed content, inside the shell, so the
@@ -99,6 +104,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </MaintenanceGate>
     </AuthProvider>
   )
 }

@@ -11,8 +11,7 @@ import {
   Store,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import Avatar, { AVATAR_STYLES } from '../components/ui/Avatar'
-import type { AvatarStyle } from '../components/ui/Avatar'
+import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import LoadingLine from '../components/ui/LoadingLine'
 import TextField from '../components/ui/TextField'
@@ -181,76 +180,15 @@ function ProfileLink({
 }
 
 /**
- * The one thing on this account anybody gets to choose.
+ * THE AVATAR PICKER LIVED HERE and is switched off for now, at the owner's
+ * call, to be brought back later. Nothing else was removed with it: the three
+ * styles, the drawn faces and `setAvatar` are all still in place, and every
+ * account renders the initial because that is the stored default and nothing
+ * can currently change it. Restoring the feature is putting the picker back,
+ * not rebuilding it.
  *
- * Nobody picks their username any more — it comes off the front of their
- * address, because on this campus that is what they would have typed anyway.
- * That is the right trade for a name, and it does leave an account with no
- * decision in it at all, which is why this is here. It is small on purpose:
- * three options, no upload, nothing to moderate.
- *
- * Written straight through on tap rather than behind a Save. There is one
- * field, the change is visible in the tile above it the moment it lands, and a
- * Save button for a three-way choice is a button that exists to be forgotten.
+ * See components/ui/Avatar.tsx for the styles themselves.
  */
-function AvatarPicker({ name, current }: { name: string; current: AvatarStyle }) {
-  const { setAvatar } = useAuth()
-  const [error, setError] = useState<string | null>(null)
-
-  const labels: Record<AvatarStyle, string> = {
-    initial: 'Your initial',
-    boy: 'Boy',
-    girl: 'Girl',
-  }
-
-  return (
-    <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
-      <h3 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-        Your picture
-      </h3>
-
-      <div className="flex flex-wrap gap-2.5">
-        {AVATAR_STYLES.map((style) => {
-          const active = style === current
-          return (
-            <button
-              key={style}
-              type="button"
-              aria-pressed={active}
-              aria-label={labels[style]}
-              onClick={() => {
-                setError(null)
-                void setAvatar(style).catch(() =>
-                  setError('Could not save that. Check your connection and try again.'),
-                )
-              }}
-              className={`flex flex-1 flex-col items-center gap-2 rounded-2xl border px-3 py-3 transition duration-150 active:scale-[0.97] ${
-                active
-                  ? 'border-brand-400/50 bg-brand-500/15'
-                  : 'border-white/10 bg-white/[0.03] hover:border-white/25'
-              }`}
-            >
-              <Avatar name={name} style={style} className="h-11 w-11 text-[19px]" />
-              <span
-                className={`font-mono text-[12.5px] font-bold tracking-wider uppercase ${
-                  active ? 'text-brand-300' : 'text-white/45'
-                }`}
-              >
-                {labels[style]}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {error && (
-        <p role="alert" className="text-[14px] text-red-400">
-          {error}
-        </p>
-      )}
-    </section>
-  )
-}
 
 /**
  * Renaming, for the people the derived name does not suit.
@@ -390,8 +328,6 @@ export default function Profile() {
         label="Your orders"
         detail="What you have ordered, and where each one stands"
       />
-
-      <AvatarPicker name={profile.username} current={profile.avatar} />
 
       {/* Only for the accounts it is about. A Thapar account has nothing to
           add, and a pre-approved outside one has already been let in by hand. */}

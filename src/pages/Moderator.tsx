@@ -35,7 +35,8 @@ import { categoryName } from '../data/types'
 import { SEED_VENTURES, seedInput } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL } from '../lib/firebase'
-import { getSiteSettings, setBackdrop } from '../data/settings'
+import { getSiteSettings, isDown, setBackdrop, setMaintenance } from '../data/settings'
+import type { MaintenanceWindow } from '../data/settings'
 import {
   approveEmail,
   findUserByUsername,
@@ -98,6 +99,131 @@ function VentureRow({
         {children}
       </div>
     </article>
+  )
+}
+
+/**
+ * Scheduling the site's own downtime.
+ *
+ * TWO NATIVE datetime-local FIELDS, which is the whole control. A date-time
+ * range is exactly what the platform already ships a picker for, on every
+ * phone the people using this own, complete with the keyboard handling and
+ * the locale formatting a hand-rolled one would have to reinvent badly.
+ *
+ * The value they type is read as their own local time — `new Date(value)`
+ * does that for a datetime-local string — and stored as epoch milliseconds,
+ * so a window set from a phone and a window set from a laptop mean the same
+ * moment even if the two disagree about time zones.
+ *
+ * AN END IS COMPULSORY, and the form refuses without one. A window with no
+ * end is a site somebody has to remember to reopen, and the person who has to
+ * remember is whoever set it at 2am to fix a bug.
+ */
+function MaintenancePanel({
+  current,
+  onSave,
+  busy,
+}: {
+  current: MaintenanceWindow | undefined
+  onSave: (window: MaintenanceWindow | null) => void
+  busy: boolean
+}) {
+  // Prefilled from whatever is scheduled, so editing a window is editing it
+  // rather than retyping it from the beginning.
+  const toField = (ms: number | undefined) => {
+    if (typeof ms !== 'number') return ''
+    const at = new Date(ms)
+    // toISOString would render UTC, which is the one time zone nobody setting
+    // this is in. Built from the local parts instead.
+    const pad = (value: number) => String(value).padStart(2, '0')
+    return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`
+  }
+
+  const [from, setFrom] = useState(toField(current?.from))
+  const [until, setUntil] = useState(toField(current?.until))
+  const [note, setNote] = useState(current?.note ?? '')
+  const [error, setError] = useState<string | null>(null)
+
+  const save = () => {
+    setError(null)
+    const start = new Date(from).getTime()
+    const end = new Date(until).getTime()
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      setError('Set both a start and an end.')
+      return
+    }
+    if (end <= start) {
+      setError('The end has to be after the start.')
+      return
+    }
+    onSave({ from: start, until: end, ...(note.trim() ? { note: note.trim() } : {}) })
+  }
+
+  const live = isDown(current)
+
+  return (
+    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Maintenance window
+        </h2>
+        {live && (
+          <span className="rounded-full bg-amber-500/20 px-3 py-1 font-mono text-[12px] font-extrabold tracking-wider text-amber-300 uppercase">
+            Closed now
+          </span>
+        )}
+      </div>
+
+      <p className="text-[15px] leading-relaxed text-white/45">
+        Everyone except moderators sees a closed sign between these two times, and the site comes
+        back on its own at the end — nobody has to remember to reopen it. You keep full access
+        throughout, with a bar across the top so you cannot forget it is closed.
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextField
+          id="maintenance-from"
+          label="From"
+          type="datetime-local"
+          value={from}
+          onChange={(event) => setFrom(event.target.value)}
+        />
+        <TextField
+          id="maintenance-until"
+          label="Until"
+          type="datetime-local"
+          value={until}
+          onChange={(event) => setUntil(event.target.value)}
+        />
+      </div>
+
+      <TextField
+        id="maintenance-note"
+        label="What to tell people"
+        hint="Optional. Shown on the closed sign instead of the default wording."
+        maxLength={140}
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        placeholder="Back after we finish the checkout fix."
+      />
+
+      {error && (
+        <p role="alert" className="text-[14px] text-red-300">
+          {error}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <Button variant="primary" onClick={save} disabled={busy}>
+          {current ? 'Update window' : 'Schedule it'}
+        </Button>
+        {current && (
+          <Button variant="secondary" onClick={() => onSave(null)} disabled={busy}>
+            Cancel window
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -263,6 +389,20 @@ export default function Moderator() {
           max={1}
         />
       </div>
+
+      <MaintenancePanel
+        // Remounts when the stored window changes, so the fields follow a save
+        // (or another moderator's change) instead of holding what was typed.
+        key={JSON.stringify(settings.data?.maintenance ?? null)}
+        current={settings.data?.maintenance}
+        busy={busy}
+        onSave={(window) =>
+          void act(
+            () => setMaintenance(window),
+            window ? 'Maintenance window saved.' : 'Maintenance window cancelled.',
+          )
+        }
+      />
 
       {/* Every account, for any moderator. Read-only here — granting access
           lives in the owner-only panel below, because only the owner can
