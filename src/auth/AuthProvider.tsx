@@ -40,6 +40,17 @@ type AuthContextValue = {
   /** Signed in, but has not claimed a name yet. Prompt at the point of action. */
   needsUsername: boolean
   /**
+   * Why the automatic name failed, when it did.
+   *
+   * The claim screen is a fallback now rather than a step, so reaching it
+   * means something went wrong that the person cannot see: a write refused, a
+   * name that would not derive, a connection that dropped. Showing them the
+   * screen with no explanation makes an unexplained failure look like the
+   * design — and leaves whoever is debugging it asking them to time a
+   * spinner, which is not a question anybody can answer.
+   */
+  provisionError: string | null
+  /**
    * May post in chat and list a venture — @thapar.edu or the owner. Mirrors
    * isThaparUser() in firestore.rules, for hiding an action rather than
    * letting someone fill in a form and eat a permission-denied.
@@ -431,6 +442,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * be picked for them is invisible.
    */
   const [provisioning, setProvisioning] = useState(false)
+  const [provisionError, setProvisionError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user?.email || profile || !profileResolved) return
@@ -450,9 +462,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return
           } catch (cause) {
             if (cause instanceof Error && cause.message === TAKEN) continue
+            const message = cause instanceof Error ? cause.message : String(cause)
+            // Logged as well as surfaced. The message shown to a student is
+            // written for a student; the console is where the whole error,
+            // Firebase code and all, stays available.
+            console.error('[ventureadda] automatic username failed', cause)
+            setProvisionError(message)
             return
           }
         }
+        setProvisionError(`Every name based on "${stem}" is already taken.`)
       } finally {
         // Always, including every failure path. Leaving this true would hang
         // the whole app on a spinner; false puts the claim screen back in
@@ -551,6 +570,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       status,
       needsUsername,
+      provisionError,
       canPost,
       thaparEmail,
       isOwner,
@@ -569,6 +589,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       status,
       needsUsername,
+      provisionError,
       canPost,
       thaparEmail,
       isOwner,

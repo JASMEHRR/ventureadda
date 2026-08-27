@@ -23,7 +23,7 @@ export default function ChooseUsername({
   reason?: string
   onDone?: () => void
 } = {}) {
-  const { user, claimUsername, signOut } = useAuth()
+  const { user, claimUsername, signOut, provisionError } = useAuth()
   const [username, setUsername] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +53,16 @@ export default function ChooseUsername({
             Pick a name first
           </span>
         </div>
+
+        {/* Only when the automatic one actually failed. Reaching this screen
+            is supposed to be rare now, and rare failures that say nothing are
+            the ones that never get reported and never get fixed. */}
+        {provisionError && (
+          <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[14px] leading-relaxed text-amber-300">
+            We normally take your name from your email address, and that did not work this time:{' '}
+            {provisionError}
+          </p>
+        )}
 
         <div>
           <h2 className="text-[21px] font-extrabold text-white">Choose a username</h2>
