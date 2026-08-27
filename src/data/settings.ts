@@ -4,7 +4,7 @@ import type { StoredImage } from './types'
 import type { MaintenanceWindow } from './maintenance'
 
 export type { MaintenanceWindow }
-export { isDown } from './maintenance'
+export { isDown, nextEdge } from './maintenance'
 
 /**
  * One global document, not one field per setting: everything here is site-wide

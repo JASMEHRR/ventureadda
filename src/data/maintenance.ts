@@ -37,3 +37,26 @@ export function isDown(maintenance: MaintenanceWindow | undefined, now = Date.no
   if (typeof from !== 'number' || typeof until !== 'number') return false
   return now >= from && now < until
 }
+
+/**
+ * The next moment the answer from `isDown` changes, or null if it never will
+ * again.
+ *
+ * Its own function because getting it wrong is invisible until a window ends
+ * and nobody comes back. Two things went wrong here the first time it was
+ * written inline, and both are covered by the test beside this file: only the
+ * *first* edge was ever scheduled, so a site that closed on time stayed closed
+ * forever; and the two candidates were sorted with a bare `.sort()`, which
+ * compares numbers as strings — harmless while both are 13-digit epochs, and a
+ * trap the day one is not.
+ */
+export function nextEdge(
+  maintenance: MaintenanceWindow | undefined,
+  now = Date.now(),
+): number | null {
+  if (!maintenance) return null
+  const { from, until } = maintenance
+  if (typeof from !== 'number' || typeof until !== 'number') return null
+  const ahead = [from, until].filter((edge) => edge > now).sort((a, b) => a - b)
+  return ahead[0] ?? null
+}

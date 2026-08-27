@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Wrench } from 'lucide-react'
 import type { ReactNode } from 'react'
 import Logo from './ui/Logo'
-import { getSiteSettings, isDown } from '../data/settings'
+import { getSiteSettings, isDown, nextEdge } from '../data/settings'
 import type { MaintenanceWindow } from '../data/settings'
 import { useAuth } from '../auth/AuthProvider'
 
@@ -34,16 +34,7 @@ import { useAuth } from '../auth/AuthProvider'
 export default function MaintenanceGate({ children }: { children: ReactNode }) {
   const { profile } = useAuth()
   const [maintenance, setMaintenance] = useState<MaintenanceWindow | undefined>()
-  /**
-   * Re-rendered on a timer so both edges land on their own.
-   *
-   * A minute is the resolution the picker offers, so a minute is the
-   * resolution worth polling at. Without it, a window that opens while
-   * somebody is reading a menu does nothing until they navigate, and — the
-   * one that actually matters — a window that closes leaves everyone who
-   * waited staring at the closed sign until they think to reload.
-   */
-  const [, setTick] = useState(0)
+  const [tick, setTick] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -55,11 +46,12 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
         // Site stays up. See the note above.
       })
 
+    // Re-read on a slow loop, because a window can be scheduled, moved or
+    // cancelled while a tab sits open, and a tab that only knows what it
+    // fetched at boot would honour a cancelled window for hours. This is the
+    // only thing the interval is for — the edges themselves are handled below,
+    // exactly rather than eventually.
     const timer = window.setInterval(() => {
-      setTick((value) => value + 1)
-      // Re-read as well as re-check: a window can be scheduled, moved or
-      // cancelled while a tab sits open, and a tab that only re-checks what it
-      // fetched at boot would honour a cancelled window for hours.
       getSiteSettings()
         .then((settings) => {
           if (!cancelled) setMaintenance(settings.maintenance)
@@ -72,6 +64,35 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       window.clearInterval(timer)
     }
   }, [])
+
+  /**
+   * Re-renders AT the next edge, rather than within a minute of it.
+   *
+   * Polling alone was wrong here and a two-minute window is what makes it
+   * obvious: a 60-second loop can leave the site open for most of a window it
+   * was told to close, and — the half that actually costs something — leave
+   * everyone who waited staring at the closed sign for up to a minute after it
+   * ended. A timeout to the exact moment costs one timer and is never late.
+   *
+   * `Math.min` against a day guards the 32-bit ceiling on setTimeout: a delay
+   * over ~24.9 days wraps around and fires immediately, which for a window
+   * scheduled a month out would close the site the moment it was saved.
+   */
+  useEffect(() => {
+    const now = Date.now()
+    const next = nextEdge(maintenance, now)
+    if (next === null) return
+    const timer = window.setTimeout(
+      () => setTick((value) => value + 1),
+      Math.min(next - now, 86_400_000),
+    )
+    return () => window.clearTimeout(timer)
+    // `tick` is a dependency, and it is the whole fix. Without it this effect
+    // runs once per window and schedules only the FIRST edge: the site closed
+    // on time and then stayed closed forever, because nothing was ever waiting
+    // for the end. Re-running after each edge schedules the one after it, and
+    // the chain stops on its own once both are in the past.
+  }, [maintenance, tick])
 
   const down = isDown(maintenance)
   if (!down) return <>{children}</>
