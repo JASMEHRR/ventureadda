@@ -77,7 +77,6 @@ export default function AppShell() {
           isSeller={canPost && profile !== null}
           isSignedIn={status === 'ready'}
           isOwner={isOwner}
-          showAdd={status !== 'ready' || canPost}
           unseenOrders={unseen.data ?? 0}
         />
 

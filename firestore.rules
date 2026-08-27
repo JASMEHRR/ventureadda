@@ -61,8 +61,35 @@ service cloud.firestore {
     // The third clause is the pre-approval list: an outside address the owner
     // has explicitly added to approvedEmails gets the same standing as a
     // Thapar one, checked by existence alone — see that collection below.
+    /**
+     * Every address on the account, not only the one it signed in with.
+     *
+     * A Thapar address added afterwards — see sendThaparLink in
+     * AuthProvider — lands in firebase.identities.email rather than in
+     * token.email, which stays whatever signed in first. Reading only
+     * token.email meant the link visibly succeeded and then every write it
+     * was meant to unlock was still refused.
+     *
+     * Indexed rather than iterated because the rules language has no map or
+     * filter. There is one email identity per account in practice; the second
+     * index costs nothing and covers an account that has linked twice.
+     */
+    function linkedEmails() {
+      return request.auth != null
+             && 'identities' in request.auth.token.firebase
+             && 'email' in request.auth.token.firebase.identities
+        ? request.auth.token.firebase.identities.email
+        : [];
+    }
+
+    function hasThaparIdentity() {
+      return (linkedEmails().size() > 0 && linkedEmails()[0].lower().matches('.*@thapar[.]edu'))
+             || (linkedEmails().size() > 1 && linkedEmails()[1].lower().matches('.*@thapar[.]edu'));
+    }
+
     function isThaparUser() {
       return isOwner()
+        || hasThaparIdentity()
         || (request.auth != null
             && request.auth.token.email != null
             && request.auth.token.email_verified == true

@@ -180,10 +180,15 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
   }
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+    /* Its own segment on the form now rather than a card nested inside the
+       Menu panel, so it takes the panel treatment every other segment has.
+       The heading rises to the brand colour and the section type scale for
+       the same reason: it is a peer of "The basics" and "Menu", not a note
+       inside one of them. */
+    <section className="liquid-glass-panel rounded-3xl p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <p className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Add items faster
           </p>
           <p className="mt-1 text-[15px] text-white/45">
@@ -318,6 +323,6 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
           {note}
         </p>
       )}
-    </div>
+    </section>
   )
 }

@@ -142,22 +142,11 @@ export default function Sidebar({
   isSeller = false,
   isSignedIn = false,
   isOwner = false,
-  showAdd = false,
   unseenOrders = 0,
 }: {
   isModerator?: boolean
   /** May list a venture, so the Orders entry is worth showing them. */
   isSeller?: boolean
-  /**
-   * Whether to offer the Add button at all.
-   *
-   * Deliberately NOT `canPost`. A signed-out visitor has no posting rights
-   * yet and must still see this — it is how a student finds out they can list
-   * something, and /add explains what is needed. Only a session that is ready
-   * and known not to qualify has it hidden, which is the same rule the top bar
-   * has always used.
-   */
-  showAdd?: boolean
   /** Has an account, so they have orders of their own to track. */
   isSignedIn?: boolean
   /** The site owner, who is the only person the design reference is for. */
@@ -231,26 +220,32 @@ export default function Sidebar({
       </nav>
 
       {/* The one action the whole site exists to encourage, so it is a filled
-          button below the nav rather than another row inside it. Hidden from
-          accounts that cannot list — a button that leads to a page turning you
-          away is worse than no button. */}
-      {showAdd && (
-        <Link
-          to="/add"
-          aria-label={collapsed ? 'Add venture' : undefined}
-          title={collapsed ? 'Add venture' : undefined}
-          className={`mt-3 flex items-center justify-center gap-2 rounded-2xl border border-brand-500/30 bg-brand-500/15 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97] ${
-            collapsed ? 'p-2.5' : 'px-4 py-2.5'
-          }`}
-        >
-          <Plus size={15} aria-hidden="true" className="shrink-0" />
-          {!collapsed && (
-            <span className="font-mono text-[14px] font-extrabold tracking-wider uppercase">
-              Add venture
-            </span>
-          )}
-        </Link>
-      )}
+          button below the nav rather than another row inside it.
+
+          SHOWN TO EVERYONE, which it was not before. It used to be hidden from
+          any signed-in account that could not list, on the reasoning that a
+          button leading to a page which turns you away is worse than no
+          button. That reasoning held only while /add was a dead end. It now
+          offers the way through — add your Thapar address to the account you
+          are already signed in with — and the person who needs that offer most
+          is exactly the one the old rule hid it from. They had no route to it
+          at all: no button here, none in the top bar, and no reason to guess
+          the URL. */}
+      <Link
+        to="/add"
+        aria-label={collapsed ? 'Add venture' : undefined}
+        title={collapsed ? 'Add venture' : undefined}
+        className={`mt-3 flex items-center justify-center gap-2 rounded-2xl border border-brand-500/30 bg-brand-500/15 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97] ${
+          collapsed ? 'p-2.5' : 'px-4 py-2.5'
+        }`}
+      >
+        <Plus size={15} aria-hidden="true" className="shrink-0" />
+        {!collapsed && (
+          <span className="font-mono text-[14px] font-extrabold tracking-wider uppercase">
+            Add venture
+          </span>
+        )}
+      </Link>
 
       {!collapsed && (
         <p className="mt-6 px-4 pb-1 font-mono text-[12.5px] tracking-[0.18em] text-white/20 uppercase">

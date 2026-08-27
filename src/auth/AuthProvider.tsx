@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
   isSignInWithEmailLink,
+  linkWithCredential,
   onAuthStateChanged,
   sendSignInLinkToEmail,
   signInWithEmailLink,
@@ -12,7 +14,7 @@ import {
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 import { doc, getDoc, onSnapshot, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore'
-import { OWNER_EMAIL, auth, db, isThaparEmail } from '../lib/firebase'
+import { ALLOWED_EMAIL_DOMAIN, OWNER_EMAIL, auth, db, isThaparEmail } from '../lib/firebase'
 import { reportError } from '../lib/errors'
 
 export type Profile = {
@@ -51,6 +53,11 @@ type AuthContextValue = {
    */
   canPost: boolean
   /**
+   * The Thapar address on this account, whether it signed in or was added
+   * afterwards. Null when there is not one.
+   */
+  thaparEmail: string | null
+  /**
    * The site owner, by address, mirroring isOwner() in firestore.rules.
    *
    * Used for chrome that exists for whoever is building this and nobody else —
@@ -62,6 +69,14 @@ type AuthContextValue = {
   isOwner: boolean
   signInWithGoogle: () => Promise<void>
   sendLink: (email: string) => Promise<void>
+  /** Mails a verification link that adds a Thapar address to this account. */
+  sendThaparLink: (email: string) => Promise<void>
+  /**
+   * Completes that: call it with the current URL on the page the link lands
+   * on. 'none' means this URL is not one of those links, which is the usual
+   * case and is not an error.
+   */
+  completeThaparLink: (href: string) => Promise<'linked' | 'none'>
   /** Returns 'needsEmail' when the link was opened in a different browser. */
   completeSignInFromLink: (href: string, fallbackEmail?: string) => Promise<'done' | 'needsEmail'>
   claimUsername: (username: string) => Promise<void>
@@ -77,6 +92,26 @@ const AuthContext = createContext<AuthContextValue | null>(null)
  * and signing in as themselves on your machine.
  */
 const EMAIL_KEY = 'ventureadda.signInEmail'
+
+/**
+ * The address waiting to be added to an already-signed-in account.
+ *
+ * Separate from EMAIL_KEY on purpose. That one means "finish signing in as
+ * this person"; this one means "prove this second address belongs to the
+ * person already here". The two links look identical to Firebase, and putting
+ * both intents in one key would leave the app guessing which of the two a
+ * returning click meant.
+ */
+const LINK_KEY = 'ventureadda.linkThaparEmail'
+
+/** Every address this account has proved it owns: the one it signed in with,
+ *  plus any linked afterwards. */
+function accountEmails(user: User | null): string[] {
+  if (!user) return []
+  return [user.email, ...user.providerData.map((entry) => entry.email)].filter(
+    (email): email is string => typeof email === 'string' && email !== '',
+  )
+}
 
 export const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,20}$/
 
@@ -224,6 +259,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(EMAIL_KEY, address)
   }, [])
 
+  /**
+   * ADDING A THAPAR ADDRESS TO AN ACCOUNT THAT DID NOT SIGN IN WITH ONE.
+   *
+   * The problem this solves: someone taps Sign in on a phone that is signed
+   * into a personal Gmail, gets an account, and then finds out that listing a
+   * venture needs an @thapar.edu address. Their only route was to sign out and
+   * start again as somebody else — losing their username, their orders and
+   * their cart — for what is the same person with a second address.
+   *
+   * The proof is the same one the site already uses for a first sign-in: a
+   * link mailed to the address, which nobody who cannot read that inbox can
+   * click. What differs is what happens on the way back — the credential is
+   * *linked* to the session that is already open rather than exchanged for a
+   * new one, so the account, the username and everything filed under it stay
+   * exactly where they were.
+   *
+   * The domain is checked here to keep the mail from being sent at all, but
+   * that check is a courtesy: firestore.rules re-derives posting rights from
+   * the identities on the token, and a client that skipped this would still
+   * be refused there.
+   */
+  const sendThaparLink = useCallback(async (email: string) => {
+    const address = email.trim().toLowerCase()
+    if (!isThaparEmail(address)) {
+      throw new Error(`Enter your @${ALLOWED_EMAIL_DOMAIN} address.`)
+    }
+    if (!auth.currentUser) throw new Error('You are not signed in.')
+    await sendSignInLinkToEmail(auth, address, {
+      // Back to the profile rather than to /signin: this person is signed in
+      // already, and the page that asked for the address is the page that
+      // should show the result.
+      url: `${window.location.origin}/profile`,
+      handleCodeInApp: true,
+    })
+    window.localStorage.setItem(LINK_KEY, address)
+  }, [])
+
+  const completeThaparLink = useCallback(async (href: string): Promise<'linked' | 'none'> => {
+    const address = window.localStorage.getItem(LINK_KEY)
+    if (!address || !isSignInWithEmailLink(auth, href)) return 'none'
+
+    const current = auth.currentUser
+    // The link only works in the browser that asked for it, because linking
+    // needs the open session to link *to*. Said plainly rather than silently
+    // doing nothing, and the pending address is kept so the same link still
+    // works when they come back to the right browser.
+    if (!current) {
+      throw new Error('Open this link in the browser where you are signed in.')
+    }
+
+    try {
+      await linkWithCredential(current, EmailAuthProvider.credentialWithLink(address, href))
+      // The identities that firestore.rules reads live in the ID token, and
+      // the one in hand was minted before the link existed. Without this
+      // refresh the next write is refused for a good half hour and the app
+      // looks broken at the exact moment it was supposed to start working.
+      await current.getIdToken(true)
+      window.localStorage.removeItem(LINK_KEY)
+      return 'linked'
+    } catch (cause) {
+      const code = (cause as { code?: string })?.code
+      window.localStorage.removeItem(LINK_KEY)
+      if (code === 'auth/credential-already-in-use' || code === 'auth/email-already-in-use') {
+        throw new Error(
+          'That address already has its own account here. Sign out and sign in with it instead.',
+        )
+      }
+      if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') {
+        throw new Error('That link has expired or has already been used. Send a new one.')
+      }
+      throw new Error(reportError('completeThaparLink', cause))
+    }
+  }, [])
+
   const completeSignInFromLink = useCallback(
     async (href: string, fallbackEmail?: string): Promise<'done' | 'needsEmail'> => {
       if (!isSignInWithEmailLink(auth, href)) return 'done'
@@ -305,7 +414,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const needsUsername = status === 'ready' && !profile
   // A pre-approved outside address gets the same posting rights a Thapar
   // address has by default — that is the entire point of approving one.
-  const canPost = status === 'ready' && (isThaparEmail(user?.email) || preApproved !== null)
+  /**
+   * Any address on the account, not only the one that signed in — that is the
+   * whole point of linking one. Mirrors isThaparUser() in firestore.rules,
+   * which reads the same set off the token.
+   */
+  const thaparEmail = accountEmails(user).find((email) => isThaparEmail(email)) ?? null
+  const canPost = status === 'ready' && (thaparEmail !== null || preApproved !== null)
   const isOwner = status === 'ready' && (user?.email ?? '').toLowerCase() === OWNER_EMAIL
 
   const value = useMemo(
@@ -315,9 +430,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       needsUsername,
       canPost,
+      thaparEmail,
       isOwner,
       signInWithGoogle,
       sendLink,
+      sendThaparLink,
+      completeThaparLink,
       completeSignInFromLink,
       claimUsername,
       signOut,
@@ -328,9 +446,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       needsUsername,
       canPost,
+      thaparEmail,
       isOwner,
       signInWithGoogle,
       sendLink,
+      sendThaparLink,
+      completeThaparLink,
       completeSignInFromLink,
       claimUsername,
       signOut,

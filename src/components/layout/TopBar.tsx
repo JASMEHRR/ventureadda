@@ -37,9 +37,7 @@ const CATEGORY_OPTIONS: SelectOption<string>[] = [
 export default function TopBar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  // Signed in on a non-Thapar address: listing is not available to them, so
-  // the button goes rather than leading to a page that turns them away.
-  const { status, canPost, profile, user } = useAuth()
+  const { status, profile, user } = useAuth()
 
   /**
    * What the account button says, and whether there is one at all.
@@ -55,7 +53,6 @@ export default function TopBar() {
    */
   const account =
     profile?.username ?? (status === 'ready' ? (user?.email?.split('@')[0] ?? null) : null)
-  const showAddVenture = status !== 'ready' || canPost
 
   /**
    * The cart lives in localStorage, so this is free — no read, no account
@@ -230,12 +227,14 @@ export default function TopBar() {
         {/* Below `md` only, same reasoning as the search field: the sidebar
             carries this action from `md` up, and two Add buttons on one screen
             is one too many. */}
-        {showAddVenture && (
-          <Button to="/add" className="hidden sm:inline-flex md:hidden">
-            <Plus size={13} aria-hidden="true" />
-            Add venture
-          </Button>
-        )}
+        {/* No longer gated on posting rights — see the note in Sidebar. The
+            responsive classes are the only thing hiding it now: from `md` up
+            the sidebar carries this action, and two Add buttons on one screen
+            is one too many. */}
+        <Button to="/add" className="hidden sm:inline-flex md:hidden">
+          <Plus size={13} aria-hidden="true" />
+          Add venture
+        </Button>
 
         <button
           type="button"

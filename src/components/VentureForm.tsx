@@ -656,6 +656,17 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           onRemove={removeSection}
         />
 
+        {/* TWO SEGMENTS, NOT ONE PANEL.
+
+            Importing and editing are different jobs with different rhythms.
+            The import tools are three buttons you use once, at the start, and
+            never look at again; the item list is the long grind you scroll
+            through for the rest of the session. Sharing a panel parked a
+            paragraph about photographing a menu permanently above the first
+            field anyone has to fill in, and left the item count sitting beside
+            a heading that covered both and described neither. */}
+        <MenuImport onAdd={addExtracted} />
+
         <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
@@ -665,8 +676,6 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
               {items.length} {items.length === 1 ? 'item' : 'items'}
             </span>
           </div>
-
-          <MenuImport onAdd={addExtracted} />
 
           {items.map((item, index) => (
             <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">

@@ -1,13 +1,136 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { ClipboardList, LogOut, Package, Settings as SettingsIcon, Shield, Store } from 'lucide-react'
+import {
+  BadgeCheck,
+  ClipboardList,
+  LogOut,
+  MailCheck,
+  Package,
+  Settings as SettingsIcon,
+  Shield,
+  Store,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import LoadingLine from '../components/ui/LoadingLine'
+import TextField from '../components/ui/TextField'
 import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { countUnseenOrders } from '../data/orders'
+import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
+
+/**
+ * Adding a Thapar address to an account that signed in with something else.
+ *
+ * WHY THIS EXISTS AT ALL. Signing in is one tap with Google, and on a phone
+ * that tap lands on whichever account is already there — which for most people
+ * is a personal Gmail. They get an account, they browse, and then the first
+ * time they try to list something they are told listing is for Thapar
+ * students. The only way through used to be signing out and starting over as
+ * somebody else: a new username, no orders, an empty cart, for what is one
+ * person with two addresses.
+ *
+ * So: prove the second address the same way the site proves the first, with a
+ * link mailed to it, and attach it to the account already open rather than
+ * trading it for a new one. Nothing about who they are changes; what they may
+ * do does.
+ *
+ * The panel disappears the moment it works, because `canPost` flips and the
+ * seller links appear in its place — which is a better confirmation than any
+ * message this could show.
+ */
+function AddThaparEmail() {
+  const { sendThaparLink, completeThaparLink } = useAuth()
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // The other half of the round trip. The mailed link comes back to this page,
+  // so this page is what finishes the job — on mount, once, before anyone is
+  // asked to do anything else.
+  useEffect(() => {
+    let cancelled = false
+    completeThaparLink(window.location.href)
+      .then((result) => {
+        if (cancelled || result === 'none') return
+        // Nothing to show on success. The link worked, canPost flips, and this
+        // whole panel is replaced by the seller links.
+        window.history.replaceState(null, '', window.location.pathname)
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'That link did not work.')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [completeThaparLink])
+
+  const send = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    setBusy(true)
+    try {
+      await sendThaparLink(email)
+      setSent(true)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not send that. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (sent) {
+    return (
+      <section className="liquid-glass-panel space-y-2 rounded-3xl p-5">
+        <div className="flex items-center gap-2.5">
+          <MailCheck size={17} className="shrink-0 text-brand-400" aria-hidden="true" />
+          <h3 className="text-[17px] font-bold text-white">Check that inbox</h3>
+        </div>
+        <p className="text-[15px] leading-relaxed text-white/50">
+          A link is on its way to {email}. Open it in this browser and your Thapar address is added
+          to this account — the same username, the same orders, listing switched on.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+      <div className="flex items-center gap-2.5">
+        <BadgeCheck size={17} className="shrink-0 text-brand-400" aria-hidden="true" />
+        <h3 className="text-[17px] font-bold text-white">List your own venture</h3>
+      </div>
+      <p className="text-[15px] leading-relaxed text-white/50">
+        Listing is for Thapar students, and this account signed in with another address. Add your
+        @{ALLOWED_EMAIL_DOMAIN} address here and keep everything you already have — you do not need
+        a second account.
+      </p>
+
+      <form onSubmit={send} className="space-y-3">
+        <TextField
+          id="thapar-email"
+          label="Your Thapar address"
+          type="email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder={`you@${ALLOWED_EMAIL_DOMAIN}`}
+        />
+        {error && (
+          <p role="alert" className="text-[14px] leading-relaxed text-red-400">
+            {error}
+          </p>
+        )}
+        <Button type="submit" variant="primary" loading={busy} disabled={email.trim() === ''}>
+          Send me the link
+        </Button>
+      </form>
+    </section>
+  )
+}
 
 /**
  * Who you are signed in as, and where everything of yours lives.
@@ -115,6 +238,10 @@ export default function Profile() {
         label="Your orders"
         detail="What you have ordered, and where each one stands"
       />
+
+      {/* Only for the accounts it is about. A Thapar account has nothing to
+          add, and a pre-approved outside one has already been let in by hand. */}
+      {!canPost && <AddThaparEmail />}
 
       {canPost && (
         <>

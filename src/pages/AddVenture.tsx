@@ -35,13 +35,23 @@ export default function AddVenture() {
         title="Listing is for Thapar students"
         className="mx-auto max-w-md"
         action={
-          <Button variant="secondary" to="/browse">
-            Back to browse
-          </Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            {/* The way out, not just the way back. This page used to be a wall:
+                it named the rule and offered browse. Adding the address to the
+                account already open is now one form on the profile, so the
+                first thing it offers is the fix. */}
+            <Button variant="primary" to="/profile">
+              Add your Thapar address
+            </Button>
+            <Button variant="secondary" to="/browse">
+              Back to browse
+            </Button>
+          </div>
         }
       >
-        Sign in with your @{ALLOWED_EMAIL_DOMAIN} account to list a venture. You can browse and
-        review with any account.
+        Listing needs an @{ALLOWED_EMAIL_DOMAIN} address, and this account signed in with another
+        one. Add yours on your profile — same account, same username — or keep browsing and
+        reviewing with any account.
       </EmptyState>
     )
   }
