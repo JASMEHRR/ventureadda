@@ -11,7 +11,8 @@ import {
   Store,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import Avatar from '../components/ui/Avatar'
+import Avatar, { AVATAR_STYLES } from '../components/ui/Avatar'
+import type { AvatarStyle } from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
 import LoadingLine from '../components/ui/LoadingLine'
 import TextField from '../components/ui/TextField'
@@ -179,6 +180,153 @@ function ProfileLink({
   )
 }
 
+/**
+ * The one thing on this account anybody gets to choose.
+ *
+ * Nobody picks their username any more — it comes off the front of their
+ * address, because on this campus that is what they would have typed anyway.
+ * That is the right trade for a name, and it does leave an account with no
+ * decision in it at all, which is why this is here. It is small on purpose:
+ * three options, no upload, nothing to moderate.
+ *
+ * Written straight through on tap rather than behind a Save. There is one
+ * field, the change is visible in the tile above it the moment it lands, and a
+ * Save button for a three-way choice is a button that exists to be forgotten.
+ */
+function AvatarPicker({ name, current }: { name: string; current: AvatarStyle }) {
+  const { setAvatar } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+
+  const labels: Record<AvatarStyle, string> = {
+    initial: 'Your initial',
+    boy: 'Boy',
+    girl: 'Girl',
+  }
+
+  return (
+    <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
+      <h3 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        Your picture
+      </h3>
+
+      <div className="flex flex-wrap gap-2.5">
+        {AVATAR_STYLES.map((style) => {
+          const active = style === current
+          return (
+            <button
+              key={style}
+              type="button"
+              aria-pressed={active}
+              aria-label={labels[style]}
+              onClick={() => {
+                setError(null)
+                void setAvatar(style).catch(() =>
+                  setError('Could not save that. Check your connection and try again.'),
+                )
+              }}
+              className={`flex flex-1 flex-col items-center gap-2 rounded-2xl border px-3 py-3 transition duration-150 active:scale-[0.97] ${
+                active
+                  ? 'border-brand-400/50 bg-brand-500/15'
+                  : 'border-white/10 bg-white/[0.03] hover:border-white/25'
+              }`}
+            >
+              <Avatar name={name} style={style} className="h-11 w-11 text-[19px]" />
+              <span
+                className={`font-mono text-[12.5px] font-bold tracking-wider uppercase ${
+                  active ? 'text-brand-300' : 'text-white/45'
+                }`}
+              >
+                {labels[style]}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {error && (
+        <p role="alert" className="text-[14px] text-red-400">
+          {error}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Renaming, for the people the derived name does not suit.
+ *
+ * The name is taken off the address now, which is right for almost everybody
+ * and wrong for the person whose address is an alias, a roll number, or their
+ * full legal name where everyone knows them as something else. It is one field
+ * behind one button rather than a step in the way of everyone.
+ *
+ * The old name is not released — see changeUsername. Worth knowing before you
+ * rename, so it is written under the field rather than left as a surprise.
+ */
+function ChangeUsername({ current }: { current: string }) {
+  const { changeUsername } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(current)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    setBusy(true)
+    try {
+      await changeUsername(draft)
+      setOpen(false)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not save that. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(current)
+          setOpen(true)
+        }}
+        className="font-mono text-[12.5px] font-bold tracking-wider text-brand-400 uppercase transition duration-150 hover:text-brand-300"
+      >
+        Change name
+      </button>
+    )
+  }
+
+  return (
+    <form onSubmit={save} className="mt-3 space-y-3">
+      <TextField
+        id="username"
+        label="Your name here"
+        hint="Letters, numbers and underscores. Your old name stays reserved to you, so nobody else can take it."
+        required
+        maxLength={20}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+      {error && (
+        <p role="alert" className="text-[14px] text-red-400">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" loading={busy} disabled={draft.trim() === ''}>
+          Save
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 export default function Profile() {
   const { profile, status, canPost, signOut } = useAuth()
 
@@ -213,11 +361,15 @@ export default function Profile() {
     <div className="mx-auto max-w-md space-y-4">
       <section className="liquid-glass-panel rounded-3xl p-5 sm:p-6">
         <div className="flex items-center gap-3.5">
-          <Avatar name={profile.username} className="h-12 w-12 text-[19px]" />
+          <Avatar name={profile.username} style={profile.avatar} className="h-12 w-12 text-[19px]" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[21px] font-extrabold text-white">{profile.username}</p>
             <p className="truncate text-[15.5px] text-white/45">{profile.email}</p>
           </div>
+        </div>
+
+        <div className="mt-3">
+          <ChangeUsername current={profile.username} />
         </div>
 
         {profile.isModerator && (
@@ -238,6 +390,8 @@ export default function Profile() {
         label="Your orders"
         detail="What you have ordered, and where each one stands"
       />
+
+      <AvatarPicker name={profile.username} current={profile.avatar} />
 
       {/* Only for the accounts it is about. A Thapar account has nothing to
           add, and a pre-approved outside one has already been let in by hand. */}

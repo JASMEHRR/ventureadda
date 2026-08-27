@@ -276,7 +276,7 @@ export default function TopBar() {
             className="rounded-full transition duration-150 active:scale-[0.94]"
             aria-label={`Profile, signed in as ${account}`}
           >
-            <Avatar name={account} />
+            <Avatar name={account} style={profile?.avatar ?? 'initial'} />
           </Link>
         ) : (
           <>

@@ -247,6 +247,29 @@ export async function listVenturesByStatus(status: VentureStatus): Promise<Ventu
   return snapshot.docs.map(toVenture)
 }
 
+/**
+ * Rewrites the seller name stored on this owner's own listings.
+ *
+ * The name is denormalised onto every venture so a directory page can show it
+ * without a read per card. That is the right trade until somebody renames
+ * themselves, at which point their listings are the one place still showing a
+ * name they have stopped using — a live shopfront, unlike a chat message or a
+ * review, which are records of something said at a time and keep the name it
+ * was said under.
+ *
+ * Best effort by design: the rename itself has already committed, and a
+ * listing carrying a stale display name for a while is a far smaller problem
+ * than a rename that fails halfway and leaves the account and its claim
+ * disagreeing.
+ */
+export async function renameVentureOwner(ownerId: string, username: string): Promise<void> {
+  const snapshot = await getDocs(query(venturesRef, where('ownerId', '==', ownerId)))
+  if (snapshot.empty) return
+  const batch = writeBatch(db)
+  for (const document of snapshot.docs) batch.update(document.ref, { ownerUsername: username })
+  await batch.commit()
+}
+
 export async function listVenturesByOwner(ownerId: string): Promise<Venture[]> {
   const snapshot = await getDocs(query(venturesRef, where('ownerId', '==', ownerId)))
   return snapshot.docs.map(toVenture)

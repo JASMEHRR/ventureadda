@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   EmailAuthProvider,
@@ -15,29 +15,22 @@ import {
 import type { User } from 'firebase/auth'
 import { doc, getDoc, onSnapshot, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { ALLOWED_EMAIL_DOMAIN, OWNER_EMAIL, auth, db, isThaparEmail } from '../lib/firebase'
+import { usernameFromEmail, withSuffix } from './username'
+import { isAvatarStyle } from '../components/ui/Avatar'
+import type { AvatarStyle } from '../components/ui/Avatar'
 import { reportError } from '../lib/errors'
+import { renameVentureOwner } from '../data/ventures'
 
 export type Profile = {
   uid: string
   email: string
   username: string
   isModerator: boolean
+  /** Which tile stands in for them. Absent on every account written before
+   *  this existed, which is what the initial has always been. */
+  avatar: AvatarStyle
 }
 
-/**
- * 'needsUsername' is gone on purpose.
- *
- * It used to sit between 'signedOut' and 'ready' and gated the entire app: no
- * username, no site. That was defensible when only Thapar students could get
- * an account. Now anyone with a Google address can sign in, and usernames are
- * permanent and can never be released — so an app-wide gate would let every
- * passer-by burn a name a classmate wanted, on the way to reading one page.
- *
- * A signed-in account with no profile is simply 'ready' with `profile: null`.
- * The name is asked for at the first action that attaches one to content —
- * posting in chat, listing a venture, leaving a review — via `needsUsername`
- * below, which is a fact about the session rather than a state of the app.
- */
 export type AuthStatus = 'loading' | 'signedOut' | 'ready'
 
 type AuthContextValue = {
@@ -80,6 +73,10 @@ type AuthContextValue = {
   /** Returns 'needsEmail' when the link was opened in a different browser. */
   completeSignInFromLink: (href: string, fallbackEmail?: string) => Promise<'done' | 'needsEmail'>
   claimUsername: (username: string) => Promise<void>
+  /** The tile that stands in for this account. Per account, not per device. */
+  setAvatar: (avatar: AvatarStyle) => Promise<void>
+  /** Renames the account. The old name stays reserved to them — see below. */
+  changeUsername: (username: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -155,7 +152,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfileResolved(true)
           return
         }
-        const stored = snapshot.data() as Profile
+        const data = snapshot.data()
+        const stored = {
+          ...(data as Profile),
+          // Absent on every account created before the picker existed, and the
+          // initial is what those have always rendered as.
+          avatar: isAvatarStyle(data.avatar) ? data.avatar : 'initial',
+        }
         // Mirrors isModerator() in firestore.rules, which grants the owner
         // moderator rights by address. The stored flag cannot carry it: the
         // users create rule forces isModerator to false for everyone, so the
@@ -388,6 +391,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Never set from the client. Flip it by hand in the Firebase
             // console; the rules forbid a user changing their own.
             isModerator: false,
+            avatar: 'initial',
             createdAt: serverTimestamp(),
           })
         })
@@ -400,6 +404,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
+
+  /**
+   * Creates the profile the first time a session turns out not to have one.
+   *
+   * This is what replaced the claim screen. It runs once per signed-in
+   * account, off the back of the profile subscription resolving empty, and
+   * takes the name from the address — see usernameFromEmail above.
+   *
+   * The ref is not a micro-optimisation. Without it, a create that loses the
+   * race for a name re-fires the snapshot, which re-runs this, which tries
+   * again: a loop that would sit there burning writes. One attempt per
+   * session, and a failure leaves `needsUsername` true, which is what still
+   * puts the manual claim screen in front of them.
+   */
+  const provisioned = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!user?.email || profile || !profileResolved) return
+    if (provisioned.current === user.uid) return
+    provisioned.current = user.uid
+
+    const stem = usernameFromEmail(user.email)
+    void (async () => {
+      // Four goes: the plain name, then numbered. Beyond that something is
+      // wrong that another attempt will not fix, and the claim screen is the
+      // honest place to end up.
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+          await claimUsername(attempt === 0 ? stem : withSuffix(stem, attempt + 1))
+          return
+        } catch (cause) {
+          if (cause instanceof Error && cause.message === TAKEN) continue
+          return
+        }
+      }
+    })()
+  }, [user, profile, profileResolved, claimUsername])
+
+  /**
+   * Changing the name the site gave you.
+   *
+   * WITHOUT RELEASING THE OLD ONE, which is the whole design. firestore.rules
+   * refuses update and delete on a username claim, and the note there says
+   * why: a released name lets the next person to take it be mistaken for
+   * whoever had it before, next to reviews and ventures that are still on the
+   * site under it. That rule does not have to move for a rename — it only
+   * means the old claim stays where it is, still pointing at the same account.
+   * You stop using a name; nobody else starts.
+   *
+   * The cost is a row per rename that nothing reads, and someone who has
+   * cycled through five names holding all five. That is a few hundred bytes
+   * against the impersonation the rule exists to stop, which is not a close
+   * call.
+   *
+   * Re-taking a name this account already owns is allowed and is the reason
+   * the transaction checks the uid rather than mere existence: changing your
+   * mind back should not be the one move that is refused.
+   */
+  const changeUsername = useCallback(async (username: string) => {
+    const current = auth.currentUser
+    if (!current) throw new Error('You are not signed in.')
+
+    const trimmed = username.trim()
+    if (!USERNAME_PATTERN.test(trimmed)) {
+      throw new Error('3 to 20 characters, letters, numbers and underscores only.')
+    }
+
+    const key = trimmed.toLowerCase()
+    try {
+      await runTransaction(db, async (tx) => {
+        const usernameRef = doc(db, 'usernames', key)
+        const existing = await tx.get(usernameRef)
+        if (existing.exists() && existing.data().uid !== current.uid) throw new Error(TAKEN)
+
+        if (!existing.exists()) tx.set(usernameRef, { uid: current.uid })
+        tx.update(doc(db, 'users', current.uid), { username: trimmed })
+      })
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === TAKEN) throw cause
+      throw new Error(reportError('changeUsername', cause))
+    }
+
+    // Their listings carry the name so a directory card needs no extra read.
+    // After the transaction, and not awaited into the failure path: the rename
+    // is already done, and a shopfront showing yesterday's name for a moment
+    // is not worth telling somebody their rename failed.
+    void renameVentureOwner(current.uid, trimmed).catch(() => {})
+  }, [])
+
+  const setAvatar = useCallback(async (avatar: AvatarStyle) => {
+    const current = auth.currentUser
+    if (!current) throw new Error('You are not signed in.')
+    try {
+      await updateDoc(doc(db, 'users', current.uid), { avatar })
+    } catch (cause) {
+      throw new Error(reportError('setAvatar', cause))
+    }
+  }, [])
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth)
@@ -438,6 +540,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeThaparLink,
       completeSignInFromLink,
       claimUsername,
+      setAvatar,
+      changeUsername,
       signOut,
     }),
     [
@@ -454,6 +558,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeThaparLink,
       completeSignInFromLink,
       claimUsername,
+      setAvatar,
+      changeUsername,
       signOut,
     ],
   )
