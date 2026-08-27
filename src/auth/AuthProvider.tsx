@@ -419,6 +419,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * puts the manual claim screen in front of them.
    */
   const provisioned = useRef<string | null>(null)
+  /**
+   * True while the profile is being created, which is a form of loading and
+   * has to be treated as one.
+   *
+   * Without this the session is 'ready' with no profile for the second or two
+   * the write takes, and every page that asks for a name — Add venture,
+   * chat, reviews — renders the claim screen in that window. Which is the one
+   * screen this whole change exists to stop showing people: they tap Add
+   * venture, get asked to pick a username, and the fact that one was about to
+   * be picked for them is invisible.
+   */
+  const [provisioning, setProvisioning] = useState(false)
 
   useEffect(() => {
     if (!user?.email || profile || !profileResolved) return
@@ -426,18 +438,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     provisioned.current = user.uid
 
     const stem = usernameFromEmail(user.email)
+    setProvisioning(true)
     void (async () => {
       // Four goes: the plain name, then numbered. Beyond that something is
       // wrong that another attempt will not fix, and the claim screen is the
       // honest place to end up.
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        try {
-          await claimUsername(attempt === 0 ? stem : withSuffix(stem, attempt + 1))
-          return
-        } catch (cause) {
-          if (cause instanceof Error && cause.message === TAKEN) continue
-          return
+      try {
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          try {
+            await claimUsername(attempt === 0 ? stem : withSuffix(stem, attempt + 1))
+            return
+          } catch (cause) {
+            if (cause instanceof Error && cause.message === TAKEN) continue
+            return
+          }
         }
+      } finally {
+        // Always, including every failure path. Leaving this true would hang
+        // the whole app on a spinner; false puts the claim screen back in
+        // front of them, which is the fallback working as intended.
+        setProvisioning(false)
       }
     })()
   }, [user, profile, profileResolved, claimUsername])
@@ -507,7 +527,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth)
   }, [])
 
-  const status: AuthStatus = !authResolved || (user && !profileResolved)
+  const status: AuthStatus = !authResolved || (user && !profileResolved) || provisioning
     ? 'loading'
     : !user
       ? 'signedOut'
