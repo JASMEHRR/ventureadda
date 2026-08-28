@@ -126,3 +126,35 @@ export async function deleteUserAccount(idToken: string, uid: string): Promise<v
   }
   throw new Error(body.error ?? 'Could not remove that account.')
 }
+
+/**
+ * The account a listing will belong to, found or created from an address.
+ *
+ * For a moderator listing on somebody else's behalf: the venture is filed
+ * against them from the start, so it is theirs before they have opened the
+ * site, and the day they sign in with Google on that address it is waiting for
+ * them. See api/account-for for why no password is set and no mail is sent.
+ */
+export async function accountForEmail(
+  idToken: string,
+  email: string,
+): Promise<{ uid: string; username: string }> {
+  const response = await fetch('/api/account-for', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ idToken, email }),
+  })
+  const body = (await response.json().catch(() => ({}))) as {
+    uid?: string
+    username?: string
+    error?: string
+    code?: string
+  }
+  if (!response.ok || !body.uid || !body.username) {
+    if (body.code === 'not-configured') {
+      throw new Error('Listing for somebody else is not switched on for this deployment.')
+    }
+    throw new Error(body.error ?? 'Could not find or create that account.')
+  }
+  return { uid: body.uid, username: body.username }
+}
