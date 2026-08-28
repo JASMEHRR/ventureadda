@@ -41,6 +41,9 @@ export default function MobileNav({
           <NavLink
             key={item.to}
             to={item.to}
+            // Same names the sidebar rows carry, so the walkthrough can point
+            // at whichever of the two is on screen at this width.
+            data-tour={item.to.replace(/^\//, '') || 'browse'}
             end={item.to === '/'}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 transition duration-150 active:scale-[0.94] ${

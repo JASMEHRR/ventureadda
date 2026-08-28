@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, Compass, X } from 'lucide-react'
 import Button from './ui/Button'
+import { useAuth } from '../auth/AuthProvider'
 
 /**
  * A guided tour of the actual interface, pointing at the actual controls.
@@ -36,54 +37,84 @@ type Step = {
   body: string
   /** Go here first, when the control only exists on one page. */
   path?: string
+  /**
+   * Skip this step entirely when nobody is signed in.
+   *
+   * Not cosmetic: /my-orders and /settings bounce a signed-out visitor to
+   * /signin, so a tour that walked through them dumped a first-time browser on
+   * a sign-in page and then narrated the rest of the site from there. Browsing
+   * needs no account, and the tour has to hold that line too.
+   */
+  requiresAccount?: boolean
 }
 
 const STEPS: Step[] = [
   {
-    target: 'search',
+    target: 'browse',
     path: '/browse',
-    title: 'Search finds items, not just shops',
-    body: 'Type "brownie" and you get the brownie itself — the price, and who is selling it — rather than a shop you then have to dig through. On a phone it hides behind the magnifier to save the space.',
+    title: 'Browse',
+    body: 'Every venture on campus, in one list.',
+  },
+  {
+    target: 'search',
+    title: 'Search',
+    body: 'Finds items, not just shops. Type "brownie", get the brownie.',
   },
   {
     target: 'category',
-    title: 'Narrow it to one kind of thing',
-    body: 'Food, fashion, art, printing and the rest. It sets the filter for the whole directory, and it shows in the address bar so a filtered list is something you can send to somebody.',
+    title: 'Filter',
+    body: 'Narrow it to food, fashion, art, printing and the rest.',
   },
   {
     target: 'sort',
-    title: 'Order the directory how you like',
-    body: 'By category, A to Z, most opened, or best rated. Sorting is remembered in the link too, so what you send is what they see.',
+    title: 'Sort',
+    body: 'A to Z, most opened, or best rated.',
   },
   {
     target: 'venture-card',
-    title: 'Every listing is a real student',
-    body: 'The photos swipe, the stars are from reviews left here, and the whole card opens their menu. Nothing on this site is a shop — it is somebody in your year who makes the thing.',
+    title: 'A listing',
+    body: 'Tap any card to open that seller and their menu.',
   },
   {
     target: 'cart',
-    title: 'Your cart can hold several sellers at once',
-    body: 'Add from as many ventures as you like; it splits itself by seller at checkout and survives you closing the tab. Nothing is reserved and nothing is charged.',
+    path: '/cart',
+    title: 'Cart',
+    body: 'Holds items from several sellers at once, and survives a closed tab.',
   },
   {
     target: 'chat',
-    title: 'The campus chat',
-    body: 'One room for the whole campus — asking who sells what, when somebody is open, that sort of thing. Posting needs a Thapar address.',
+    path: '/chat',
+    title: 'Campus chat',
+    body: 'One room for asking who sells what.',
+  },
+  {
+    target: 'my-orders',
+    path: '/my-orders',
+    requiresAccount: true,
+    title: 'Your orders',
+    body: 'What you have ordered, and where each one stands.',
   },
   {
     target: 'add-venture',
-    title: 'Selling something? List it',
-    body: 'A listing takes a name, your hours, a WhatsApp number and your items. It goes to a moderator first, and it is live once they approve it. You need a Thapar address to post — you can add one to your account later if you signed in with something else.',
+    title: 'List your own',
+    body: 'Sell something? A moderator approves it, then it is live.',
   },
   {
     target: 'theme',
-    title: 'Day and night',
-    body: 'The whole site flips between a dark and a light look. It follows your phone by default; this overrules it. More of these live in Settings.',
+    title: 'Day or night',
+    body: 'Flips the whole site. Follows your phone until you say otherwise.',
+  },
+  {
+    target: 'settings',
+    path: '/settings',
+    requiresAccount: true,
+    title: 'Settings',
+    body: 'Panel solidity, blur, notifications — this device only.',
   },
   {
     target: 'account',
-    title: 'Everything of yours lives here',
-    body: 'Your orders, the orders people place with you, your listings, and your settings. Browsing needs no account at all — you only need one to order or review.',
+    title: 'You',
+    body: 'Orders, listings and sign-out live here. Browsing needs no account.',
   },
 ]
 
@@ -97,6 +128,7 @@ function findTarget(name: string): HTMLElement | null {
 type Box = { top: number; left: number; width: number; height: number }
 
 export default function Walkthrough() {
+  const { status } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -104,6 +136,8 @@ export default function Walkthrough() {
   const [step, setStep] = useState(0)
   const [box, setBox] = useState<Box | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+  /** Measured, not guessed — see the placement note below. */
+  const [cardSize, setCardSize] = useState({ width: 340, height: 170 })
 
   useEffect(() => {
     let seen = true
@@ -135,7 +169,10 @@ export default function Walkthrough() {
     setBox(null)
   }, [])
 
-  const current = mode === 'touring' ? STEPS[step] : null
+  // The steps this visitor can actually be shown, resolved once per render so
+  // the counter reads "3 of 10" rather than counting steps that get skipped.
+  const steps = STEPS.filter((item) => !item.requiresAccount || status === 'ready')
+  const current = mode === 'touring' ? steps[step] : null
 
   // Navigate first when a step lives on a particular page — the control cannot
   // be pointed at from a page that does not render it.
@@ -164,7 +201,7 @@ export default function Walkthrough() {
         tries += 1
         if (tries > 20) {
           // Skip forward, or end if this was the last one.
-          if (step < STEPS.length - 1) setStep(step + 1)
+          if (step < steps.length - 1) setStep(step + 1)
           else finish()
           return
         }
@@ -238,17 +275,54 @@ export default function Walkthrough() {
   }
 
   if (!current) return null
-  const last = step === STEPS.length - 1
+  const last = step === steps.length - 1
 
   /**
-   * The card goes under the highlight when there is room beneath it, and over
-   * it when there is not — a card that covers the very control it is pointing
-   * at is the one thing this must never do.
+   * Where the card goes, and the rule it must never break: it cannot cover the
+   * control it is pointing at.
+   *
+   * The first version guessed a fixed 210px height and only ever tried below
+   * then above. With a step whose target sat low on a laptop, both guesses
+   * were wrong and the card landed squarely on top of the highlighted button —
+   * a tour pointing at something you cannot see. Now the card is measured
+   * after it renders, four positions are tried in order of preference, and the
+   * first one that both fits on screen and misses the target wins.
    */
-  const CARD_HEIGHT = 210
-  const below = box ? box.top + box.height + 12 : 120
-  const fitsBelow = box ? below + CARD_HEIGHT < window.innerHeight : true
-  const cardTop = box ? (fitsBelow ? below : Math.max(12, box.top - CARD_HEIGHT - 12)) : 120
+  const GAP = 12
+  const place = (): { top: number; left: number } => {
+    if (!box) return { top: 120, left: 12 }
+    const { width, height } = cardSize
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const clampX = (x: number) => Math.max(GAP, Math.min(x, vw - width - GAP))
+    const clampY = (y: number) => Math.max(GAP, Math.min(y, vh - height - GAP))
+
+    const candidates = [
+      // Under it, aligned to its left edge — the usual answer.
+      { top: box.top + box.height + GAP, left: clampX(box.left) },
+      // Over it.
+      { top: box.top - height - GAP, left: clampX(box.left) },
+      // Beside it, for a target that is tall or sits mid-screen.
+      { top: clampY(box.top), left: box.left + box.width + GAP },
+      { top: clampY(box.top), left: box.left - width - GAP },
+    ]
+
+    const onScreen = (c: { top: number; left: number }) =>
+      c.top >= GAP && c.left >= GAP && c.top + height <= vh - GAP && c.left + width <= vw - GAP
+
+    const clears = (c: { top: number; left: number }) =>
+      c.left + width < box.left ||
+      c.left > box.left + box.width ||
+      c.top + height < box.top ||
+      c.top > box.top + box.height
+
+    return (
+      candidates.find((c) => onScreen(c) && clears(c)) ??
+      candidates.find(onScreen) ?? { top: clampY(box.top + box.height + GAP), left: clampX(box.left) }
+    )
+  }
+
+  const position = place()
 
   return (
     <>
@@ -272,24 +346,28 @@ export default function Walkthrough() {
       )}
 
       <div
-        ref={cardRef}
+        ref={(node) => {
+          cardRef.current = node
+          if (!node) return
+          const rect = node.getBoundingClientRect()
+          // Only on a real change, or this sets state on every render and
+          // React quite rightly complains about the loop.
+          if (
+            Math.abs(rect.width - cardSize.width) > 1 ||
+            Math.abs(rect.height - cardSize.height) > 1
+          ) {
+            setCardSize({ width: rect.width, height: rect.height })
+          }
+        }}
         role="dialog"
         aria-label={current.title}
         className="liquid-glass-highlight fixed z-50 mx-auto max-w-sm rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
-        style={{
-          top: cardTop,
-          // Clamped so the card never hangs off either edge on a phone, and
-          // never drifts miles from its target on a wide screen.
-          left: box
-            ? Math.max(12, Math.min(box.left, window.innerWidth - 384 - 12))
-            : 12,
-          right: box ? undefined : 12,
-        }}
+        style={{ top: position.top, left: position.left }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-[12px] font-extrabold tracking-[0.18em] text-brand-400 uppercase">
-              {step + 1} of {STEPS.length}
+              {step + 1} of {steps.length}
             </p>
             <h2 className="mt-1.5 text-[17px] leading-tight font-extrabold text-white">
               {current.title}
