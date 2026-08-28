@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Moon, Plus, Search, ShoppingCart, Sun, UserRound, X } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
@@ -8,7 +8,6 @@ import Select from '../ui/Select'
 import type { SelectOption } from '../ui/Select'
 import { CATEGORIES } from '../../data/types'
 import { cartCount, useCart } from '../../data/cart'
-import { pageTitle } from '../../navigation'
 import { useShellSearch } from './useShellSearch'
 import { useAuth } from '../../auth/AuthProvider'
 import { resolveTheme, useAppearance } from '../../lib/appearance'
@@ -36,7 +35,6 @@ const CATEGORY_OPTIONS: SelectOption<string>[] = [
  */
 export default function TopBar() {
   const navigate = useNavigate()
-  const { pathname } = useLocation()
   const { status, profile, user } = useAuth()
 
   /**
@@ -157,13 +155,12 @@ export default function TopBar() {
         All
       </Button>
 
-      {/* What the top bar says now that search and Add have moved into the
-          sidebar: where you are. From `md` up only, because below that the
-          search field needs the row and the bottom bar already shows the
-          current section. */}
-      <span className="hidden min-w-0 truncate font-mono text-[14px] font-extrabold tracking-[0.18em] text-white/45 uppercase md:inline">
-        {pageTitle(pathname)}
-      </span>
+      {/* THE PAGE TITLE USED TO SIT HERE and has been dropped. It said
+          "BROWSE VENTURES" next to a sidebar row already highlighted "Browse",
+          above a page whose own heading says the same thing a third time — and
+          it cost ~150px of the one row that has to hold search, the filter,
+          the cart and the account tile. Three ways of saying where you are is
+          two too many, and this was the one nobody reads. */}
 
       <Select
         label="Category"

@@ -81,7 +81,17 @@ export default function AtmosphereBackdrop() {
       */}
       <div
         className="absolute inset-0 opacity-[var(--backdrop-wash)]"
-        style={{ background: '#eef2f8' }}
+        style={{
+          // A GRADIENT, NOT A FLAT SHEET. At 86% white over a starfield the
+          // page read as a blank white screen with faint dots on it — the
+          // stars survived the wash better than anything else in the photo and
+          // came through as snow. Taking the wash higher and giving it a
+          // gentle diagonal shift replaces the photograph in day mode with
+          // something that looks like a chosen background rather than a night
+          // sky somebody bleached: no dots, and still enough tonal movement
+          // for the glass panels to have something to sit on.
+          background: 'linear-gradient(160deg, #f4f7fb 0%, #e6edf7 45%, #dde8f6 100%)',
+        }}
       />
     </div>
   )
