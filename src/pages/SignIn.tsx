@@ -43,11 +43,18 @@ function errorMessage(cause: unknown): string {
         return 'Too many attempts. Wait a few minutes and try again.'
       case 'auth/network-request-failed':
         return 'Could not reach Firebase. Check your connection and try again.'
+      // ONE MESSAGE FOR BOTH, because Firebase gives one code for both. With
+      // email-enumeration protection on — it is, by default, and it is what
+      // stops strangers probing this form for who has an account — a wrong
+      // password and an address that has never set one come back identically
+      // as `auth/invalid-credential`. Saying "that password does not match"
+      // was therefore a guess, and the wrong one for anybody who has not set a
+      // password yet: it told them they had typed it wrong when they had
+      // nothing to type.
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
-        return 'That password does not match this address.'
       case 'auth/user-not-found':
-        return 'No account for that address yet. Use the link below to make one.'
+        return 'That did not work. If you have not set a password yet, get a link below instead.'
       case 'auth/weak-password':
         return 'Use at least 8 characters.'
       case 'auth/account-exists-with-different-credential':
@@ -379,14 +386,25 @@ export default function SignIn() {
             </Button>
           </form>
 
-          {/* The way in for anybody who has not set one — a first-time account,
-              or somebody who has forgotten it. The same link either way: it
-              proves the address, signs them in, and offers a new password at
-              the end. */}
-          <Button variant="secondary" className="w-full" loading={busy} onClick={() => void emailLink()}>
-            <Mail size={13} aria-hidden="true" />
-            No password yet, or forgotten it — email me a link
-          </Button>
+          {/* The way in for anybody who has not set one — a first-time
+              account, or somebody who has forgotten it. The same link either
+              way: it proves the address, signs them in, and offers a password
+              at the end.
+
+              The explanation is a sentence and the control is three words.
+              Both used to be crammed into the button, which wrapped onto two
+              lines and read like a paragraph somebody had drawn a border
+              around. A button says what it does; the reason it exists goes
+              above it. */}
+          <div className="border-t border-white/8 pt-4 text-center">
+            <p className="text-[14.5px] leading-relaxed text-white/45">
+              No password yet, or forgotten it?
+            </p>
+            <Button variant="secondary" className="mt-2.5" loading={busy} onClick={() => void emailLink()}>
+              <Mail size={13} aria-hidden="true" />
+              Email me a link
+            </Button>
+          </div>
 
           <button
             type="button"

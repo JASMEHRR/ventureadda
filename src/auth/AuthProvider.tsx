@@ -145,6 +145,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * moderator grant below — both live here already.
    */
   const [preApproved, setPreApproved] = useState<{ moderator: boolean } | null>(null)
+  /**
+   * Bumped when something grants an approval mid-session, to re-run the read
+   * below.
+   *
+   * That read is a one-off per account, which was right while approvals only
+   * ever appeared before somebody signed in. Verifying a Thapar address now
+   * creates one while they are sitting on the page — and without this, the
+   * verification would visibly succeed and posting stay switched off until
+   * they thought to reload, which is exactly the "it says it worked but it
+   * did not" the whole feature exists to avoid.
+   */
+  const [approvalNonce, setApprovalNonce] = useState(0)
 
   useEffect(() => {
     return onAuthStateChanged(auth, (next) => {
@@ -222,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, approvalNonce])
 
   // Applies a moderator pre-approval the moment both pieces are in: the
   // profile document exists (claimUsername has run) and the pre-approval
@@ -317,41 +329,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(LINK_KEY, address)
   }, [])
 
+  /**
+   * Finishes adding a Thapar address, by asking the server to check the proof.
+   *
+   * WHY THE SERVER. Linking the credential here, in the browser, proved the
+   * address to the *user* and to nobody else — the rules cannot see the
+   * difference between an address whose inbox was opened and one typed into
+   * `EmailAuthProvider.credential()` with a made-up password. That is why the
+   * rule reading linked identities had to be removed: with the Email/Password
+   * provider enabled, it was a self-service grant of posting rights.
+   *
+   * So the oobCode goes to api/verify-thapar instead, which spends it against
+   * Google's identity toolkit. A 200 there means the code was genuine,
+   * unexpired, unspent and minted for that exact address — proof established
+   * by someone other than the person claiming it. The server then writes the
+   * approval the rules already trust.
+   *
+   * The credential is deliberately NOT linked to the account any more. It
+   * bought nothing once the rule was gone, and linking a password provider for
+   * an address the account does not sign in with is a second way in that
+   * nobody asked for.
+   */
   const completeThaparLink = useCallback(async (href: string): Promise<'linked' | 'none'> => {
     const address = window.localStorage.getItem(LINK_KEY)
     if (!address || !isSignInWithEmailLink(auth, href)) return 'none'
 
     const current = auth.currentUser
-    // The link only works in the browser that asked for it, because linking
-    // needs the open session to link *to*. Said plainly rather than silently
-    // doing nothing, and the pending address is kept so the same link still
-    // works when they come back to the right browser.
+    // The link only works in the browser that asked for it: the grant attaches
+    // to the session it was requested from, and there is no session here to
+    // attach it to. The pending address is kept, so the same link still works
+    // when they come back to the right browser.
     if (!current) {
       throw new Error('Open this link in the browser where you are signed in.')
     }
 
-    try {
-      await linkWithCredential(current, EmailAuthProvider.credentialWithLink(address, href))
-      // The identities that firestore.rules reads live in the ID token, and
-      // the one in hand was minted before the link existed. Without this
-      // refresh the next write is refused for a good half hour and the app
-      // looks broken at the exact moment it was supposed to start working.
-      await current.getIdToken(true)
-      window.localStorage.removeItem(LINK_KEY)
-      return 'linked'
-    } catch (cause) {
-      const code = (cause as { code?: string })?.code
-      window.localStorage.removeItem(LINK_KEY)
-      if (code === 'auth/credential-already-in-use' || code === 'auth/email-already-in-use') {
+    // Straight out of the URL rather than from the SDK: the endpoint needs the
+    // raw code, and this is the same parameter signInWithEmailLink reads.
+    const oobCode = new URL(href).searchParams.get('oobCode')
+    if (!oobCode) throw new Error('That link is missing its code. Send a new one.')
+
+    const response = await fetch('/api/verify-thapar', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        idToken: await current.getIdToken(),
+        email: address,
+        oobCode,
+      }),
+    })
+
+    window.localStorage.removeItem(LINK_KEY)
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string }
+      if (body.code === 'not-configured') {
         throw new Error(
-          'That address already has its own account here. Sign out and sign in with it instead.',
+          'Address checking is not switched on for this site yet. Ask a moderator to approve you instead.',
         )
       }
-      if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') {
-        throw new Error('That link has expired or has already been used. Send a new one.')
-      }
-      throw new Error(reportError('completeThaparLink', cause))
+      throw new Error(body.error ?? 'That link could not be checked. Send a new one.')
     }
+
+    // The grant is a document the rules read on every write, not a claim in
+    // the token, so there is no token to refresh. The client's own copy of it
+    // does need re-reading, though, or the page keeps saying you cannot post.
+    setApprovalNonce((value) => value + 1)
+    return 'linked'
   }, [])
 
   const completeSignInFromLink = useCallback(
