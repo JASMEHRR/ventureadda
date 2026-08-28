@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import {
   EmailAuthProvider,
   GoogleAuthProvider,
+  linkWithPopup,
   isSignInWithEmailLink,
   linkWithCredential,
   signInWithCustomToken,
@@ -83,6 +84,11 @@ type AuthContextValue = {
   sendLink: (email: string, challenge?: string) => Promise<void>
   /** Mails a verification link that adds a Thapar address to this account. */
   sendThaparLink: (email: string) => Promise<void>
+  /**
+   * Adds a Thapar address by linking its Google account — no mail, nothing to
+   * expire, and the proof comes from Google.
+   */
+  linkThaparGoogle: () => Promise<void>
   /**
    * Completes that: call it with the current URL on the page the link lands
    * on. 'none' means this URL is not one of those links, which is the usual
@@ -365,6 +371,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * an address the account does not sign in with is a second way in that
    * nobody asked for.
    */
+  /**
+   * THE ROUTE THAT SENDS NO MAIL, and the one to prefer.
+   *
+   * Thapar runs on Google Workspace, so a student's @thapar.edu address IS a
+   * Google account. Linking it proves ownership through Google itself: no
+   * sign-in link, nothing spent from a mail quota that runs out, nothing to
+   * open on another device. The popup asks which account, they pick their
+   * Thapar one, and it is attached to the account they already have — same
+   * username, same orders, same cart.
+   *
+   * The grant still comes from the server. A linked identity is invisible to
+   * the security rules — `firebase.identities.email` cannot say which provider
+   * an address came from, which is what made the old rule unsafe — so
+   * api/verify-thapar reads the per-provider detail from the Admin API and
+   * writes the approval itself. Nothing the browser says is trusted; the
+   * answer comes from Google's record of the account.
+   *
+   * `auth/credential-already-in-use` means that Google account is already its
+   * own account here. Said plainly, because the fix is to sign in as it rather
+   * than to try again.
+   */
+  const linkThaparGoogle = useCallback(async () => {
+    const current = auth.currentUser
+    if (!current) throw new Error('You are not signed in.')
+
+    const provider = new GoogleAuthProvider()
+    // Always ask which account. Without this it silently links whichever
+    // Google account the browser is already in — which on a shared machine, or
+    // on a phone signed into a personal account, is the wrong one.
+    provider.setCustomParameters({ prompt: 'select_account' })
+
+    try {
+      await linkWithPopup(current, provider)
+    } catch (cause) {
+      const code = (cause as { code?: string })?.code
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return
+      if (code === 'auth/credential-already-in-use' || code === 'auth/email-already-in-use') {
+        throw new Error(
+          'That Google account already has its own account here. Sign out and sign in with it instead.',
+        )
+      }
+      if (code === 'auth/provider-already-linked') {
+        // Already attached — fall through and let the server confirm it, which
+        // is the right answer for somebody re-running this after a failure.
+      } else {
+        throw new Error(reportError('linkThaparGoogle', cause))
+      }
+    }
+
+    const response = await fetch('/api/verify-thapar', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken: await current.getIdToken(true), mode: 'google' }),
+    })
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string }
+      if (body.code === 'not-configured') {
+        throw new Error('Address checking is not switched on here yet. Ask a moderator to approve you.')
+      }
+      throw new Error(body.error ?? 'That account could not be checked.')
+    }
+
+    setApprovalNonce((value) => value + 1)
+  }, [])
+
   const completeThaparLink = useCallback(async (href: string): Promise<'linked' | 'none'> => {
     const address = window.localStorage.getItem(LINK_KEY)
     if (!address || !isSignInWithEmailLink(auth, href)) return 'none'
@@ -719,6 +791,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       sendLink,
       sendThaparLink,
+      linkThaparGoogle,
       completeThaparLink,
       completeSignInFromLink,
       claimUsername,
@@ -743,6 +816,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       sendLink,
       sendThaparLink,
+      linkThaparGoogle,
       completeThaparLink,
       completeSignInFromLink,
       claimUsername,

@@ -37,13 +37,13 @@ import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
  * trading it for a new one. Nothing about who they are changes; what they may
  * do does.
  *
- * The panel disappears the moment it works, because `canPost` flips and the
- * seller links appear in its place — which is a better confirmation than any
- * message this could show.
+ * The panel disappears the moment it works, because `canChat` flips — which
+ * is a better confirmation than any message this could show.
  */
 function AddThaparEmail() {
-  const { sendThaparLink, completeThaparLink } = useAuth()
+  const { sendThaparLink, completeThaparLink, linkThaparGoogle } = useAuth()
   const [email, setEmail] = useState('')
+  const [googleBusy, setGoogleBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -101,13 +101,44 @@ function AddThaparEmail() {
     <section className="liquid-glass-panel space-y-3 rounded-3xl p-5">
       <div className="flex items-center gap-2.5">
         <BadgeCheck size={17} className="shrink-0 text-brand-400" aria-hidden="true" />
-        <h3 className="text-[17px] font-bold text-white">List your own venture</h3>
+        <h3 className="text-[17px] font-bold text-white">Add your Thapar account</h3>
       </div>
       <p className="text-[15px] leading-relaxed text-white/50">
-        Listing is for Thapar students, and this account signed in with another address. Add your
-        @{ALLOWED_EMAIL_DOMAIN} address here and keep everything you already have — you do not need
-        a second account.
+        Chat is for Thapar students, and this account signed in with another address. Your
+        @{ALLOWED_EMAIL_DOMAIN} address is a Google account — sign in with it here and it attaches
+        to this one, so you keep your username, your orders and your cart.
       </p>
+
+      {/* THE ROUTE THAT SENDS NO MAIL, offered first because it is better in
+          every way. Thapar runs on Google Workspace, so the @thapar.edu
+          address IS a Google account: one popup, proof from Google, nothing
+          to open in an inbox and nothing spent from a mail quota that runs
+          out. The email route below stays for anyone whose Thapar account is
+          not reachable this way. */}
+      <Button
+        variant="primary"
+        className="w-full"
+        loading={googleBusy}
+        onClick={() => {
+          setError(null)
+          setGoogleBusy(true)
+          void linkThaparGoogle()
+            .catch((cause: unknown) =>
+              setError(cause instanceof Error ? cause.message : 'That did not work.'),
+            )
+            .finally(() => setGoogleBusy(false))
+        }}
+      >
+        Use my Thapar Google account
+      </Button>
+
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-white/10" />
+        <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+          or
+        </span>
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
 
       <form onSubmit={send} className="space-y-3">
         <TextField
@@ -266,7 +297,7 @@ function ChangeUsername({ current }: { current: string }) {
 }
 
 export default function Profile() {
-  const { profile, status, canPost, signOut } = useAuth()
+  const { profile, status, canPost, canChat, signOut } = useAuth()
 
   const unseen = useAsyncData(
     () => (profile && canPost ? countUnseenOrders(profile.uid) : Promise.resolve(0)),
@@ -331,7 +362,10 @@ export default function Profile() {
 
       {/* Only for the accounts it is about. A Thapar account has nothing to
           add, and a pre-approved outside one has already been let in by hand. */}
-      {!canPost && <AddThaparEmail />}
+      {/* Keyed on canChat, not canPost. Listing opened up to every account, so
+          canPost is true for everybody now and this panel would never appear —
+          but chat still wants a Thapar address, which is what it is for. */}
+      {!canChat && <AddThaparEmail />}
 
       {canPost && (
         <>

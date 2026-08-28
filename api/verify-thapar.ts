@@ -45,6 +45,8 @@ import { verifyFirebaseToken } from '../server/verifyToken'
 export const config = { runtime: 'edge' }
 
 const FIRESTORE_SCOPE = 'https://www.googleapis.com/auth/datastore'
+const IDENTITY_SCOPE =
+  'https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/firebase'
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -80,6 +82,54 @@ async function verifyEmailLink(
   if (!response.ok) return null
   const body = (await response.json()) as { email?: string }
   return typeof body.email === 'string' ? body.email.toLowerCase() : null
+}
+
+/**
+ * The Thapar address on a GOOGLE identity attached to this account, if there
+ * is one.
+ *
+ * WHY THIS IS THE BEST PROOF AVAILABLE, and why it needs a server. Thapar runs
+ * on Google Workspace, so a student's @thapar.edu address IS a Google account:
+ * signing in with it, or linking it to an account they already have, proves
+ * ownership through Google with no mail sent and nothing to run out. What the
+ * security rules cannot do is tell that identity apart from an unverified one
+ * — `firebase.identities.email` in the token lumps every provider's address
+ * together, which is exactly why the rule reading it had to be removed once
+ * password sign-in existed.
+ *
+ * The Admin lookup does have that detail: `providerUserInfo` lists each
+ * provider separately, with the address it carries. So this looks only at
+ * entries whose providerId is google.com. A password credential for the same
+ * address — the thing anyone could add from a browser console — is a
+ * different provider and is ignored.
+ */
+async function thaparGoogleIdentity(
+  account: ServiceAccount,
+  token: string,
+  uid: string,
+  domain: string,
+): Promise<string | null> {
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/projects/${account.project_id}/accounts:lookup`,
+    {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ localId: [uid] }),
+    },
+  )
+  if (!response.ok) return null
+
+  const body = (await response.json()) as {
+    users?: { providerUserInfo?: { providerId?: string; email?: string }[] }[]
+  }
+  const providers = body.users?.[0]?.providerUserInfo ?? []
+  const match = providers.find(
+    (entry) =>
+      entry.providerId === 'google.com' &&
+      typeof entry.email === 'string' &&
+      entry.email.toLowerCase().endsWith(`@${domain}`),
+  )
+  return match?.email?.toLowerCase() ?? null
 }
 
 async function grantPostingRights(
@@ -135,16 +185,17 @@ export default async function handler(request: Request): Promise<Response> {
 
   const allowedDomain = process.env.VITE_ALLOWED_EMAIL_DOMAIN ?? 'thapar.edu'
 
-  let payload: { idToken?: string; email?: string; oobCode?: string }
+  let payload: { idToken?: string; email?: string; oobCode?: string; mode?: string }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
     return json({ error: 'Malformed request.' }, 400)
   }
 
-  const { idToken, email, oobCode } = payload
-  if (!idToken || !email || !oobCode) {
-    return json({ error: 'Missing token, address or code.' }, 400)
+  const { idToken, email, oobCode, mode } = payload
+  if (!idToken) return json({ error: 'Not signed in.' }, 400)
+  if (mode !== 'google' && (!email || !oobCode)) {
+    return json({ error: 'Missing address or code.' }, 400)
   }
 
   // Who is asking. Any verified account may ask — the whole point is that they
@@ -159,13 +210,46 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ error: cause instanceof Error ? cause.message : 'Not signed in.' }, 401)
   }
 
-  const target = email.trim().toLowerCase()
+  /**
+   * The Google route: no address typed, no mail sent, nothing to expire.
+   *
+   * The caller has just linked their Thapar Google account in the browser;
+   * this checks that it really is attached to their Firebase user and really
+   * is on the right domain, using provider detail the security rules cannot
+   * see. Everything the client claims is ignored — the answer comes from
+   * Google's own record of the account.
+   */
+  if (mode === 'google') {
+    const identityToken = await getAccessToken(account, IDENTITY_SCOPE)
+    const found = await thaparGoogleIdentity(account, identityToken, caller.uid, allowedDomain)
+    if (!found) {
+      return json(
+        {
+          error: `No @${allowedDomain} Google account is linked to this sign-in yet.`,
+          code: 'not-linked',
+        },
+        403,
+      )
+    }
+
+    const firestoreToken = await getAccessToken(account, FIRESTORE_SCOPE)
+    const ok = await grantPostingRights(
+      account,
+      firestoreToken,
+      caller.email.toLowerCase(),
+      found,
+    )
+    if (!ok) return json({ error: 'Could not record the approval. Try again.' }, 502)
+    return json({ ok: true, verified: found }, 200)
+  }
+
+  const target = (email ?? '').trim().toLowerCase()
   if (!target.endsWith(`@${allowedDomain}`)) {
     return json({ error: `That is not an @${allowedDomain} address.` }, 400)
   }
 
   // The proof. Everything above this line is the caller's own claim.
-  const verified = await verifyEmailLink(apiKey, target, oobCode)
+  const verified = await verifyEmailLink(apiKey, target, oobCode ?? '')
   if (verified !== target) {
     return json(
       { error: 'That link is expired, already used, or was not sent to this address.' },
