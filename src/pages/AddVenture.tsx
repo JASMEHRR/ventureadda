@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { ClipboardCheck, ShieldAlert } from 'lucide-react'
+import { ClipboardCheck } from 'lucide-react'
 import VentureForm from '../components/VentureForm'
 import type { VentureFormValues } from '../components/VentureForm'
 import Button from '../components/ui/Button'
@@ -9,10 +9,9 @@ import LoadingLine from '../components/ui/LoadingLine'
 import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
 import { createVenture } from '../data/ventures'
-import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
 
 export default function AddVenture() {
-  const { profile, status, canPost, needsUsername } = useAuth()
+  const { profile, status, needsUsername } = useAuth()
   const [submitted, setSubmitted] = useState(false)
 
   if (status === 'loading') {
@@ -24,40 +23,20 @@ export default function AddVenture() {
   // rather than gating the whole site.
   if (status === 'signedOut') return <Navigate to="/signin" replace />
 
-  // Checked before the form is ever drawn. The rules refuse a create from a
-  // non-Thapar account, and finding that out after filling in a name, hours,
-  // a phone number, four photographs and a menu is the worst possible moment
-  // to learn it.
-  if (!canPost) {
-    return (
-      <EmptyState
-        icon={ShieldAlert}
-        title="Listing is for Thapar students"
-        className="mx-auto max-w-md"
-        action={
-          <div className="flex flex-wrap justify-center gap-2">
-            {/* The way out, not just the way back. This page used to be a wall:
-                it named the rule and offered browse. Adding the address to the
-                account already open is now one form on the profile, so the
-                first thing it offers is the fix. */}
-            <Button variant="primary" to="/profile">
-              Add your Thapar address
-            </Button>
-            <Button variant="secondary" to="/browse">
-              Back to browse
-            </Button>
-          </div>
-        }
-      >
-        Listing needs an @{ALLOWED_EMAIL_DOMAIN} address, and this account signed in with another
-        one. Add yours on your profile — same account, same username — or keep browsing and
-        reviewing with any account.
-      </EmptyState>
-    )
-  }
-
-  // Asked for here rather than at sign-up: the name goes on the listing, so
-  // this is the first moment it actually means anything.
+  /**
+   * THE THAPAR WALL STOOD HERE and is gone.
+   *
+   * It turned away any account without an @thapar.edu address, which rested on
+   * the email sign-in link — and that link spends Firebase's free mail quota,
+   * so on the day the quota runs out the only route to a qualifying account
+   * stops working and this page turns everybody away. The check was never what
+   * kept bad listings off the site either: every venture is created pending
+   * and a moderator approves it before anybody sees it. A human reading the
+   * listing is the better gate.
+   *
+   * Chat still asks for the address, because a message there is published the
+   * instant it is sent with nobody in between.
+   */
   if (needsUsername || !profile) {
     return <ChooseUsername reason="This is the name buyers will see on your venture." />
   }

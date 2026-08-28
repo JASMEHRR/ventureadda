@@ -54,11 +54,14 @@ type AuthContextValue = {
    */
   provisionError: string | null
   /**
-   * May post in chat and list a venture — @thapar.edu or the owner. Mirrors
-   * isThaparUser() in firestore.rules, for hiding an action rather than
-   * letting someone fill in a form and eat a permission-denied.
+   * May list a venture: any verified account. Mirrors isSeller() in
+   * firestore.rules, for hiding an action rather than letting someone fill in
+   * a form and eat a permission-denied.
    */
   canPost: boolean
+  /** May post in All Chat — a Thapar address or a moderator's approval, which
+   *  is still where the domain check lives. Mirrors isThaparUser(). */
+  canChat: boolean
   /**
    * The Thapar address on this account, whether it signed in or was added
    * afterwards. Null when there is not one.
@@ -685,7 +688,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const thaparEmail = accountEmails(user).find((email) => isThaparEmail(email)) ?? null
   const hasPassword = (user?.providerData ?? []).some((entry) => entry.providerId === 'password')
-  const canPost = status === 'ready' && (thaparEmail !== null || preApproved !== null)
+  /**
+   * ANY VERIFIED ACCOUNT MAY LIST NOW, which mirrors isSeller() in
+   * firestore.rules — see the note there for why the domain check moved.
+   *
+   * Short version: the mail quota that a Thapar-verified account depends on
+   * runs out, and the moderation queue was always the thing actually keeping
+   * bad listings off the site. A human reading a listing is a better gate than
+   * a domain, and every listing goes through one before anybody sees it.
+   *
+   * `thaparEmail` and `preApproved` are still read, because chat still uses
+   * them: a message is published the moment it is sent, with nobody in
+   * between.
+   */
+  const canPost = status === 'ready'
+  const canChat = status === 'ready' && (thaparEmail !== null || preApproved !== null)
   const isOwner = status === 'ready' && (user?.email ?? '').toLowerCase() === OWNER_EMAIL
 
   const value = useMemo(
@@ -696,6 +713,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       needsUsername,
       provisionError,
       canPost,
+      canChat,
       thaparEmail,
       isOwner,
       signInWithGoogle,
@@ -719,6 +737,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       needsUsername,
       provisionError,
       canPost,
+      canChat,
       thaparEmail,
       isOwner,
       signInWithGoogle,

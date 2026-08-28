@@ -25,7 +25,10 @@ function timeLabel(date: Date | null): string {
 }
 
 export default function Chat() {
-  const { profile, status, canPost, needsUsername } = useAuth()
+  // canChat, not canPost: listing opened up to any account, posting here did
+  // not — a chat message is published the moment it is sent, with nobody in
+  // between, so the address is still doing real work.
+  const { profile, status, canChat, needsUsername } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -159,11 +162,11 @@ export default function Chat() {
         ))}
       </div>
 
-      {status === 'ready' && canPost && needsUsername ? (
+      {status === 'ready' && canChat && needsUsername ? (
         <div className="shrink-0">
           <ChooseUsername reason="This is the name shown next to your messages here." />
         </div>
-      ) : status === 'ready' && canPost && profile ? (
+      ) : status === 'ready' && canChat && profile ? (
         <form onSubmit={send} className="liquid-glass-panel shrink-0 rounded-2xl p-2.5">
           <div className="flex items-end gap-2.5">
             <label htmlFor="chat-input" className="sr-only">

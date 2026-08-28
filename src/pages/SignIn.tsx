@@ -6,6 +6,7 @@ import EmptyState from '../components/ui/EmptyState'
 import TextField from '../components/ui/TextField'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
+import { getSiteSettings } from '../data/settings'
 import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
 
 /**
@@ -134,6 +135,32 @@ export default function SignIn() {
   const [cooldown, setCooldown] = useState(0)
   const [password, setPasswordValue] = useState('')
   const [challenge, setChallenge] = useState<string | null>(null)
+
+  /**
+   * Whether the email route is offered at all.
+   *
+   * Firebase's free tier caps the mail it sends, and the sign-in link spends
+   * that cap. Once it is gone every email sign-in fails, which looks exactly
+   * like the site being broken — so a moderator can put the whole route away
+   * and leave Google, which sends no mail and cannot run out. Default off,
+   * because the quota is the state the site is in today.
+   *
+   * Defaults to off on a failed read too. Offering a door that cannot open is
+   * worse than not offering it.
+   */
+  const [emailSignIn, setEmailSignIn] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getSiteSettings()
+      .then((settings) => {
+        if (!cancelled) setEmailSignIn(settings.emailSignIn === true)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const attempted = useRef(false)
 
   // A sign-in link lands back on this page. Completing it is guarded by a ref
@@ -584,16 +611,23 @@ export default function SignIn() {
               Continue with Google
             </Button>
 
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
-                or
-              </span>
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
+            {emailSignIn && (
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-white/10" />
+                <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+                  or
+                </span>
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+            )}
           </>
         )}
 
+        {/* Hidden while the mail quota is spent — see `emailSignIn` above.
+            `needsEmail` is exempt: somebody holding a link that was already
+            sent still has to be able to finish with it, whatever the switch
+            says today. */}
+        {(emailSignIn || mode === 'needsEmail') && (
         <form onSubmit={submitEmail} className="space-y-4">
           <TextField
             id="signin-email"
@@ -618,6 +652,7 @@ export default function SignIn() {
             )}
           </Button>
         </form>
+        )}
 
         {mode === 'needsEmail' && (
           <div className="flex justify-center">
@@ -628,8 +663,9 @@ export default function SignIn() {
         <p className="flex items-start gap-2 text-[15px] leading-relaxed text-white/40">
           <ShieldCheck size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-brand-400" />
           <span>
-            Posting in chat and listing a venture need an @{ALLOWED_EMAIL_DOMAIN} address.
-            Anyone can sign in to browse and review.
+            {emailSignIn
+              ? `Anyone can sign in to browse, review and list a venture. Posting in All Chat needs an @${ALLOWED_EMAIL_DOMAIN} address.`
+              : `Google is the way in at the moment. Anyone can browse, review and list a venture; posting in All Chat needs an @${ALLOWED_EMAIL_DOMAIN} address.`}
           </span>
         </p>
       </div>

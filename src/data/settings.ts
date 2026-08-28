@@ -46,6 +46,17 @@ export type SiteSettings = {
   backdropLight?: StoredImage
   /** Absent means the site is not scheduled to go down. */
   maintenance?: MaintenanceWindow
+  /**
+   * Whether signing in by email address is offered at all.
+   *
+   * OFF UNLESS A MODERATOR TURNS IT ON, and the reason is a quota rather than
+   * a preference. Firebase's free tier caps the mail it will send, and the
+   * sign-in link spends that cap — once it is gone, the email route stops
+   * working for everybody and the failure looks like the site being broken.
+   * Google sign-in sends no mail at all and is unaffected, so it carries the
+   * whole load until there is a mail budget to spend.
+   */
+  emailSignIn?: boolean
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -68,6 +79,11 @@ export async function setBackdrop(image: StoredImage | null): Promise<void> {
 /** null clears the day wallpaper and falls back to the gradient. */
 export async function setBackdropLight(image: StoredImage | null): Promise<void> {
   await setDoc(settingsRef, { backdropLight: image ?? deleteField() }, { merge: true })
+}
+
+/** Whether the email sign-in route is offered. Off when unset. */
+export async function setEmailSignIn(enabled: boolean): Promise<void> {
+  await setDoc(settingsRef, { emailSignIn: enabled }, { merge: true })
 }
 
 /** Whether checkout offers "the seller contacts me". Off when unset. */

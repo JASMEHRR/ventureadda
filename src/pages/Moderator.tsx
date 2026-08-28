@@ -42,6 +42,7 @@ import {
   isDown,
   setBackdrop,
   setBackdropLight,
+  setEmailSignIn,
   setMaintenance,
   setSellerContact,
 } from '../data/settings'
@@ -438,6 +439,41 @@ export default function Moderator() {
         >
           Name the ones without links
         </Button>
+      </div>
+
+      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Ways in
+        </h2>
+        <p className="text-[15px] leading-relaxed text-white/45">
+          Signing in by email address sends mail, and Firebase&rsquo;s free tier caps how much of
+          that there is. When the cap is spent every email sign-in fails, which looks like the
+          site being broken — so it can be put away entirely. Google sends no mail and is never
+          affected. Turning this off does not remove anybody: an account made by email is still
+          there, and can sign in with Google on the same address.
+        </p>
+        <ChoiceGroup
+          label="Email sign-in"
+          value={settings.data?.emailSignIn === true ? 'on' : 'off'}
+          onChange={(next) =>
+            void act(
+              () => setEmailSignIn(next === 'on'),
+              next === 'on' ? 'Email sign-in is back on.' : 'Google is now the only way in.',
+            )
+          }
+          choices={[
+            {
+              value: 'off',
+              label: 'Google only',
+              detail: 'No mail is sent, so nothing can run out. The safe setting.',
+            },
+            {
+              value: 'on',
+              label: 'Google and email',
+              detail: 'Offers the address-and-password route as well. Needs mail quota to spare.',
+            },
+          ]}
+        />
       </div>
 
       <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
