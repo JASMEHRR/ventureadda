@@ -409,9 +409,12 @@ export default function CheckoutModal({
               not wait.
             </p>
           ) : (
-            <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[15.5px] leading-relaxed text-white/60">
-              Send the message below to confirm it. The order is saved either way, but a seller who
-              has heard from you starts sooner.
+            <p className="rounded-2xl border border-whatsapp/25 bg-whatsapp/10 px-4 py-3 text-[15.5px] leading-relaxed text-white/70">
+              WhatsApp should be opening now with your order in a chat to{' '}
+              <span className="font-bold text-white/90">{venture.name}</span> —{' '}
+              <span className="font-bold text-white/90">press send there</span> to let them know.
+              If it did not open, use the button below. The order is saved either way, but a seller
+              who has heard from you starts sooner.
             </p>
           )}
 
@@ -565,6 +568,26 @@ export default function CheckoutModal({
               />
             )}
           </div>
+
+          {/* SAID BEFORE THE BUTTON, not after it. Placing an order here
+              opens WhatsApp and puts a message in the buyer's own chat with
+              the seller — from their number, under their name. That is a
+              surprise worth spending three lines to avoid: somebody who
+              thought this site delivered the order for them, and who did not
+              expect to appear in a stranger's chat under their real name, has
+              a right to know before they press it rather than while WhatsApp
+              is opening. It also explains the send button they are about to
+              meet, which is the step people otherwise miss. */}
+          {contactPreference === 'buyerContacts' && (
+            <p className="flex items-start gap-2 rounded-2xl border border-whatsapp/25 bg-whatsapp/10 px-4 py-3 text-[15px] leading-relaxed text-white/70">
+              <MessageCircle size={14} className="mt-0.5 shrink-0 text-whatsapp" aria-hidden="true" />
+              <span>
+                WhatsApp will open with your order written out, in a chat from you to{' '}
+                <span className="font-bold text-white/90">{venture.name}</span>. You press send —
+                nothing goes to them until you do.
+              </span>
+            </p>
+          )}
 
           <p className="flex items-start gap-2 border-t border-white/8 pt-3.5 text-[15px] leading-relaxed text-white/45">
             <Phone size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
