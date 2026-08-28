@@ -38,6 +38,17 @@ import { resolveTheme, useAppearance } from '../lib/appearance'
  */
 const DEFAULT_BACKDROP = '/atmosphere.jpg'
 
+/**
+ * The day wallpaper, shipped with the app the way the night one is.
+ *
+ * Drawn rather than photographed — see the note inside the file. Day mode used
+ * to fall back to a flat gradient painted over the washed-out night sky, which
+ * is why it read as "no background": there genuinely was not one, just paint.
+ * This is a real image with light and direction in it, at four kilobytes,
+ * and a moderator uploading a photograph still overrides it.
+ */
+const DEFAULT_DAY_BACKDROP = '/atmosphere-day.svg'
+
 export default function AtmosphereBackdrop() {
   const [settings, setSettings] = useState<SiteSettings | null>(null)
   const [appearance] = useAppearance()
@@ -52,7 +63,11 @@ export default function AtmosphereBackdrop() {
    * night sky it is hiding a photograph that cannot carry dark text, and over
    * a day photograph it is only softening one that can.
    */
-  const dayImage = day && settings?.backdropLight ? displayUrl(settings.backdropLight, 1200) : null
+  const dayImage = day
+    ? settings?.backdropLight
+      ? displayUrl(settings.backdropLight, 1200)
+      : DEFAULT_DAY_BACKDROP
+    : null
   const url = settings?.backdrop ? displayUrl(settings.backdrop, 1200) : DEFAULT_BACKDROP
 
   useEffect(() => {
@@ -99,7 +114,10 @@ export default function AtmosphereBackdrop() {
         // A real day photograph needs a veil, not a lid: enough to keep the
         // panels legible over it, nowhere near enough to hide it. Only the
         // night sky standing in for one gets covered almost completely.
-        className={dayImage ? 'absolute inset-0 opacity-25' : 'absolute inset-0 opacity-[var(--backdrop-wash)]'}
+        // Day always has a real image behind it now — the shipped one or a
+        // moderator's — so this is a veil at all times rather than the lid it
+        // had to be when it was standing in for a background of its own.
+        className={dayImage ? 'absolute inset-0 opacity-20' : 'absolute inset-0 opacity-[var(--backdrop-wash)]'}
         style={{
           // A GRADIENT, NOT A FLAT SHEET. At 86% white over a starfield the
           // page read as a blank white screen with faint dots on it — the

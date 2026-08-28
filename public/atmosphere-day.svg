@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" width="1600" height="1000">
+  <!--
+    The day wallpaper, drawn rather than photographed.
+
+    WHY NOT A PHOTOGRAPH. Day mode needs a light image, and the night backdrop
+    cannot become one: washing out a starfield leaves the stars, which read as
+    snow on a blank page. A photograph would have meant committing somebody
+    else's megabyte-sized file and its licence into the repo for a background
+    nobody is meant to look at. This is four kilobytes, scales to any screen
+    without a second asset, and is in the brand's own hues rather than
+    approximately near them — the cyan below is --color-brand-400.
+
+    Soft, low-contrast and slow-moving on purpose: it sits behind glass panels
+    carrying dark text, so anything with detail or contrast in it would be
+    fighting the words. A moderator can still upload a real photograph on
+    /moderator, which takes precedence over this.
+  -->
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff" />
+      <stop offset="55%" stop-color="#e9f1fa" />
+      <stop offset="100%" stop-color="#dde8f6" />
+    </linearGradient>
+
+    <radialGradient id="cyan" cx="18%" cy="22%" r="62%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.30" />
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="sky" cx="82%" cy="12%" r="55%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.34" />
+      <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="warm" cx="72%" cy="88%" r="60%">
+      <stop offset="0%" stop-color="#fcd9b6" stop-opacity="0.30" />
+      <stop offset="100%" stop-color="#fcd9b6" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="violet" cx="30%" cy="92%" r="58%">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.26" />
+      <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- A whisper of grain. Flat gradients band visibly on a large screen,
+         and a little noise is what stops the sky looking like stripes. -->
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+      <feColorMatrix type="saturate" values="0" />
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#paper)" />
+  <rect width="1600" height="1000" fill="url(#cyan)" />
+  <rect width="1600" height="1000" fill="url(#sky)" />
+  <rect width="1600" height="1000" fill="url(#warm)" />
+  <rect width="1600" height="1000" fill="url(#violet)" />
+
+  <!-- Two long, soft sweeps, so the light has a direction rather than sitting
+       flat. Rotated off-axis because a horizontal band reads as a horizon and
+       this is not a landscape. -->
+  <g opacity="0.5">
+    <ellipse cx="420" cy="240" rx="760" ry="190" fill="#ffffff" opacity="0.55" transform="rotate(-14 420 240)" />
+    <ellipse cx="1180" cy="760" rx="820" ry="210" fill="#ffffff" opacity="0.42" transform="rotate(-9 1180 760)" />
+  </g>
+
+  <rect width="1600" height="1000" filter="url(#grain)" opacity="0.045" />
+</svg>
