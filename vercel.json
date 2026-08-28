@@ -1,4 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/venture/:segment",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|Slackbot|TelegramBot|Discordbot|LinkedInBot|Instagram|Googlebot|bingbot|Applebot|redditbot|Pinterest|SkypeUriPreview|vkShare|W3C_Validator).*"
+        }
+      ],
+      "destination": "/api/venture-preview"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

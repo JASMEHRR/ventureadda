@@ -132,6 +132,7 @@ export default function CheckoutModal({
   }, [])
   const [payment, setPayment] = useState<PaymentMethod>('cod')
   const [buyerType, setBuyerType] = useState<BuyerType>('hosteller')
+
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState<string | null>(null)
   /**
@@ -307,6 +308,25 @@ export default function CheckoutModal({
 
     rememberBuyer({ name: buyer.name, phone: buyer.phone, address: deliveryAddress.trim() })
     setPlaced({ lines, total: orderTotal(lines) })
+
+    /**
+     * Opens WhatsApp with the order in it, without waiting to be asked.
+     *
+     * This is the step the whole site is for: nothing is paid here, so an
+     * order that never reaches the seller's phone is not an order. Leaving it
+     * behind a button on a confirmation screen meant the people who closed
+     * that screen — most of them, because it says "Order placed" and looks
+     * finished — had silently done nothing at all.
+     *
+     * Popup blockers are the reason the button stays as well. This call is
+     * two awaits removed from the click that started it, and Safari in
+     * particular will refuse a window opened that late. When it is refused
+     * the confirmation screen still has Message seller on it, which is where
+     * this started.
+     */
+    if (waLink && contactPreference === 'buyerContacts') {
+      window.open(waLink, '_blank', 'noopener')
+    }
     // Not awaited. The confirmation screen must not wait on a push that is
     // optional, may be unconfigured, and cannot fail in a way the buyer could
     // do anything about.
@@ -351,20 +371,20 @@ export default function CheckoutModal({
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
-            {profile ? (
-              <Button
-                variant="primary"
-                loading={placing}
-                disabled={!canPlace}
-                onClick={() => void placeOrder()}
-              >
-                Place order · ₹{total}
-              </Button>
-            ) : (
-              <Button variant="primary" to="/signin">
-                Sign in to order
-              </Button>
-            )}
+            {/* ONE BUTTON, SIGNED IN OR NOT. This used to swap to "Sign in
+                to order", which threw away everything typed and sent the
+                buyer to another page — and it made the sign-in-then-place
+                path below unreachable, since the button that triggers it was
+                only rendered for people who were already signed in. Placing
+                asks for an account at the point of placing. */}
+            <Button
+              variant="primary"
+              loading={placing}
+              disabled={!canPlace}
+              onClick={() => void placeOrder()}
+            >
+              Place order · ₹{total}
+            </Button>
           </>
         )
       }

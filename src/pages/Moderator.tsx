@@ -37,7 +37,14 @@ import { categoryName } from '../data/types'
 import { SEED_VENTURES, seedInput } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL } from '../lib/firebase'
-import { getSiteSettings, isDown, setBackdrop, setMaintenance, setSellerContact } from '../data/settings'
+import {
+  getSiteSettings,
+  isDown,
+  setBackdrop,
+  setBackdropLight,
+  setMaintenance,
+  setSellerContact,
+} from '../data/settings'
 import type { MaintenanceWindow } from '../data/settings'
 import {
   approveEmail,
@@ -383,10 +390,23 @@ export default function Moderator() {
           Shown behind the whole app, to every visitor. Leave empty for the default.
         </p>
         <PhotoUploader
-          label="Backdrop image"
+          label="Night backdrop"
           photos={settings.data?.backdrop ? [settings.data.backdrop] : []}
           onChange={(next) =>
             void act(() => setBackdrop(next[0] ?? null), next[0] ? 'Backdrop updated.' : 'Backdrop reset to default.')
+          }
+          max={1}
+        />
+
+        <PhotoUploader
+          label="Day backdrop"
+          hint="A light photograph. Day mode has dark text on light panels, so the night sky cannot be used for it — without one here, day mode falls back to a plain gradient."
+          photos={settings.data?.backdropLight ? [settings.data.backdropLight] : []}
+          onChange={(next) =>
+            void act(
+              () => setBackdropLight(next[0] ?? null),
+              next[0] ? 'Day backdrop updated.' : 'Day backdrop cleared.',
+            )
           }
           max={1}
         />

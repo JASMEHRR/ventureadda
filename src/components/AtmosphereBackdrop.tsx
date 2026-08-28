@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getSiteSettings } from '../data/settings'
+import type { SiteSettings } from '../data/settings'
 import { displayUrl } from '../lib/cloudinary'
+import { resolveTheme, useAppearance } from '../lib/appearance'
 
 /**
  * Full-bleed photographic backdrop sitting behind the entire app.
@@ -37,13 +39,27 @@ import { displayUrl } from '../lib/cloudinary'
 const DEFAULT_BACKDROP = '/atmosphere.jpg'
 
 export default function AtmosphereBackdrop() {
-  const [url, setUrl] = useState(DEFAULT_BACKDROP)
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [appearance] = useAppearance()
+  const day = resolveTheme(appearance.theme) === 'light'
+
+  /**
+   * Day mode gets its own wallpaper when a moderator has set one.
+   *
+   * Falls back to the night photograph — washed out, as before — when there is
+   * no day picture, because a missing setting must not leave the app with no
+   * backdrop at all. What the wash is doing differs between the two: over the
+   * night sky it is hiding a photograph that cannot carry dark text, and over
+   * a day photograph it is only softening one that can.
+   */
+  const dayImage = day && settings?.backdropLight ? displayUrl(settings.backdropLight, 1200) : null
+  const url = settings?.backdrop ? displayUrl(settings.backdrop, 1200) : DEFAULT_BACKDROP
 
   useEffect(() => {
     let cancelled = false
     getSiteSettings()
-      .then((settings) => {
-        if (!cancelled && settings.backdrop) setUrl(displayUrl(settings.backdrop, 1200))
+      .then((next) => {
+        if (!cancelled) setSettings(next)
       })
       .catch(() => {
         // The default backdrop is already showing. Nobody sees a broken page
@@ -58,7 +74,7 @@ export default function AtmosphereBackdrop() {
     <div
       aria-hidden="true"
       className="fixed inset-0 -z-10 bg-app bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${url})` }}
+      style={{ backgroundImage: `url(${dayImage ?? url})` }}
     >
       {/*
         The dimmer from Settings.
@@ -80,7 +96,10 @@ export default function AtmosphereBackdrop() {
         not a value that should follow the theme.
       */}
       <div
-        className="absolute inset-0 opacity-[var(--backdrop-wash)]"
+        // A real day photograph needs a veil, not a lid: enough to keep the
+        // panels legible over it, nowhere near enough to hide it. Only the
+        // night sky standing in for one gets covered almost completely.
+        className={dayImage ? 'absolute inset-0 opacity-25' : 'absolute inset-0 opacity-[var(--backdrop-wash)]'}
         style={{
           // A GRADIENT, NOT A FLAT SHEET. At 86% white over a starfield the
           // page read as a blank white screen with faint dots on it — the

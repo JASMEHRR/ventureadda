@@ -173,9 +173,21 @@ export default function Cart() {
   const groups = groupByVenture(cart)
   const total = cartTotal(cart)
 
-  if (cart.length === 0) {
+  /**
+   * THE EMPTY CART TOOK THE CONFIRMATION SCREEN WITH IT.
+   *
+   * Placing an order clears that venture's cart, this early return then fired,
+   * and the whole page — including the dialog holding "Order placed" and the
+   * Message seller button — was replaced by "Your cart is empty". The order
+   * was written and the buyer was shown nothing, so nobody messaged the
+   * seller, on a site where the message IS the order.
+   *
+   * The dialog therefore outranks the empty state: while one is open, this
+   * page keeps rendering underneath it.
+   */
+  if (cart.length === 0 && !checkoutVenture) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-5xl">
         <EmptyState
           icon={ShoppingCart}
           title="Your cart is empty"
@@ -192,7 +204,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4">
       <header className="liquid-glass-panel rounded-3xl px-5 py-4">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">

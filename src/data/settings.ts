@@ -32,6 +32,18 @@ export type SiteSettings = {
   sellerContact?: boolean
   /** Absent means the default backdrop baked into the app, public/atmosphere.jpg. */
   backdrop?: StoredImage
+  /**
+   * The wallpaper for day mode, which needs its own picture rather than the
+   * night one turned up.
+   *
+   * The shipped backdrop is a night sky. Light panels with dark text cannot
+   * sit on it, so day mode washes it out — and washing out a starfield leaves
+   * exactly the stars, which read as snow on a blank page. There is no
+   * treatment of a dark photograph that makes it a light one; the honest fix
+   * is a second photograph. Until one is set, day mode uses a plain gradient,
+   * which at least looks chosen.
+   */
+  backdropLight?: StoredImage
   /** Absent means the site is not scheduled to go down. */
   maintenance?: MaintenanceWindow
 }
@@ -51,6 +63,11 @@ export async function getSiteSettings(): Promise<SiteSettings> {
  */
 export async function setBackdrop(image: StoredImage | null): Promise<void> {
   await setDoc(settingsRef, { backdrop: image ?? deleteField() }, { merge: true })
+}
+
+/** null clears the day wallpaper and falls back to the gradient. */
+export async function setBackdropLight(image: StoredImage | null): Promise<void> {
+  await setDoc(settingsRef, { backdropLight: image ?? deleteField() }, { merge: true })
 }
 
 /** Whether checkout offers "the seller contacts me". Off when unset. */

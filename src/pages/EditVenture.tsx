@@ -85,7 +85,7 @@ export default function EditVenture() {
 
   return (
     // Wider from lg so VentureForm's save rail has a column to sit in.
-    <div className="mx-auto max-w-2xl space-y-4 lg:max-w-5xl">
+    <div className="mx-auto max-w-5xl space-y-4">
       <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[16px] leading-relaxed text-white/50">
         Edits go live immediately — approval is only for new listings. Items you keep hold on to
         their enquiry counts; items you remove lose theirs.

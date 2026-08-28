@@ -78,7 +78,7 @@ export default function Settings() {
   )
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4">
       <header className="liquid-glass-panel rounded-3xl px-5 py-4">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Settings

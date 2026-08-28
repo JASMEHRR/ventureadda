@@ -94,7 +94,7 @@ export default function MyVentures() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4">
       <header className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-4">
         <div className="min-w-0">
           <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
