@@ -24,6 +24,7 @@ import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import {
+  backfillSlugs,
   createVenture,
   deleteDemoVentures,
   deleteVenture,
@@ -389,6 +390,31 @@ export default function Moderator() {
           }
           max={1}
         />
+      </div>
+
+      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Readable links
+        </h2>
+        <p className="text-[15px] leading-relaxed text-white/45">
+          Ventures listed before this existed still have a link made of their database id —
+          /venture/3KHid4o2sqQ4J49cE2dV rather than /venture/glood. This gives every live one a
+          link with its name in it. Old links keep working; nothing breaks.
+        </p>
+        <Button
+          variant="secondary"
+          disabled={busy}
+          onClick={() =>
+            void act(async () => {
+              const named = await backfillSlugs()
+              // Thrown rather than returned, because `act` only knows how to
+              // show one message and the honest one depends on the count.
+              if (named === 0) throw new Error('Every live venture already has one.')
+            }, 'Done — every live venture now has a readable link.')
+          }
+        >
+          Name the ones without links
+        </Button>
       </div>
 
       <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">

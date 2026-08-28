@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Clock } from 'lucide-react'
+import { venturePath } from '../../data/ventures'
 import type { Venture } from '../../data/ventures'
 import type { RatingSummary } from '../../data/reviews'
 import { StarDisplay } from './StarRating'
@@ -42,10 +43,10 @@ export default function VentureCard({
         // w_800 rather than the original: a 4MB phone photo drawn 300px wide
         // is most of the page weight on campus wifi.
         width={800}
-        to={`/venture/${venture.id}`}
+        to={venturePath(venture)}
         autoAdvanceMs={4500 + (index % 5) * 700}
       />
-      <Link to={`/venture/${venture.id}`} className="block px-2 pt-3.5 pb-1.5">
+      <Link to={venturePath(venture)} className="block px-2 pt-3.5 pb-1.5">
         <div className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate font-mono text-[12.5px] tracking-[0.22em] text-white/30 uppercase">

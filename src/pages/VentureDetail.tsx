@@ -20,7 +20,14 @@ import VentureLogo from '../components/ui/VentureLogo'
 import { LogoMark } from '../components/ui/Logo'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { categoryName, getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
+import {
+  categoryName,
+  getVenture,
+  listMenuItems,
+  recordInquiry,
+  recordVentureView,
+  venturePath,
+} from '../data/ventures'
 import type { MenuItem } from '../data/ventures'
 import { MENU_GRID_CLASS } from '../data/types'
 import type { MenuDensity } from '../data/types'
@@ -462,7 +469,9 @@ export default function VentureDetail() {
               categoryName: categoryName(v.categoryId),
               itemCount: menu.data?.length,
             }}
-            ventureId={v.id}
+            // The readable one when it has it, so what gets pasted into a
+            // group chat says the venture's name rather than its document id.
+            ventureId={v.slug ?? v.id}
             photo={v.photos[0]}
           />
         </div>
@@ -516,7 +525,7 @@ export default function VentureDetail() {
               Nothing on this menu matches &ldquo;{menuQuery.trim()}&rdquo;.
             </p>
             <Link
-              to={`/venture/${v.id}`}
+              to={venturePath(v)}
               className="mt-2 inline-block font-mono text-[14px] font-bold tracking-wider text-brand-400 uppercase transition hover:text-brand-300"
             >
               Show the whole menu

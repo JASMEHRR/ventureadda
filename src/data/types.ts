@@ -48,6 +48,14 @@ export type Venture = {
    * those were rendered as, so the reader fills it in rather than treating it
    * as a missing setting.
    */
+  /**
+   * The readable name in this venture's link, e.g. "glood".
+   *
+   * Absent on every venture written before slugs existed, and on any whose
+   * claim lost a race. The document id still resolves and always will, so an
+   * absent slug means a longer link rather than a broken one.
+   */
+  slug?: string
   menuDensity: MenuDensity
   clickCount: number
   /**

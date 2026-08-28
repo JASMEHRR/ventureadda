@@ -7,7 +7,7 @@ import EmptyState from '../components/ui/EmptyState'
 import VentureCard from '../components/ui/VentureCard'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { listCategories, listVentures, searchMenuItems } from '../data/ventures'
+import { listCategories, listVentures, searchMenuItems, venturePath } from '../data/ventures'
 import VentureLogo from '../components/ui/VentureLogo'
 import { displayUrl } from '../lib/cloudinary'
 import { listRatingSummaries } from '../data/reviews'
@@ -179,7 +179,7 @@ export default function Browse() {
                   // Straight to the seller's page with the menu already
                   // filtered to what was typed, so the item is on screen on
                   // arrival rather than somewhere in a grid of forty.
-                  to={`/venture/${venture.id}?item=${encodeURIComponent(query.trim())}`}
+                  to={`${venturePath(venture)}?item=${encodeURIComponent(query.trim())}`}
                   className="liquid-glass-panel flex items-center gap-3 rounded-2xl p-3 transition duration-150 hover:bg-white/[0.06] active:scale-[0.99]"
                 >
                   {item.photo ? (

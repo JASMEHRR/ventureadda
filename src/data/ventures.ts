@@ -15,6 +15,7 @@ import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { reportError } from '../lib/errors'
 import { CATEGORIES, MENU_DENSITIES } from './types'
+import { looksLikeDocumentId, slugWithSuffix, slugify } from './slug'
 import type { Category, MenuDensity, MenuItem, StoredImage, Venture, VentureStatus } from './types'
 
 export type { Category, MenuDensity, MenuItem, StoredImage, Venture, VentureStatus }
@@ -71,6 +72,7 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
           (slot): slot is string => typeof slot === 'string' && slot.trim() !== '',
         )
       : [],
+    slug: typeof data.slug === 'string' && data.slug !== '' ? data.slug : undefined,
     menuDensity: MENU_DENSITIES.includes(data.menuDensity as MenuDensity)
       ? (data.menuDensity as MenuDensity)
       : 'default',
@@ -203,17 +205,90 @@ export async function searchMenuItems(needle: string): Promise<ItemMatch[]> {
     })
 }
 
-export async function getVenture(ventureId: string): Promise<Venture | null> {
-  try {
-    const snapshot = await getDoc(doc(venturesRef, ventureId))
-    if (!snapshot.exists()) return null
-    return toVenture(snapshot as QueryDocumentSnapshot<DocumentData>)
-  } catch {
-    // The rules refuse a pending or rejected venture to anyone but its owner
-    // and moderators. To everyone else that is indistinguishable from missing,
-    // and saying so is the right answer anyway.
-    return null
+const slugsRef = collection(db, 'slugs')
+
+/**
+ * Claims a readable link for a venture, or returns null if it cannot.
+ *
+ * A CLAIM IS FOREVER, which is the whole design and mirrors how usernames
+ * work here. firestore.rules refuses update and delete on a claim, so a slug
+ * can never be handed to a different venture — links pasted into group chats
+ * months ago keep pointing where they pointed, and nobody can inherit somebody
+ * else's audience by taking a name they stopped using.
+ *
+ * The consequence, stated plainly: renaming a venture earns it a new link and
+ * leaves the old one working. That is the right way round. The alternative
+ * breaks every share of the old name to tidy up a database row.
+ *
+ * Never throws. A venture with no slug has a longer link, which is exactly
+ * what it had before this existed — not worth failing a save over.
+ */
+async function claimSlug(ventureId: string, name: string): Promise<string | null> {
+  const base = slugify(name)
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = attempt === 0 ? base : slugWithSuffix(base, attempt + 1)
+    try {
+      const ref = doc(slugsRef, candidate)
+      const existing = await getDoc(ref)
+      if (existing.exists()) {
+        // Already ours: re-saving a venture without renaming it lands here
+        // every time, and that is a success, not a collision.
+        if (existing.data().ventureId === ventureId) return candidate
+        continue
+      }
+      await setDoc(ref, { ventureId })
+      return candidate
+    } catch {
+      // Refused by the rules or offline. Either way the venture keeps its
+      // document-id link.
+      return null
+    }
   }
+  return null
+}
+
+/** Where this venture lives, by its readable name when it has one. */
+export function venturePath(venture: Pick<Venture, 'id' | 'slug'>): string {
+  return `/venture/${venture.slug ?? venture.id}`
+}
+
+/**
+ * Resolves whatever is in the URL — a slug or a document id — to a venture.
+ *
+ * Both are tried, always, so every link ever shared keeps working: the id
+ * links that were the only kind before this existed, and the readable ones
+ * from here on. `looksLikeDocumentId` only decides which to attempt first, so
+ * a wrong guess costs one extra read rather than a missing page.
+ */
+export async function getVenture(idOrSlug: string): Promise<Venture | null> {
+  const byId = async (): Promise<Venture | null> => {
+    try {
+      const snapshot = await getDoc(doc(venturesRef, idOrSlug))
+      if (!snapshot.exists()) return null
+      return toVenture(snapshot as QueryDocumentSnapshot<DocumentData>)
+    } catch {
+      // The rules refuse a pending or rejected venture to anyone but its owner
+      // and moderators. To everyone else that is indistinguishable from
+      // missing, and saying so is the right answer anyway.
+      return null
+    }
+  }
+
+  const bySlug = async (): Promise<Venture | null> => {
+    try {
+      const claim = await getDoc(doc(slugsRef, idOrSlug))
+      if (!claim.exists()) return null
+      const snapshot = await getDoc(doc(venturesRef, claim.data().ventureId as string))
+      if (!snapshot.exists()) return null
+      return toVenture(snapshot as QueryDocumentSnapshot<DocumentData>)
+    } catch {
+      return null
+    }
+  }
+
+  return looksLikeDocumentId(idOrSlug)
+    ? ((await byId()) ?? (await bySlug()))
+    : ((await bySlug()) ?? (await byId()))
 }
 
 /**
@@ -268,6 +343,32 @@ export async function renameVentureOwner(ownerId: string, username: string): Pro
   const batch = writeBatch(db)
   for (const document of snapshot.docs) batch.update(document.ref, { ownerUsername: username })
   await batch.commit()
+}
+
+/**
+ * Gives a readable link to every live venture that predates slugs.
+ *
+ * A moderator action rather than something that happens on read: claiming a
+ * slug is a write, and a page that quietly writes to the database because
+ * somebody looked at it is a page that surprises whoever debugs it later.
+ * Runs as a moderator, which is what lets it write claims for ventures it
+ * does not own.
+ *
+ * Returns how many it named, so the button can say something true rather than
+ * "done".
+ */
+export async function backfillSlugs(): Promise<number> {
+  const snapshot = await getDocs(query(venturesRef, where('status', '==', 'live')))
+  let named = 0
+  for (const document of snapshot.docs) {
+    const venture = toVenture(document)
+    if (venture.slug) continue
+    const slug = await claimSlug(venture.id, venture.name)
+    if (!slug) continue
+    await updateDoc(document.ref, { slug })
+    named += 1
+  }
+  return named
 }
 
 export async function listVenturesByOwner(ownerId: string): Promise<Venture[]> {
@@ -387,6 +488,17 @@ export async function createVenture(
     throw new Error(reportError('createVenture: venture document', cause))
   }
 
+  // After the venture document exists, never before: the slugs rule checks
+  // that the claimer owns the venture it points at, and rules `get()` only
+  // sees committed state. A claim written first would be refused.
+  const slug = await claimSlug(ventureRef.id, input.name)
+  if (slug) {
+    // Best effort, like the claim itself. A venture whose document did not
+    // record its slug still resolves by that slug — the claim is what the
+    // lookup reads — it just builds longer links until its next save.
+    await updateDoc(doc(venturesRef, ventureRef.id), { slug }).catch(() => {})
+  }
+
   // The items still go together: they are all children of a venture that now
   // exists, so the get() above resolves for every one of them.
   const batch = writeBatch(db)
@@ -425,10 +537,29 @@ export async function updateVenture(
   const existing = await listMenuItems(ventureId)
   const keptIds = new Set(items.map((item) => item.id).filter(Boolean) as string[])
 
+  /**
+   * A renamed venture earns a link matching its new name and keeps the old one
+   * working, because a claim is never released. Claimed before the batch so
+   * the new slug is written in the same update as the name it belongs to —
+   * the two disagreeing, even briefly, is a card linking somewhere its title
+   * does not match.
+   *
+   * Re-saving without renaming re-finds the venture's own existing claim and
+   * writes the same value back, which costs one read and keeps this path free
+   * of a "did the name change" comparison that would have to be right forever.
+   */
+  const slug = await claimSlug(ventureId, input.name)
+
   const batch = writeBatch(db)
   // null rather than an omitted key, so removing a logo actually removes it —
   // an update that leaves the field out keeps whatever was there before.
-  batch.update(doc(venturesRef, ventureId), { ...input, logo: input.logo ?? null })
+  batch.update(doc(venturesRef, ventureId), {
+    ...input,
+    logo: input.logo ?? null,
+    // Only when a claim succeeded. Writing null would strip a slug the
+    // venture already has because today's claim happened to fail.
+    ...(slug ? { slug } : {}),
+  })
 
   for (const item of items) {
     const payload = menuItemPayload(ventureId, item)
