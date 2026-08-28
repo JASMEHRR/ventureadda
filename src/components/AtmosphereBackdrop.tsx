@@ -41,13 +41,21 @@ const DEFAULT_BACKDROP = '/atmosphere.jpg'
 /**
  * The day wallpaper, shipped with the app the way the night one is.
  *
- * Drawn rather than photographed — see the note inside the file. Day mode used
- * to fall back to a flat gradient painted over the washed-out night sky, which
- * is why it read as "no background": there genuinely was not one, just paint.
- * This is a real image with light and direction in it, at four kilobytes,
- * and a moderator uploading a photograph still overrides it.
+ * A PHOTOGRAPH, after two wrong answers. It was a drawn gradient: first too
+ * faint to see at all, then visible but obviously synthetic — "very plain, no
+ * snowy mountain or anything". A gradient is what you reach for when you have
+ * no picture, and the site already had a real photograph at night.
+ *
+ * Snow, pines and a misted lake under a pale sky: light enough for dark text
+ * to sit over, and cool-toned, so brand cyan stays the only warm-cold decision
+ * on the page rather than fighting a second palette. A moderator uploading
+ * their own still overrides it.
+ *
+ * Photo: Joel & Jasmin Førestbird via Unsplash, free licence, no attribution
+ * required — credited anyway, the same as the night backdrop above.
+ * https://unsplash.com/photos/efuwb5eBDrI
  */
-const DEFAULT_DAY_BACKDROP = '/atmosphere-day.svg'
+const DEFAULT_DAY_BACKDROP = '/atmosphere-day.jpg'
 
 export default function AtmosphereBackdrop() {
   const [settings, setSettings] = useState<SiteSettings | null>(null)
@@ -124,13 +132,12 @@ export default function AtmosphereBackdrop() {
           The night sky keeps the full wash, which is not a veil at all: there
           it is standing in for a background day mode cannot use.
         */
-        className={
-          dayImage
-            ? uploadedDayImage
-              ? 'absolute inset-0 opacity-30'
-              : 'hidden'
-            : 'absolute inset-0 opacity-[var(--backdrop-wash)]'
-        }
+        // The shipped day photo takes the same light veil an uploaded one
+        // does, now that it IS a photograph: a picture with trees and rock in
+        // it has contrast of its own, and the glass panels need a calmer thing
+        // to sit on than bare bark. Only the night sky still gets the full
+        // wash, because there it covers an image day mode cannot use.
+        className={dayImage ? 'absolute inset-0 opacity-40' : 'absolute inset-0 opacity-[var(--backdrop-wash)]'}
         style={{
           // A GRADIENT, NOT A FLAT SHEET. At 86% white over a starfield the
           // page read as a blank white screen with faint dots on it — the

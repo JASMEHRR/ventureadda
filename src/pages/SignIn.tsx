@@ -8,7 +8,21 @@ import LoadingLine from '../components/ui/LoadingLine'
 import { useAuth } from '../auth/AuthProvider'
 import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
 
-type Mode = 'form' | 'sent' | 'completing' | 'needsEmail'
+/**
+ * 'password' and 'setPassword' are the two steps this flow gained.
+ *
+ * THE PROBLEM THEY SOLVE. An email link signs you in *in the browser that
+ * opens it*. Send one to a friend and it signs THEM in on THEIR phone while
+ * the sender's screen sits there doing nothing — which is exactly what it
+ * looks like: broken. And every subsequent sign-in meant another round trip
+ * through an inbox, on a site whose mail Gmail files under Spam.
+ *
+ * So the link now does the job only a link can do — proving the address
+ * belongs to whoever read it — and then hands over to a password, which works
+ * on any device, immediately, forever. First visit: address, link, password.
+ * Every visit after: address, password.
+ */
+type Mode = 'form' | 'password' | 'setPassword' | 'sent' | 'completing' | 'needsEmail'
 
 /** Long enough that a second tap is a real retry, short enough not to feel punitive. */
 const RESEND_COOLDOWN_SECONDS = 45
@@ -29,6 +43,13 @@ function errorMessage(cause: unknown): string {
         return 'Too many attempts. Wait a few minutes and try again.'
       case 'auth/network-request-failed':
         return 'Could not reach Firebase. Check your connection and try again.'
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+        return 'That password does not match this address.'
+      case 'auth/user-not-found':
+        return 'No account for that address yet. Use the link below to make one.'
+      case 'auth/weak-password':
+        return 'Use at least 8 characters.'
       case 'auth/account-exists-with-different-credential':
         return 'You already have an account with that address. Sign in with the email link instead.'
       case 'auth/unauthorized-domain':
@@ -72,7 +93,15 @@ function InboxAdvice() {
 }
 
 export default function SignIn() {
-  const { status, signInWithGoogle, sendLink, completeSignInFromLink } = useAuth()
+  const {
+    status,
+    signInWithGoogle,
+    sendLink,
+    completeSignInFromLink,
+    signInWithPassword,
+    setPassword,
+    hasPassword,
+  } = useAuth()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState<Mode>('form')
@@ -81,6 +110,7 @@ export default function SignIn() {
   const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
+  const [password, setPasswordValue] = useState('')
   const attempted = useRef(false)
 
   // A sign-in link lands back on this page. Completing it is guarded by a ref
@@ -103,7 +133,11 @@ export default function SignIn() {
         // Strip the credential out of the address bar so it is not left in
         // history or copied out of the URL.
         window.history.replaceState({}, '', '/signin')
-        navigate('/browse', { replace: true })
+        // The link has done its job — it proved the address. Offer a password
+        // now, while there is a session to attach one to, so the next sign-in
+        // needs no inbox at all. Skipped for an account that already has one.
+        if (hasPassword) navigate('/browse', { replace: true })
+        else setMode('setPassword')
       },
       (cause: unknown) => {
         setError(errorMessage(cause))
@@ -118,7 +152,10 @@ export default function SignIn() {
     return () => window.clearTimeout(timer)
   }, [cooldown])
 
-  if (status === 'ready') return <Navigate to="/browse" replace />
+  // Not while the set-a-password step is up. The link has already signed them
+  // in by then — that is what makes setting one possible — so redirecting a
+  // ready session would bounce them off the very screen the link led to.
+  if (status === 'ready' && mode !== 'setPassword') return <Navigate to="/browse" replace />
 
   const google = async () => {
     setError(null)
@@ -146,11 +183,60 @@ export default function SignIn() {
     setCooldown(RESEND_COOLDOWN_SECONDS)
   }
 
-  const submitEmail = async (event: React.FormEvent) => {
+  /**
+   * The address alone is not enough to know whether an account exists.
+   *
+   * `fetchSignInMethodsForEmail` used to answer that, and Firebase now returns
+   * an empty list for every address when email-enumeration protection is on —
+   * which it is by default, and which is a protection worth having: it is what
+   * stops a stranger typing addresses into this form to learn who has an
+   * account here. So the app does not ask. It shows the password field to
+   * everybody, and the people who have not got one take the link underneath
+   * it, which is the same door they used the first time.
+   */
+  const submitEmail = (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
-    // No domain check here any more. Anyone with a verified address may hold an
-    // account; what they may post is decided at the action, not at the door.
+    if (!email.trim()) return
+    // Confirming an address for a link opened on another device is a different
+    // job, and it finishes here rather than asking for a password.
+    if (mode === 'needsEmail') {
+      void emailLink()
+      return
+    }
+    setMode('password')
+  }
+
+  const submitPassword = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    setBusy(true)
+    try {
+      await signInWithPassword(email, password)
+      navigate('/browse', { replace: true })
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const submitNewPassword = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    setBusy(true)
+    try {
+      await setPassword(password)
+      navigate('/browse', { replace: true })
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const emailLink = async () => {
+    setError(null)
     setBusy(true)
     try {
       await send(email.trim().toLowerCase())
@@ -200,6 +286,121 @@ export default function SignIn() {
         Open it on this device if you can — that keeps things quickest. If you open it elsewhere
         you will just be asked for your address again.
       </EmptyState>
+    )
+  }
+
+  /**
+   * Setting the first password, straight after the link proved the address.
+   *
+   * This is the screen that ends the round trip for good: from here on, that
+   * address and this password sign in anywhere, on any device, with no mail
+   * involved. Skippable, because an account that never sets one still works
+   * exactly as it did — through the link — and a forced field on the way in is
+   * how people bounce.
+   */
+  if (mode === 'setPassword') {
+    return (
+      <div className="mx-auto max-w-md space-y-4">
+        <div className="liquid-glass-panel space-y-5 rounded-3xl p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <ShieldCheck size={20} className="mt-0.5 shrink-0 text-brand-400" aria-hidden="true" />
+            <div>
+              <h2 className="text-[21px] font-extrabold text-white">Address confirmed</h2>
+              <p className="mt-1.5 text-[16px] leading-relaxed text-white/50">
+                Set a password and you can sign in from any device without waiting for an email
+                again.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={submitNewPassword} className="space-y-4">
+            <TextField
+              id="signin-new-password"
+              label="Choose a password"
+              hint="At least 8 characters."
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPasswordValue(event.target.value)}
+              error={error ?? undefined}
+            />
+
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={password.length < 8}
+              className="w-full"
+            >
+              Set password and continue
+            </Button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => navigate('/browse', { replace: true })}
+            className="w-full font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-white/70"
+          >
+            Skip for now
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (mode === 'password') {
+    return (
+      <div className="mx-auto max-w-md space-y-4">
+        <div className="liquid-glass-panel space-y-5 rounded-3xl p-5 sm:p-6">
+          <div>
+            <h2 className="text-[21px] font-extrabold text-white">Your password</h2>
+            <p className="mt-1.5 text-[16px] leading-relaxed text-white/50">
+              Signing in as <span className="text-white/85">{email.trim().toLowerCase()}</span>.
+            </p>
+          </div>
+
+          <form onSubmit={submitPassword} className="space-y-4">
+            <TextField
+              id="signin-password"
+              label="Password"
+              type="password"
+              required
+              autoFocus
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPasswordValue(event.target.value)}
+              error={error ?? undefined}
+            />
+
+            <Button type="submit" variant="primary" loading={busy} className="w-full">
+              Sign in
+            </Button>
+          </form>
+
+          {/* The way in for anybody who has not set one — a first-time account,
+              or somebody who has forgotten it. The same link either way: it
+              proves the address, signs them in, and offers a new password at
+              the end. */}
+          <Button variant="secondary" className="w-full" loading={busy} onClick={() => void emailLink()}>
+            <Mail size={13} aria-hidden="true" />
+            No password yet, or forgotten it — email me a link
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setError(null)
+              setPasswordValue('')
+              setMode('form')
+            }}
+            className="w-full font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-white/70"
+          >
+            Use a different address
+          </button>
+        </div>
+      </div>
     )
   }
 
@@ -255,8 +456,14 @@ export default function SignIn() {
           />
 
           <Button type="submit" variant="secondary" loading={busy} className="w-full">
-            <Mail size={13} aria-hidden="true" />
-            {mode === 'needsEmail' ? 'Finish signing in' : 'Email me a link instead'}
+            {mode === 'needsEmail' ? (
+              <>
+                <Mail size={13} aria-hidden="true" />
+                Finish signing in
+              </>
+            ) : (
+              'Continue with email'
+            )}
           </Button>
         </form>
 

@@ -5,6 +5,8 @@ import {
   GoogleAuthProvider,
   isSignInWithEmailLink,
   linkWithCredential,
+  signInWithEmailAndPassword,
+  updatePassword,
   onAuthStateChanged,
   sendSignInLinkToEmail,
   signInWithEmailLink,
@@ -88,6 +90,11 @@ type AuthContextValue = {
   setAvatar: (avatar: AvatarStyle) => Promise<void>
   /** Renames the account. The old name stays reserved to them — see below. */
   changeUsername: (username: string) => Promise<void>
+  /** True once this account can sign in with a password. */
+  hasPassword: boolean
+  signInWithPassword: (email: string, password: string) => Promise<void>
+  /** Sets one, or replaces the existing one. Requires a live session. */
+  setPassword: (password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -542,6 +549,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  /**
+   * PASSWORDS, AND WHY THEY ARRIVE SECOND.
+   *
+   * The email link proves the address belongs to whoever clicked it. That is
+   * the part a password cannot do, which is why the order is link first,
+   * password after: the password is set by somebody already holding a session
+   * that was earned by reading the inbox, so it can never be used to claim an
+   * address its owner has not seen.
+   *
+   * It also fixes the thing that prompted this. A link signs you in *in the
+   * browser that opened it* — so sending one to a friend signs THEM in on
+   * THEIR phone and does nothing on the sender's screen, which reads as the
+   * site being broken. With a password they can sign in anywhere, on any
+   * device, without waiting for mail at all.
+   *
+   * `linkWithCredential` for the first one and `updatePassword` after, because
+   * the two are different operations to Firebase: the first attaches a new
+   * provider, the second changes an existing one, and calling the wrong one
+   * fails with `auth/provider-already-linked` or `auth/no-such-provider`.
+   */
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
+  }, [])
+
+  const setPassword = useCallback(async (password: string) => {
+    const current = auth.currentUser
+    if (!current?.email) throw new Error('You are not signed in.')
+    if (password.length < 8) throw new Error('Use at least 8 characters.')
+
+    const already = current.providerData.some((entry) => entry.providerId === 'password')
+    try {
+      if (already) {
+        await updatePassword(current, password)
+      } else {
+        // The account's own address, never one typed into a form: this links a
+        // password to the identity the session already proved.
+        await linkWithCredential(current, EmailAuthProvider.credential(current.email, password))
+      }
+    } catch (cause) {
+      const code = (cause as { code?: string })?.code
+      if (code === 'auth/requires-recent-login') {
+        throw new Error('For safety, sign in again before changing your password.')
+      }
+      if (code === 'auth/weak-password') throw new Error('That password is too easy to guess.')
+      throw new Error(reportError('setPassword', cause))
+    }
+  }, [])
+
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth)
   }, [])
@@ -561,6 +616,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * which reads the same set off the token.
    */
   const thaparEmail = accountEmails(user).find((email) => isThaparEmail(email)) ?? null
+  const hasPassword = (user?.providerData ?? []).some((entry) => entry.providerId === 'password')
   const canPost = status === 'ready' && (thaparEmail !== null || preApproved !== null)
   const isOwner = status === 'ready' && (user?.email ?? '').toLowerCase() === OWNER_EMAIL
 
@@ -582,6 +638,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       claimUsername,
       setAvatar,
       changeUsername,
+      hasPassword,
+      signInWithPassword,
+      setPassword,
       signOut,
     }),
     [
@@ -601,6 +660,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       claimUsername,
       setAvatar,
       changeUsername,
+      hasPassword,
+      signInWithPassword,
+      setPassword,
       signOut,
     ],
   )
