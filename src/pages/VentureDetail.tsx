@@ -20,7 +20,7 @@ import VentureLogo from '../components/ui/VentureLogo'
 import { LogoMark } from '../components/ui/Logo'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
+import { categoryName, getVenture, listMenuItems, recordInquiry, recordVentureView } from '../data/ventures'
 import type { MenuItem } from '../data/ventures'
 import { MENU_GRID_CLASS } from '../data/types'
 import type { MenuDensity } from '../data/types'
@@ -456,7 +456,15 @@ export default function VentureDetail() {
           {/* Beside the name, which is the one place on the page that is
               unambiguously about this venture as a whole rather than about one
               item on its menu. */}
-          <ShareVenture venture={v} ventureId={v.id} />
+          <ShareVenture
+            venture={{
+              ...v,
+              categoryName: categoryName(v.categoryId),
+              itemCount: menu.data?.length,
+            }}
+            ventureId={v.id}
+            photo={v.photos[0]}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

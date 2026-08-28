@@ -34,6 +34,11 @@ export type ShareableVenture = {
   name: string
   description: string
   hours: string
+  /** What they are filed under, e.g. "Food & Snacks". Optional: a share still
+   *  works without it, it just says less. */
+  categoryName?: string
+  /** How many items are on their menu, when the menu has been read. */
+  itemCount?: number
 }
 
 /**
@@ -64,15 +69,29 @@ export function ventureShareMessage(
   ventureId: string,
   origin: string,
 ): string {
-  const lines = [`${venture.name.trim()} on VentureAdda`, '']
+  const name = venture.name.trim()
+  const category = venture.categoryName?.trim()
+
+  // "Glood — Art & Craft, on VentureAdda" says the three things a person
+  // needs before they decide whether to tap: who, what sort of thing, and
+  // where this is coming from.
+  const lines = [category ? `${name} — ${category}, on VentureAdda` : `${name} on VentureAdda`, '']
 
   const description = trimDescription(venture.description)
   if (description) lines.push(description, '')
 
-  const hours = venture.hours.trim()
-  if (hours) lines.push(`Open: ${hours}`, '')
+  const facts: string[] = []
+  if (venture.hours.trim()) facts.push(`Open: ${venture.hours.trim()}`)
+  if (venture.itemCount && venture.itemCount > 0) {
+    facts.push(`${venture.itemCount} ${venture.itemCount === 1 ? 'item' : 'items'} on the menu`)
+  }
+  if (facts.length) lines.push(...facts, '')
 
-  lines.push(ventureUrl(ventureId, origin))
+  // The instruction, because a link with no verb next to it is a link people
+  // scroll past. It also sets expectations for what happens after the tap:
+  // this site hands the conversation back to WhatsApp, so nobody arrives
+  // expecting a checkout.
+  lines.push('Tap to see their full menu and order on WhatsApp:', ventureUrl(ventureId, origin))
   return lines.join('\n')
 }
 

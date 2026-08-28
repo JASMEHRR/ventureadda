@@ -12,6 +12,7 @@ import type { ContactPreference, OrderLine, PaymentMethod } from '../data/orders
 import type { CartEntry } from '../data/cart'
 import { cartTotal } from '../data/cart'
 import type { Venture } from '../data/ventures'
+import { getSiteSettings } from '../data/settings'
 import { notifyOrderPlaced } from '../lib/notifyOrder'
 import { cartLink } from '../lib/whatsapp'
 import type { Buyer } from '../lib/whatsapp'
@@ -85,6 +86,29 @@ export default function CheckoutModal({
   const [buyerPhone, setBuyerPhone] = useState(remembered.phone)
   const [deliveryAddress, setDeliveryAddress] = useState(remembered.address)
   const [contactPreference, setContactPreference] = useState<ContactPreference>('buyerContacts')
+
+  /**
+   * Whether the "seller contacts me" route is offered at all.
+   *
+   * Read here rather than passed in: this dialog is the only thing that asks
+   * the question, and one settings read on a modal that is already waiting on
+   * a cart is cheaper than threading a flag through every page that can open
+   * it. Defaults to false, including when the read fails — an option the site
+   * cannot honour must not appear because a network call went wrong.
+   */
+  const [sellerContact, setSellerContact] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getSiteSettings()
+      .then((settings) => {
+        if (!cancelled) setSellerContact(settings.sellerContact === true)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const [payment, setPayment] = useState<PaymentMethod>('cod')
   const [deliverySlot, setDeliverySlot] = useState('')
   const [placing, setPlacing] = useState(false)
@@ -412,23 +436,29 @@ export default function CheckoutModal({
               ]}
             />
 
-            <ChoiceGroup
-              label="Who gets in touch"
-              value={contactPreference}
-              onChange={setContactPreference}
-              choices={[
-                {
-                  value: 'buyerContacts',
-                  label: 'I will message the seller',
-                  detail: 'Opens WhatsApp with the order written out, once you have placed it.',
-                },
-                {
-                  value: 'sellerContacts',
-                  label: 'The seller contacts me',
-                  detail: 'They see it on their dashboard and call you.',
-                },
-              ]}
-            />
+            {/* Only when a moderator has turned it on — see `sellerContact`
+                in data/settings.ts. Off, there is one way an order travels and
+                no question to ask about it, so the whole group goes rather
+                than sitting there with a single choice in it. */}
+            {sellerContact && (
+              <ChoiceGroup
+                label="Who gets in touch"
+                value={contactPreference}
+                onChange={setContactPreference}
+                choices={[
+                  {
+                    value: 'buyerContacts',
+                    label: 'I will message the seller',
+                    detail: 'Opens WhatsApp with the order written out, once you have placed it.',
+                  },
+                  {
+                    value: 'sellerContacts',
+                    label: 'The seller contacts me',
+                    detail: 'They see it on their dashboard and call you.',
+                  },
+                ]}
+              />
+            )}
           </div>
 
           <p className="flex items-start gap-2 border-t border-white/8 pt-3.5 text-[15px] leading-relaxed text-white/45">

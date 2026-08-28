@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Check, Link2, Share2 } from 'lucide-react'
-import { ventureUrl, whatsappShareLink } from '../lib/share'
+import { Check, Link2 } from 'lucide-react'
+import WhatsAppIcon from './ui/WhatsAppIcon'
+import { ventureShareMessage, ventureUrl, whatsappShareLink } from '../lib/share'
 import type { ShareableVenture } from '../lib/share'
+import { displayUrl } from '../lib/cloudinary'
+import type { StoredImage } from '../data/types'
 
 /**
  * Two ways to pass a venture on: copy the link, or hand the whole message to
@@ -23,12 +26,17 @@ import type { ShareableVenture } from '../lib/share'
 export default function ShareVenture({
   venture,
   ventureId,
+  photo,
 }: {
   venture: ShareableVenture
   ventureId: string
+  /** The cover photo, when there is one. Sent with the message on the
+   *  platforms that can carry a file. */
+  photo?: StoredImage
 }) {
   const [copied, setCopied] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   // The origin is read at click time rather than at module load so this is
   // correct on any deployment without being told which one it is on.
@@ -52,6 +60,57 @@ export default function ShareVenture({
       // comes from. Rather than a dead button, show the link so it can be
       // selected by hand.
       setFailed(true)
+    }
+  }
+
+  /**
+   * The photo, when the platform can actually carry one.
+   *
+   * A wa.me link is text and only text — no URL parameter attaches an image,
+   * and no amount of wanting changes that. What can send a picture is the Web
+   * Share API with a file, which on Android and iOS opens the same system
+   * sheet WhatsApp sits in, and arrives as a real photo with the message under
+   * it. So: try that first when the browser says it can, and fall through to
+   * the wa.me link everywhere else rather than pretending.
+   *
+   * `canShare({ files })` is asked rather than assumed. Desktop Chrome has
+   * `navigator.share` and refuses files; testing for `share` alone would open
+   * a sheet that then throws.
+   *
+   * A slow or failed image fetch must not cost the share: any error falls
+   * straight through to the link, which is the behaviour someone who tapped a
+   * share button expects either way.
+   */
+  const shareWithPhoto = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!photo || sharing) return
+    const canShareFiles =
+      typeof navigator.canShare === 'function' && typeof navigator.share === 'function'
+    if (!canShareFiles) return
+
+    event.preventDefault()
+    setSharing(true)
+    try {
+      const response = await fetch(displayUrl(photo, 1200))
+      const blob = await response.blob()
+      const file = new File([blob], `${venture.name.replace(/\W+/g, '-').toLowerCase()}.jpg`, {
+        type: blob.type || 'image/jpeg',
+      })
+      if (!navigator.canShare({ files: [file] })) {
+        window.open(whatsappShareLink(venture, ventureId, origin), '_blank', 'noopener')
+        return
+      }
+      await navigator.share({
+        files: [file],
+        text: ventureShareMessage(venture, ventureId, origin),
+      })
+    } catch (cause) {
+      // AbortError is the person closing the sheet — not a failure, and
+      // reopening WhatsApp behind them would be the wrong answer.
+      if ((cause as { name?: string })?.name !== 'AbortError') {
+        window.open(whatsappShareLink(venture, ventureId, origin), '_blank', 'noopener')
+      }
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -80,11 +139,12 @@ export default function ShareVenture({
           href={whatsappShareLink(venture, ventureId, origin)}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(event) => void shareWithPhoto(event)}
           aria-label={`Share ${venture.name} on WhatsApp`}
           title="Share on WhatsApp"
           className="flex h-11 w-11 items-center justify-center rounded-full border border-whatsapp/40 bg-whatsapp/15 text-whatsapp transition duration-150 hover:bg-whatsapp/25 active:scale-[0.94]"
         >
-          <Share2 size={17} aria-hidden="true" />
+          <WhatsAppIcon size={18} />
         </a>
       </div>
 

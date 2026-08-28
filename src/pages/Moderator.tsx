@@ -17,6 +17,7 @@ import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
 import PhotoUploader from '../components/ui/PhotoUploader'
+import ChoiceGroup from '../components/ui/ChoiceGroup'
 import StatCard from '../components/ui/StatCard'
 import TextField from '../components/ui/TextField'
 import LoadingLine from '../components/ui/LoadingLine'
@@ -35,7 +36,7 @@ import { categoryName } from '../data/types'
 import { SEED_VENTURES, seedInput } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL } from '../lib/firebase'
-import { getSiteSettings, isDown, setBackdrop, setMaintenance } from '../data/settings'
+import { getSiteSettings, isDown, setBackdrop, setMaintenance, setSellerContact } from '../data/settings'
 import type { MaintenanceWindow } from '../data/settings'
 import {
   approveEmail,
@@ -387,6 +388,46 @@ export default function Moderator() {
             void act(() => setBackdrop(next[0] ?? null), next[0] ? 'Backdrop updated.' : 'Backdrop reset to default.')
           }
           max={1}
+        />
+      </div>
+
+      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Checkout options
+        </h2>
+        <p className="text-[15px] leading-relaxed text-white/45">
+          &ldquo;The seller contacts me&rdquo; puts the order on the seller&rsquo;s dashboard and
+          asks the buyer to wait for a call — a promise nothing on this site can keep, because
+          nothing makes a seller open that dashboard. Off, every order goes out through WhatsApp
+          with the items written out. Turn it on only once you know your sellers watch their
+          orders.
+        </p>
+        {/* ChoiceGroup rather than the StockToggle used elsewhere: that one is
+            worded "In stock / Sold out", which is about a menu item and would
+            be nonsense here. */}
+        <ChoiceGroup
+          label="Offer it at checkout"
+          value={settings.data?.sellerContact === true ? 'on' : 'off'}
+          onChange={(next) =>
+            void act(
+              () => setSellerContact(next === 'on'),
+              next === 'on'
+                ? 'Buyers can now ask the seller to contact them.'
+                : 'Every order now goes out through WhatsApp.',
+            )
+          }
+          choices={[
+            {
+              value: 'off',
+              label: 'No — WhatsApp only',
+              detail: 'The buyer taps through with the order written out. One route, and it works.',
+            },
+            {
+              value: 'on',
+              label: 'Yes — offer both',
+              detail: 'Buyers may choose to wait for the seller to call them instead.',
+            },
+          ]}
         />
       </div>
 

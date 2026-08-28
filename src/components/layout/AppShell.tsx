@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import MobileNav from './MobileNav'
+import Walkthrough from '../Walkthrough'
 import { useAuth } from '../../auth/AuthProvider'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { countUnseenOrders } from '../../data/orders'
@@ -95,6 +96,11 @@ export default function AppShell() {
       </div>
 
       <MobileNav isModerator={isModerator} isSignedIn={status === 'ready'} />
+
+      {/* In the shell rather than on one page: the offer should follow whoever
+          arrived, and most arrivals here come from a shared link straight to a
+          venture rather than to the front door. */}
+      <Walkthrough />
     </SearchScopeContext.Provider>
   )
 }

@@ -6,6 +6,8 @@ const glood = {
   name: 'Glood',
   description: 'Custom stickers — F1, Marvel, anime, sports, music, memes, TV & movies. Message on WhatsApp to see the full sheet.',
   hours: 'Open 24/7',
+  categoryName: 'Art & Craft',
+  itemCount: 15,
 }
 
 /**
@@ -18,12 +20,14 @@ test('the shared message names the venture, says what it is, and ends with the l
   assert.equal(
     message,
     [
-      'Glood on VentureAdda',
+      'Glood — Art & Craft, on VentureAdda',
       '',
       'Custom stickers — F1, Marvel, anime, sports, music, memes, TV & movies. Message on WhatsApp to see the full sheet.',
       '',
       'Open: Open 24/7',
+      '15 items on the menu',
       '',
+      'Tap to see their full menu and order on WhatsApp:',
       'https://ventureadda.vercel.app/venture/abc123',
     ].join('\n'),
   )
@@ -36,7 +40,10 @@ test('the shared message names the venture, says what it is, and ends with the l
 
 test('a venture with nothing filled in still shares something usable', () => {
   const message = ventureShareMessage({ name: 'Bare', description: '', hours: '' }, 'x1', 'https://x.dev')
-  assert.equal(message, 'Bare on VentureAdda\n\nhttps://x.dev/venture/x1')
+  assert.equal(
+    message,
+    'Bare on VentureAdda\n\nTap to see their full menu and order on WhatsApp:\nhttps://x.dev/venture/x1',
+  )
 })
 
 test('long descriptions are cut at a word, not mid-word', () => {
