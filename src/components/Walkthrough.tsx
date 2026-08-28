@@ -1,80 +1,121 @@
-import { useEffect, useState } from 'react'
-import { ArrowRight, Compass, MessageCircle, Search, ShoppingCart, Store, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { ArrowRight, Compass, X } from 'lucide-react'
 import Button from './ui/Button'
 
 /**
- * The offer of a guided tour, and the tour.
+ * A guided tour of the actual interface, pointing at the actual controls.
  *
- * ASKED, NEVER IMPOSED. A modal that takes over on first load is the thing
- * everybody dismisses without reading, so this is a strip at the bottom of the
- * screen with two answers, and "No thanks" is a real answer that is never
- * asked again. Somebody who arrived from a WhatsApp link wanting one brownie
- * should be able to ignore this entirely and lose nothing.
+ * THE FIRST VERSION WAS FOUR CARDS OF PROSE in the corner, and it was the
+ * wrong shape: it described the site to somebody who was looking at the site,
+ * which leaves them to work out for themselves which thing on screen each
+ * paragraph was about. A tour that cannot point is a help page wearing a
+ * costume. This one anchors each step to the control it is describing, dims
+ * everything else, and moves through the interface in the order a first-time
+ * visitor meets it.
  *
- * WHY IT EXISTS AT ALL. Almost nothing on this site works the way a shopping
- * site works: there is no payment, the cart ends in a WhatsApp message, and
- * the seller is a student who may be in a lecture. Someone who assumes
- * otherwise gets to the end of a checkout expecting a payment screen. Four
- * cards are cheaper than that surprise.
+ * TARGETS ARE NAMED, NOT SELECTED BY CLASS. Every step names a `data-tour`
+ * attribute, so restyling a button cannot silently break the tour and anyone
+ * editing one of those elements can see it is spoken for.
  *
- * REMEMBERED PER DEVICE, in localStorage rather than on the account. It has to
- * work for a signed-out visitor — which is most first visits, since browsing
- * needs no account — and there is no profile to write to yet.
+ * A MISSING TARGET IS SKIPPED, never fatal. The sidebar does not exist below
+ * `md`, the sort control hides itself when there is one venture, and the
+ * account tile differs signed in and out — a tour that stalled on any of that
+ * would be broken for most phones. Each step waits briefly for its element and
+ * moves on if it never arrives.
+ *
+ * REMEMBERED PER DEVICE, in localStorage. It has to work signed-out, which is
+ * most first visits, and there is no profile to write to then.
  */
 const SEEN_KEY = 'ventureadda:walkthrough'
 
 type Step = {
-  icon: typeof Store
+  /** Matches a `data-tour` attribute in the markup. */
+  target: string
   title: string
   body: string
+  /** Go here first, when the control only exists on one page. */
+  path?: string
 }
 
 const STEPS: Step[] = [
   {
-    icon: Store,
-    title: 'Every venture on campus, in one place',
-    body: 'Students here bake, thrift, print, repair and sell. All of it usually lives in group chats that scroll away by evening. This is the list that does not.',
-  },
-  {
-    icon: Search,
+    target: 'search',
+    path: '/browse',
     title: 'Search finds items, not just shops',
-    body: 'Type "brownie" and you get the brownie, with the price, from whoever is selling one — not a shop you then have to dig through. The search box is at the top of every page.',
+    body: 'Type "brownie" and you get the brownie itself — the price, and who is selling it — rather than a shop you then have to dig through. On a phone it hides behind the magnifier to save the space.',
   },
   {
-    icon: ShoppingCart,
-    title: 'Add what you want to your cart',
-    body: 'Your cart can hold items from more than one seller at once, and it survives closing the tab. Nothing is reserved and nothing is charged.',
+    target: 'category',
+    title: 'Narrow it to one kind of thing',
+    body: 'Food, fashion, art, printing and the rest. It sets the filter for the whole directory, and it shows in the address bar so a filtered list is something you can send to somebody.',
   },
   {
-    icon: MessageCircle,
-    title: 'You pay the seller directly',
-    body: 'No money goes through this site. Placing an order opens WhatsApp with your items written out, and you and the seller settle the rest — cash, UPI, whatever you both use.',
+    target: 'sort',
+    title: 'Order the directory how you like',
+    body: 'By category, A to Z, most opened, or best rated. Sorting is remembered in the link too, so what you send is what they see.',
+  },
+  {
+    target: 'venture-card',
+    title: 'Every listing is a real student',
+    body: 'The photos swipe, the stars are from reviews left here, and the whole card opens their menu. Nothing on this site is a shop — it is somebody in your year who makes the thing.',
+  },
+  {
+    target: 'cart',
+    title: 'Your cart can hold several sellers at once',
+    body: 'Add from as many ventures as you like; it splits itself by seller at checkout and survives you closing the tab. Nothing is reserved and nothing is charged.',
+  },
+  {
+    target: 'chat',
+    title: 'The campus chat',
+    body: 'One room for the whole campus — asking who sells what, when somebody is open, that sort of thing. Posting needs a Thapar address.',
+  },
+  {
+    target: 'add-venture',
+    title: 'Selling something? List it',
+    body: 'A listing takes a name, your hours, a WhatsApp number and your items. It goes to a moderator first, and it is live once they approve it. You need a Thapar address to post — you can add one to your account later if you signed in with something else.',
+  },
+  {
+    target: 'theme',
+    title: 'Day and night',
+    body: 'The whole site flips between a dark and a light look. It follows your phone by default; this overrules it. More of these live in Settings.',
+  },
+  {
+    target: 'account',
+    title: 'Everything of yours lives here',
+    body: 'Your orders, the orders people place with you, your listings, and your settings. Browsing needs no account at all — you only need one to order or review.',
   },
 ]
 
+/** The first visible element claiming this name; nothing when it is off screen
+ *  or not rendered at this width. */
+function findTarget(name: string): HTMLElement | null {
+  const matches = [...document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`)]
+  return matches.find((element) => element.getBoundingClientRect().width > 0) ?? null
+}
+
+type Box = { top: number; left: number; width: number; height: number }
+
 export default function Walkthrough() {
-  /**
-   * 'asking' is the strip, 'touring' is the tour, and null is out of the way.
-   *
-   * Starts null rather than 'asking' so the first paint is the site itself.
-   * Someone deciding whether this page is worth their time should see the page
-   * before they see anything asking them a question about it.
-   */
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
   const [mode, setMode] = useState<'asking' | 'touring' | null>(null)
   const [step, setStep] = useState(0)
+  const [box, setBox] = useState<Box | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let seen = true
     try {
       seen = window.localStorage.getItem(SEEN_KEY) !== null
     } catch {
-      // Storage blocked. Treat as seen: a tour that cannot be dismissed for
-      // good is worse than no tour.
+      // Storage blocked. Treat as seen: a tour nobody can dismiss for good is
+      // worse than no tour.
     }
     if (seen) return
-    // A short delay, deliberately. The offer is not the point of the visit,
-    // and arriving a beat after the page has painted is the difference between
-    // an offer and an interruption.
+    // A beat after the page has painted, so it reads as an offer rather than
+    // an interruption.
     const timer = window.setTimeout(() => setMode('asking'), 1200)
     return () => window.clearTimeout(timer)
   }, [])
@@ -83,31 +124,111 @@ export default function Walkthrough() {
     try {
       window.localStorage.setItem(SEEN_KEY, String(Date.now()))
     } catch {
-      // Then it asks again next time, which is a small annoyance rather than
-      // a broken page.
+      // Then it offers again next time, which is a small annoyance rather
+      // than a broken page.
     }
   }
 
-  const dismiss = () => {
+  const finish = useCallback(() => {
     remember()
     setMode(null)
-  }
+    setBox(null)
+  }, [])
+
+  const current = mode === 'touring' ? STEPS[step] : null
+
+  // Navigate first when a step lives on a particular page — the control cannot
+  // be pointed at from a page that does not render it.
+  useEffect(() => {
+    if (current?.path && pathname !== current.path) navigate(current.path)
+  }, [current, pathname, navigate])
+
+  /**
+   * Finds the step's element and measures it, retrying while the page settles.
+   *
+   * The retry is not defensive padding: a step that follows a navigation is
+   * measured before the new route has rendered, and the sort control appears
+   * only once the ventures have loaded from Firestore. Twenty tries at 100ms
+   * covers both; after that the step is treated as absent and skipped, which
+   * is the honest outcome on a width where that control does not exist.
+   */
+  useEffect(() => {
+    if (!current) return
+    let cancelled = false
+    let tries = 0
+
+    const measure = () => {
+      if (cancelled) return
+      const element = findTarget(current.target)
+      if (!element) {
+        tries += 1
+        if (tries > 20) {
+          // Skip forward, or end if this was the last one.
+          if (step < STEPS.length - 1) setStep(step + 1)
+          else finish()
+          return
+        }
+        window.setTimeout(measure, 100)
+        return
+      }
+
+      element.scrollIntoView({ block: 'center', behavior: 'auto' })
+
+      // Measured twice: once now, so a hidden or throttled tab still gets a
+      // position, and once on the next tick so the rectangle reflects where
+      // the scroll actually landed. requestAnimationFrame was the obvious
+      // choice for the second one and the wrong one — it does not fire at all
+      // in a background tab, which left the spotlight unpositioned and the
+      // card floating in the corner with nothing highlighted.
+      const place = () => {
+        if (cancelled) return
+        const rect = element.getBoundingClientRect()
+        setBox({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
+      }
+      place()
+      window.setTimeout(place, 50)
+    }
+
+    measure()
+
+    // Anything that moves the page moves the hole in the dimmer with it.
+    const remeasure = () => {
+      const element = findTarget(current.target)
+      if (!element) return
+      const rect = element.getBoundingClientRect()
+      setBox({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
+    }
+    window.addEventListener('scroll', remeasure, true)
+    window.addEventListener('resize', remeasure)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('scroll', remeasure, true)
+      window.removeEventListener('resize', remeasure)
+    }
+  }, [current, step, finish])
 
   if (mode === null) return null
 
   if (mode === 'asking') {
     return (
-      <div className="fixed inset-x-3 bottom-24 z-40 mx-auto max-w-lg md:bottom-6">
+      <div className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-lg md:bottom-6">
         <div className="liquid-glass-highlight flex flex-wrap items-center gap-3 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           <Compass size={20} aria-hidden="true" className="shrink-0 text-brand-400" />
           <p className="min-w-40 flex-1 text-[15px] leading-relaxed text-white/75">
-            First time here? This works a bit differently to a shopping site.
+            First time here? Let me walk you round — it takes about a minute.
           </p>
           <div className="flex shrink-0 gap-2">
-            <Button variant="primary" onClick={() => setMode('touring')}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setStep(0)
+                setMode('touring')
+              }}
+            >
               Show me
             </Button>
-            <Button variant="ghost" onClick={dismiss}>
+            <Button variant="ghost" onClick={finish}>
               No thanks
             </Button>
           </div>
@@ -116,70 +237,86 @@ export default function Walkthrough() {
     )
   }
 
-  const current = STEPS[step]
+  if (!current) return null
   const last = step === STEPS.length - 1
-  const Icon = current.icon
+
+  /**
+   * The card goes under the highlight when there is room beneath it, and over
+   * it when there is not — a card that covers the very control it is pointing
+   * at is the one thing this must never do.
+   */
+  const CARD_HEIGHT = 210
+  const below = box ? box.top + box.height + 12 : 120
+  const fitsBelow = box ? below + CARD_HEIGHT < window.innerHeight : true
+  const cardTop = box ? (fitsBelow ? below : Math.max(12, box.top - CARD_HEIGHT - 12)) : 120
 
   return (
-    /* Not the Modal component: that one traps focus and blacks out the page,
-       which is right for a checkout and wrong for a tour whose whole subject
-       is the page behind it. This sits over the corner and leaves the site
-       visible and usable underneath. */
-    <div className="fixed inset-x-3 bottom-24 z-40 mx-auto max-w-lg md:bottom-6">
+    <>
+      {/* The spotlight: one element, dimming the entire page through a huge
+          spread shadow and leaving a lit hole exactly where the control is.
+          `pointer-events-none` so it never eats a click — the page underneath
+          stays usable, which matters because a tour of an interface you cannot
+          touch is a slideshow. */}
+      {box && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-40 rounded-2xl ring-2 ring-brand-400/70 transition-all duration-200"
+          style={{
+            top: box.top - 6,
+            left: box.left - 6,
+            width: box.width + 12,
+            height: box.height + 12,
+            boxShadow: '0 0 0 9999px rgba(2, 4, 10, 0.72)',
+          }}
+        />
+      )}
+
       <div
+        ref={cardRef}
         role="dialog"
-        aria-label="How VentureAdda works"
-        className="liquid-glass-highlight rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+        aria-label={current.title}
+        className="liquid-glass-highlight fixed z-50 mx-auto max-w-sm rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
+        style={{
+          top: cardTop,
+          // Clamped so the card never hangs off either edge on a phone, and
+          // never drifts miles from its target on a wide screen.
+          left: box
+            ? Math.max(12, Math.min(box.left, window.innerWidth - 384 - 12))
+            : 12,
+          right: box ? undefined : 12,
+        }}
       >
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-brand-300">
-            <Icon size={18} aria-hidden="true" />
-          </span>
-
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[17px] leading-tight font-extrabold text-white">{current.title}</h2>
-            <p className="mt-2 text-[15px] leading-relaxed text-white/60">{current.body}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[12px] font-extrabold tracking-[0.18em] text-brand-400 uppercase">
+              {step + 1} of {STEPS.length}
+            </p>
+            <h2 className="mt-1.5 text-[17px] leading-tight font-extrabold text-white">
+              {current.title}
+            </h2>
           </div>
-
           <button
             type="button"
-            onClick={dismiss}
-            aria-label="Close the walkthrough"
+            onClick={finish}
+            aria-label="End the walkthrough"
             className="shrink-0 rounded-full p-2 text-white/40 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
           >
             <X size={15} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          {/* Position, and a way back to any card. Four dots is a small enough
-              set that they are worth making tappable rather than decorative. */}
-          <div className="flex items-center gap-1.5">
-            {STEPS.map((item, index) => (
-              <button
-                key={item.title}
-                type="button"
-                onClick={() => setStep(index)}
-                aria-label={`Step ${index + 1} of ${STEPS.length}`}
-                aria-current={index === step}
-                className="flex items-center px-1 py-2.5"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`block h-1.5 rounded-full transition-all duration-200 ${
-                    index === step ? 'w-5 bg-brand-400' : 'w-1.5 bg-white/25'
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
+        <p className="mt-2 text-[15px] leading-relaxed text-white/60">{current.body}</p>
 
-          <Button variant="primary" onClick={() => (last ? dismiss() : setStep(step + 1))}>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
+            Back
+          </Button>
+          <Button variant="primary" onClick={() => (last ? finish() : setStep(step + 1))}>
             {last ? 'Start browsing' : 'Next'}
             {!last && <ArrowRight size={13} aria-hidden="true" />}
           </Button>
         </div>
       </div>
-    </div>
+    </>
   )
 }

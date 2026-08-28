@@ -28,15 +28,21 @@ export default function VentureCard({
   rating,
   /** Position in the grid, used only to stagger the auto-advance. */
   index = 0,
+  dataTour,
 }: {
   venture: Venture
   categoryName: string
   /** Absent until anyone has reviewed. */
   rating?: RatingSummary
   index?: number
+  /** Names this card for the walkthrough — see components/Walkthrough. */
+  dataTour?: string
 }) {
   return (
-    <article className="liquid-glass-panel group rounded-3xl p-3 transition duration-150 hover:bg-white/[0.06]">
+    <article
+      data-tour={dataTour}
+      className="liquid-glass-panel group rounded-3xl p-3 transition duration-150 hover:bg-white/[0.06]"
+    >
       <PhotoCarousel
         photos={venture.photos}
         alt={venture.name}

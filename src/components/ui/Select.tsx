@@ -18,6 +18,8 @@ type SelectProps<T extends string> = {
   className?: string
   /** Overrides the trigger's own classes, e.g. to size it for the top bar. */
   triggerClassName?: string
+  /** Names this control for the walkthrough — see components/Walkthrough. */
+  dataTour?: string
 }
 
 /** Typeahead buffer lifetime, matching the usual native select behaviour. */
@@ -80,6 +82,7 @@ export default function Select<T extends string>({
   onChange,
   placeholder = 'Select…',
   className = '',
+  dataTour,
   triggerClassName = 'liquid-glass-input flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-left text-[15.5px] font-bold transition duration-150 active:scale-[0.99]',
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false)
@@ -285,7 +288,7 @@ export default function Select<T extends string>({
   )
 
   return (
-    <div ref={wrapperRef} className={`relative ${className}`}>
+    <div ref={wrapperRef} data-tour={dataTour} className={`relative ${className}`}>
       {/* Never dropped, only hidden. The label is what makes the combobox
           announce as "Category, Food & Snacks" rather than reading its current
           value with no idea what it selects — so in the top bar, where there is
@@ -356,7 +359,14 @@ export default function Select<T extends string>({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             style={{ ...popupPosition(rect), position: 'fixed', zIndex: 50 }}
-            className="liquid-glass-panel overflow-auto rounded-2xl p-1.5"
+            /* bg-surface/95 UNDER the glass, which the panels behind it do not
+               need. A dropdown opens on top of whatever the page is showing —
+               here, a grid of product photographs — and glass takes its
+               contrast from what is behind it. Over a white sticker sheet the
+               option list was white text on a white photograph. Not fully
+               opaque: 95% still reads as part of this design rather than as a
+               native menu bolted on. */
+            className="liquid-glass-panel overflow-auto rounded-2xl bg-surface/95 p-1.5"
           >
             {options.map((option, index) => {
               const isSelected = option.value === value

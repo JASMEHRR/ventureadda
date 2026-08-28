@@ -237,6 +237,7 @@ export default function Browse() {
                 <Select
                   label="Sort by"
                   labelHidden
+                  dataTour="sort"
                   value={sort}
                   options={SORT_OPTIONS}
                   onChange={setSort}
@@ -255,6 +256,9 @@ export default function Browse() {
             {ordered.map((venture, index) => (
               <VentureCard
                 key={venture.id}
+                // Only the first: the tour points at one card as an example of
+                // all of them, and nine identical highlights is not a tour.
+                dataTour={index === 0 ? 'venture-card' : undefined}
                 venture={venture}
                 categoryName={categoryName(venture.categoryId)}
                 rating={ratings.data?.[venture.id]}

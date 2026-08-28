@@ -78,6 +78,10 @@ function SidebarLink({
   return (
     <NavLink
       to={item.to}
+      // Every nav row is nameable by the walkthrough — see Walkthrough.tsx.
+      // Derived from the path rather than listed separately so a new
+      // destination cannot be added without one.
+      data-tour={item.to.replace(/^\//, '') || 'browse'}
       end={item.to === '/'}
       aria-label={collapsed || badge > 0 ? name : undefined}
       title={collapsed ? name : undefined}
@@ -233,6 +237,7 @@ export default function Sidebar({
           the URL. */}
       <Link
         to="/add"
+        data-tour="add-venture"
         aria-label={collapsed ? 'Add venture' : undefined}
         title={collapsed ? 'Add venture' : undefined}
         className={`mt-3 flex items-center justify-center gap-2 rounded-2xl border border-brand-500/30 bg-brand-500/15 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97] ${

@@ -141,11 +141,19 @@
 --------------------------------------------------------------------------- */
 @layer components {
   /* Default glass surface — section wrappers, cards, list rows. */
+  /* FILLS RAISED FROM 0.04/0.01, which is where the spec put them and where
+     they were unreadable. Four percent of white over a starfield is fine; over
+     the product photographs this app is full of — a white sticker sheet, a
+     pale crochet bear — it left body text sitting on a photograph with nothing
+     between the two. These are still glass: the backdrop reads through, it
+     just no longer competes with the words. The --glass-opacity knob in
+     Settings multiplies through as it always did, so anyone who wants the
+     thinner original still has it. */
   .liquid-glass-panel {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, calc(0.04 * var(--glass-opacity))) 0%,
-      rgba(255, 255, 255, calc(0.01 * var(--glass-opacity))) 100%
+      rgba(255, 255, 255, calc(0.09 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.045 * var(--glass-opacity))) 100%
     );
     backdrop-filter: blur(var(--glass-blur)) saturate(135%);
     border: 1px solid rgba(255, 255, 255, calc(0.12 * var(--glass-opacity)));
@@ -160,8 +168,8 @@
   .liquid-glass-highlight {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, calc(0.07 * var(--glass-opacity))) 0%,
-      rgba(255, 255, 255, calc(0.02 * var(--glass-opacity))) 100%
+      rgba(255, 255, 255, calc(0.14 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.07 * var(--glass-opacity))) 100%
     );
     backdrop-filter: blur(calc(var(--glass-blur) * 1.2)) saturate(145%);
     border: 1px solid rgba(255, 255, 255, calc(0.18 * var(--glass-opacity)));
@@ -195,8 +203,8 @@
   :root[data-theme='light'] .liquid-glass-panel {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, calc(0.72 * var(--glass-opacity))) 0%,
-      rgba(255, 255, 255, calc(0.52 * var(--glass-opacity))) 100%
+      rgba(255, 255, 255, calc(0.86 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.7 * var(--glass-opacity))) 100%
     );
     border-color: rgba(11, 18, 32, calc(0.1 * var(--glass-opacity)));
     box-shadow:
@@ -207,8 +215,8 @@
   :root[data-theme='light'] .liquid-glass-highlight {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, calc(0.78 * var(--glass-opacity))) 0%,
-      rgba(255, 255, 255, calc(0.55 * var(--glass-opacity))) 100%
+      rgba(255, 255, 255, calc(0.92 * var(--glass-opacity))) 0%,
+      rgba(255, 255, 255, calc(0.78 * var(--glass-opacity))) 100%
     );
     border-color: rgba(11, 18, 32, calc(0.14 * var(--glass-opacity)));
     box-shadow:

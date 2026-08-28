@@ -83,8 +83,29 @@ export default function ShareVenture({
    */
   const shareWithPhoto = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!photo || sharing) return
+
+    /**
+     * ONLY ON A TOUCH DEVICE, and that restriction is the whole lesson here.
+     *
+     * Windows' share sheet accepts `{ files, text }` — canShare says yes — and
+     * then sends the file ALONE. The photograph arrives in the chat with no
+     * name, no description and, fatally, no link: the one thing the share
+     * exists to deliver. Reported from a desktop where the sheet opened
+     * showing glood.jpg and nothing else.
+     *
+     * Phones do not do this; WhatsApp on Android and iOS keeps the text as the
+     * image's caption, which is exactly the message with a picture on top.
+     * So the file path is for coarse pointers only, and every mouse falls
+     * through to the wa.me link, where the text is the entire payload and
+     * cannot be dropped.
+     *
+     * A link with no picture beats a picture with no link, every time.
+     */
+    const touchDevice = window.matchMedia?.('(pointer: coarse)').matches ?? false
     const canShareFiles =
-      typeof navigator.canShare === 'function' && typeof navigator.share === 'function'
+      touchDevice &&
+      typeof navigator.canShare === 'function' &&
+      typeof navigator.share === 'function'
     if (!canShareFiles) return
 
     event.preventDefault()
@@ -95,7 +116,7 @@ export default function ShareVenture({
       const file = new File([blob], `${venture.name.replace(/\W+/g, '-').toLowerCase()}.jpg`, {
         type: blob.type || 'image/jpeg',
       })
-      if (!navigator.canShare({ files: [file] })) {
+      if (!navigator.canShare({ files: [file], text: ventureShareMessage(venture, ventureId, origin) })) {
         window.open(whatsappShareLink(venture, ventureId, origin), '_blank', 'noopener')
         return
       }

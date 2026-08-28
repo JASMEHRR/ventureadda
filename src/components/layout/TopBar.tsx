@@ -168,6 +168,7 @@ export default function TopBar() {
       <Select
         label="Category"
         labelHidden
+        dataTour="category"
         value={category}
         options={CATEGORY_OPTIONS}
         onChange={setCategory}
@@ -191,6 +192,7 @@ export default function TopBar() {
         aria-expanded={expanded}
         aria-controls="shell-search"
         aria-label={expanded ? 'Close search' : label}
+        data-tour="search"
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94] sm:hidden"
       >
         {expanded ? <X size={17} aria-hidden="true" /> : <Search size={17} aria-hidden="true" />}
@@ -203,6 +205,7 @@ export default function TopBar() {
           a permanent line of the header is the more expensive of the two. */}
       <div
         id="shell-search"
+        data-tour="search"
         className={`relative order-last w-full min-w-40 flex-1 sm:order-none sm:block sm:w-auto ${
           expanded ? '' : 'hidden'
         }`}
@@ -241,6 +244,7 @@ export default function TopBar() {
           onClick={() => updateAppearance({ theme: dark ? 'light' : 'dark' })}
           aria-label={dark ? 'Switch to day mode' : 'Switch to night mode'}
           title={dark ? 'Day mode' : 'Night mode'}
+          data-tour="theme"
           className="flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
         >
           {dark ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
@@ -253,6 +257,7 @@ export default function TopBar() {
         <Link
           to="/cart"
           aria-label={items === 0 ? 'Cart, empty' : `Cart, ${items} ${items === 1 ? 'item' : 'items'}`}
+          data-tour="cart"
           className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition duration-150 active:scale-[0.94] ${
             items > 0
               ? 'border-brand-500/40 bg-brand-500/15 text-brand-300 hover:bg-brand-500/25'
@@ -275,6 +280,7 @@ export default function TopBar() {
             to="/profile"
             className="rounded-full transition duration-150 active:scale-[0.94]"
             aria-label={`Profile, signed in as ${account}`}
+            data-tour="account"
           >
             <Avatar name={account} style={profile?.avatar ?? 'initial'} />
           </Link>
@@ -290,13 +296,19 @@ export default function TopBar() {
             <Link
               to="/signin"
               aria-label="Sign in"
+              data-tour="account"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94] sm:hidden"
             >
               <UserRound size={17} aria-hidden="true" />
             </Link>
-            <Button variant="secondary" to="/signin" className="hidden sm:inline-flex">
-              Sign in
-            </Button>
+            {/* The wrapper carries the tour name rather than the Button:
+                `data-*` on a component whose props are typed is a type error,
+                and a span in a flex row costs nothing. */}
+            <span data-tour="account" className="hidden sm:inline-flex">
+              <Button variant="secondary" to="/signin">
+                Sign in
+              </Button>
+            </span>
           </>
         )}
       </div>

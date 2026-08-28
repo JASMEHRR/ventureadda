@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, MessageCircle, Minus, Phone, Plus } from 'lucide-react'
 import Button from './ui/Button'
 import ChoiceGroup from './ui/ChoiceGroup'
-import Field from './ui/Field'
+import Select from './ui/Select'
+import type { SelectOption } from './ui/Select'
 import Modal from './ui/Modal'
-import TextField, { inputClass } from './ui/TextField'
+import TextField from './ui/TextField'
 import { useAuth } from '../auth/AuthProvider'
 import { createOrder } from '../data/orders'
 import { orderTotal } from '../data/orderLines'
@@ -33,6 +34,26 @@ import type { Buyer } from '../lib/whatsapp'
  */
 
 const BUYER_KEY = 'ventureadda:buyer'
+
+/**
+ * Who the buyer is, which is what the seller needs before they set off.
+ *
+ * Three answers because three is what this campus has, and each one changes
+ * the journey: a hosteller is a block and a room, a day scholar is usually the
+ * gate at a particular hour, and faculty is an office. Stored as the label
+ * rather than the key — it is read by a person on a dashboard, not by code.
+ */
+type BuyerType = 'hosteller' | 'dayScholar' | 'faculty'
+
+const BUYER_TYPE_LABELS: Record<BuyerType, string> = {
+  hosteller: 'Hosteller',
+  dayScholar: 'Day scholar',
+  faculty: 'Faculty',
+}
+
+const BUYER_TYPES: SelectOption<BuyerType>[] = (
+  Object.keys(BUYER_TYPE_LABELS) as BuyerType[]
+).map((value) => ({ value, label: BUYER_TYPE_LABELS[value] }))
 
 type RememberedBuyer = { name: string; phone: string; address: string }
 
@@ -79,7 +100,7 @@ export default function CheckoutModal({
   /** Called once the order document exists, so the caller can clear the cart. */
   onPlaced: (orderId: string) => void
 }) {
-  const { profile, status: authStatus } = useAuth()
+  const { profile, status: authStatus, signInWithGoogle } = useAuth()
   const remembered = readBuyer()
 
   const [buyerName, setBuyerName] = useState(remembered.name || (profile?.username ?? ''))
@@ -110,7 +131,7 @@ export default function CheckoutModal({
     }
   }, [])
   const [payment, setPayment] = useState<PaymentMethod>('cod')
-  const [deliverySlot, setDeliverySlot] = useState('')
+  const [buyerType, setBuyerType] = useState<BuyerType>('hosteller')
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState<string | null>(null)
   /**
@@ -129,9 +150,31 @@ export default function CheckoutModal({
     if (open) {
       setPlaced(null)
       setPlaceError(null)
-      setDeliverySlot('')
+      setBuyerType('hosteller')
     }
   }, [open, venture.id])
+
+  /**
+   * The live profile, for the sign-in-then-place path above.
+   *
+   * `placeOrder` closes over the render's `profile`, so after signing in mid
+   * call it would still see null forever. A ref updated on every render is the
+   * smallest thing that lets an async function read what is true now rather
+   * than what was true when it started.
+   */
+  const profileRef = useRef(profile)
+  profileRef.current = profile
+
+  const waitForProfile = async () => {
+    // Ten seconds in tenths. Long enough for a first-time account, whose
+    // profile is created by a write after the sign-in resolves; short enough
+    // that a wedged state ends in a message rather than a spinner.
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (profileRef.current) return profileRef.current
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    }
+    return null
+  }
 
   const total = cartTotal(entries)
   const buyer: Buyer = { name: buyerName.trim(), phone: buyerPhone.trim() }
@@ -161,15 +204,11 @@ export default function CheckoutModal({
         )
       : null
 
-  // A slot is only required of the buyer if the seller published any. A seller
-  // who has not is agreeing to sort the time out in conversation.
-  const slotRequired = venture.deliverySlots.length > 0
   const canPlace =
     entries.length > 0 &&
     buyer.name !== '' &&
     buyer.phone.replace(/\D/g, '').length >= 8 &&
-    deliveryAddress.trim() !== '' &&
-    (!slotRequired || deliverySlot !== '')
+    deliveryAddress.trim() !== ''
 
   const close = () => {
     setPlaceError(null)
@@ -187,7 +226,52 @@ export default function CheckoutModal({
    * and an error with no way back to what they had chosen.
    */
   const placeOrder = async () => {
-    if (!profile || !canPlace) return
+    if (!canPlace) return
+
+    /**
+     * SIGNING IN HAPPENS HERE, AT THE END, NOT AT THE DOOR.
+     *
+     * This used to read `if (!profile || !canPlace) return` — a silent bail.
+     * A signed-out buyer filled in their name, their number, where to bring
+     * it, picked their items, pressed Place order, and nothing happened at
+     * all. No error, no prompt, no WhatsApp. Just a button that did nothing,
+     * which is the worst failure a form can have because there is nothing to
+     * act on.
+     *
+     * The order genuinely cannot be written anonymously — firestore.rules
+     * files every order under a buyer uid, which is what lets somebody see
+     * their own orders later and stops anyone reading a stranger's. So the
+     * account is still needed; what changes is when it is asked for. Everything
+     * is already filled in, so this is one Google tap at the moment the
+     * purpose of it is obvious, rather than a wall in front of a form nobody
+     * has decided to fill in yet.
+     *
+     * The form is not unmounted while this happens: the modal stays open, so
+     * nothing typed is lost whether they complete the sign-in or cancel it.
+     */
+    let account = profile
+    if (!account) {
+      setPlacing(true)
+      setPlaceError(null)
+      try {
+        await signInWithGoogle()
+      } catch {
+        setPlaceError('Could not sign you in. Try again, or use a different account.')
+        setPlacing(false)
+        return
+      }
+      // The profile arrives through onAuthStateChanged and its Firestore
+      // subscription, neither of which has resolved by the time the popup
+      // closes. Waiting on the ref rather than on `profile` because this
+      // closure captured the old value and will never see the new one.
+      account = await waitForProfile()
+      if (!account) {
+        setPlaceError('Signed in, but your profile is still loading. Press Place order again.')
+        setPlacing(false)
+        return
+      }
+    }
+
     setPlacing(true)
     setPlaceError(null)
 
@@ -202,14 +286,18 @@ export default function CheckoutModal({
     try {
       orderId = await createOrder({
         venture: { id: venture.id, name: venture.name, ownerId: venture.ownerId },
-        buyerUid: profile.uid,
+        buyerUid: account.uid,
         buyerName: buyer.name,
         buyerPhone: buyer.phone.replace(/\D/g, ''),
         lines,
         contactPreference,
         payment,
         deliveryAddress: deliveryAddress.trim(),
-        deliverySlot,
+        // Stored in the field that used to hold the seller's time window.
+        // Same job — the line of context the seller reads before setting off —
+        // and reusing it keeps every order ever placed readable by one
+        // dashboard rather than needing two code paths forever.
+        deliverySlot: BUYER_TYPE_LABELS[buyerType],
       })
     } catch (cause) {
       setPlaceError(cause instanceof Error ? cause.message : 'Could not place that order.')
@@ -397,24 +485,21 @@ export default function CheckoutModal({
               placeholder="Hostel J, room 214"
             />
 
-            {slotRequired && (
-              <Field id="checkout-slot" label="When" hint="The windows this seller offers.">
-                <select
-                  id="checkout-slot"
-                  required
-                  value={deliverySlot}
-                  onChange={(event) => setDeliverySlot(event.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Pick a time…</option>
-                  {venture.deliverySlots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
+            {/* WAS "PICK A TIME", A RAW <select>. Two things were wrong with
+                it. The browser draws that control itself — white popup, white
+                text on some machines, unreadable — and it was the one control
+                on this page not rendered by us. And the question was the wrong
+                one: a delivery window is something the two of them settle in
+                the conversation that starts thirty seconds later, while the
+                thing the seller actually needs before they set off is who they
+                are walking to. A hosteller, a day scholar waiting by the gate
+                and a member of faculty are three different journeys. */}
+            <Select
+              label="Who are you"
+              value={buyerType}
+              options={BUYER_TYPES}
+              onChange={setBuyerType}
+            />
           </div>
 
           <div className="space-y-3.5 border-t border-white/8 pt-3.5">
