@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { SearchX } from 'lucide-react'
 import AtmosphereBackdrop from './components/AtmosphereBackdrop'
@@ -8,6 +8,7 @@ import EmptyState from './components/ui/EmptyState'
 import LoadingLine from './components/ui/LoadingLine'
 import { AuthProvider } from './auth/AuthProvider'
 import MaintenanceGate from './components/MaintenanceGate'
+import { recordVisit } from './data/traffic'
 import Landing from './pages/Landing'
 import Browse from './pages/Browse'
 
@@ -43,6 +44,14 @@ const MyVentures = lazy(() => import('./pages/MyVentures'))
 const DesignDemo = lazy(() => import('./pages/DesignDemo'))
 
 export default function App() {
+  // Counted once per tab, from the root, so it happens whichever page the
+  // visitor landed on — most arrive on a venture from a shared link rather
+  // than at the front door. See data/traffic for why it is a day counter
+  // rather than a row per visit.
+  useEffect(() => {
+    void recordVisit()
+  }, [])
+
   return (
     <AuthProvider>
       {/* Inside the provider because it needs to know whether you are a

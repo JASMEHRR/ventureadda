@@ -1,3 +1,7 @@
+// Ruleset revision 1787936038. This line exists to change the file's
+// content hash: firebase-tools skips the upload when it believes the rules are
+// unchanged, and it has been wrong about that more than once in this project —
+// silently leaving an older ruleset live while reporting a successful deploy.
 rules_version = '2';
 
 // VentureAdda Firestore security rules.
@@ -535,6 +539,38 @@ service cloud.firestore {
 
       // No hard delete, same as chat: who reviewed what is the trail.
       allow delete: if false;
+    }
+
+    /**
+     * One counter per day: how many tabs opened the site.
+     *
+     * PUBLICLY WRITABLE, WHICH NEEDS JUSTIFYING. Most visitors are signed out
+     * — browsing needs no account — so a count only signed-in people
+     * contribute to would answer a different question than the one being
+     * asked. The write is therefore open, and constrained instead of gated:
+     * the only field is `count`, it must be a number, and it may only ever go
+     * up by exactly one. Nobody can set it to a million, write anything else
+     * into the document, or wind it back.
+     *
+     * What that leaves is somebody scripting a loop to inflate the number,
+     * which costs them a request per point and buys them a wrong number on a
+     * page only moderators can read. Rate limiting is not something rules can
+     * express; if it ever matters, the counter moves behind a function.
+     *
+     * READ IS MODERATORS ONLY. Traffic is the sort of thing a competitor asks
+     * about and nobody else needs.
+     */
+    match /traffic/{day} {
+      allow read: if isModerator();
+
+      allow create: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count == 1;
+
+      allow update: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count is number
+                    && request.resource.data.count == resource.data.count + 1;
+
+      allow delete: if isModerator();
     }
 
     match /settings/{settingId} {

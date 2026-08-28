@@ -37,6 +37,8 @@ import { categoryName } from '../data/types'
 import { SEED_VENTURES, seedInput } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL, auth } from '../lib/firebase'
+import { listTraffic } from '../data/traffic'
+import type { TrafficDay } from '../data/traffic'
 import {
   getSiteSettings,
   isDown,
@@ -238,6 +240,76 @@ function MaintenancePanel({
   )
 }
 
+/**
+ * Traffic, drawn as bars because a column of numbers is not a trend.
+ *
+ * WHAT IT COUNTS, said plainly on the panel itself: tabs that opened the site,
+ * once each, per day. Not people — one person on a phone and a laptop is two —
+ * and not page views, since a single-page app navigates without reloading and
+ * counting those would measure clicking about rather than arriving.
+ *
+ * Bars are scaled against the busiest day in the window rather than a fixed
+ * ceiling, so the shape is readable whether the best day was nine visits or
+ * nine hundred.
+ */
+function TrafficPanel({ days }: { days: TrafficDay[] }) {
+  const today = new Date()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  const todayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+
+  const total = days.reduce((sum, day) => sum + day.count, 0)
+  const peak = Math.max(1, ...days.map((day) => day.count))
+  const todayCount = days.find((day) => day.day === todayKey)?.count ?? 0
+  // Oldest on the left, which is the direction a trend is read in.
+  const ordered = [...days].reverse()
+
+  return (
+    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Traffic
+        </h2>
+        <span className="font-mono text-[13px] text-white/30">
+          {todayCount} today · {total} in {days.length || 0} day{days.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      {ordered.length === 0 ? (
+        <p className="text-[15px] text-white/45">
+          Nothing counted yet. The first visit after this went live starts it off.
+        </p>
+      ) : (
+        <>
+          <div className="flex h-28 items-end gap-1.5">
+            {ordered.map((day) => (
+              <div key={day.day} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <span className="font-mono text-[12px] font-bold text-white/40">{day.count}</span>
+                <div
+                  // A visited day always draws something: a bar rounded down to
+                  // nothing looks like a day nobody came, which is a different
+                  // fact.
+                  style={{ height: `${Math.max(4, (day.count / peak) * 100)}%` }}
+                  className={`w-full rounded-t ${
+                    day.day === todayKey ? 'bg-brand-400' : 'bg-brand-500/40'
+                  }`}
+                  title={`${day.count} on ${day.day}`}
+                />
+                <span className="font-mono text-[11px] text-white/25">{day.day.slice(8)}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-[14.5px] leading-relaxed text-white/40">
+            Tabs that opened the site, counted once each per day — not people, and not page
+            views. Somebody on a phone and a laptop is two; somebody reading six ventures in one
+            sitting is one.
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Moderator() {
   const { profile, status } = useAuth()
   const [tab, setTab] = useState<Tab>('pending')
@@ -261,6 +333,7 @@ export default function Moderator() {
   const pending = useAsyncData(() => listVenturesByStatus('pending'), [refreshToken])
   const live = useAsyncData(() => listVenturesByStatus('live'), [refreshToken])
   const settings = useAsyncData(() => getSiteSettings(), [refreshToken])
+  const traffic = useAsyncData(() => listTraffic(14), [refreshToken])
   const approved = useAsyncData(() => listApprovedEmails(), [refreshToken])
   const users = useAsyncData(() => listUsers(), [refreshToken])
 
@@ -440,6 +513,8 @@ export default function Moderator() {
           Name the ones without links
         </Button>
       </div>
+
+      <TrafficPanel days={traffic.data ?? []} />
 
       <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
