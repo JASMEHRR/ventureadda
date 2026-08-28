@@ -97,3 +97,32 @@ export async function listApprovedEmails(): Promise<ApprovedEmail[]> {
     .map((entry) => ({ email: entry.id, moderator: entry.data().moderator === true }))
     .sort((a, b) => a.email.localeCompare(b.email))
 }
+
+/**
+ * Removes an account entirely: the sign-in credential and the profile.
+ *
+ * Goes through api/delete-user rather than writing here, because deleting the
+ * Firestore document is the easy half and the useless half — the Firebase Auth
+ * account would survive it, the person would sign in again, and the app would
+ * provision them a fresh profile. Only a service account can delete a
+ * credential, so only the server can actually remove somebody.
+ *
+ * The username claim is deliberately left behind. firestore.rules refuses to
+ * release one so a name cannot be reused to impersonate whoever held it, and
+ * that matters more once the account is gone, not less: the reviews and
+ * messages signed with it are still on the site.
+ */
+export async function deleteUserAccount(idToken: string, uid: string): Promise<void> {
+  const response = await fetch('/api/delete-user', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ idToken, uid }),
+  })
+  if (response.ok) return
+
+  const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string }
+  if (body.code === 'not-configured') {
+    throw new Error('Account removal is not switched on for this deployment.')
+  }
+  throw new Error(body.error ?? 'Could not remove that account.')
+}

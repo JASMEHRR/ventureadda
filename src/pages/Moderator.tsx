@@ -36,7 +36,7 @@ import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
 import { SEED_VENTURES, seedInput } from '../data/seed'
 import { displayUrl } from '../lib/cloudinary'
-import { OWNER_EMAIL } from '../lib/firebase'
+import { OWNER_EMAIL, auth } from '../lib/firebase'
 import {
   getSiteSettings,
   isDown,
@@ -53,6 +53,7 @@ import {
   revokeApprovedEmail,
   setModerator,
   listUsers,
+  deleteUserAccount,
 } from '../data/moderators'
 import type { ModeratorCandidate } from '../data/moderators'
 
@@ -249,6 +250,8 @@ export default function Moderator() {
     null,
   )
   const [userFilter, setUserFilter] = useState('')
+  /** Which row is asking "are you sure". One at a time, by uid. */
+  const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null)
   const [approveEmailInput, setApproveEmailInput] = useState('')
   const [approveAsModerator, setApproveAsModerator] = useState(false)
 
@@ -538,25 +541,69 @@ export default function Moderator() {
                   <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-white/30 uppercase">
                     Owner
                   </span>
-                ) : isOwner ? (
-                  <Button
-                    variant={entry.isModerator ? 'danger' : 'secondary'}
-                    disabled={busy}
-                    onClick={() =>
-                      act(
-                        () => setModerator(entry.uid, !entry.isModerator),
-                        `${entry.username} is ${!entry.isModerator ? 'now' : 'no longer'} a moderator.`,
-                      )
-                    }
-                  >
-                    {entry.isModerator ? 'Remove access' : 'Make moderator'}
-                  </Button>
                 ) : (
-                  entry.isModerator && (
-                    <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-brand-400 uppercase">
-                      Moderator
-                    </span>
-                  )
+                  <div className="flex shrink-0 items-center gap-2">
+                    {isOwner ? (
+                      <Button
+                        variant={entry.isModerator ? 'danger' : 'secondary'}
+                        disabled={busy}
+                        onClick={() =>
+                          act(
+                            () => setModerator(entry.uid, !entry.isModerator),
+                            `${entry.username} is ${!entry.isModerator ? 'now' : 'no longer'} a moderator.`,
+                          )
+                        }
+                      >
+                        {entry.isModerator ? 'Remove access' : 'Make moderator'}
+                      </Button>
+                    ) : (
+                      entry.isModerator && (
+                        <span className="font-mono text-[12.5px] font-bold tracking-wider text-brand-400 uppercase">
+                          Moderator
+                        </span>
+                      )
+                    )}
+
+                    {/* TWO TAPS, NEVER ONE. This deletes a person's sign-in and
+                        their profile and there is no undo — a single red button
+                        in a list of rows is a mis-tap away from removing the
+                        wrong account. The second tap names them, so the
+                        confirmation is about a person rather than about a
+                        button. Their own row is excluded: removing the account
+                        performing the removal would end the session mid-job. */}
+                    {entry.uid !== profile.uid &&
+                      (confirmingRemoval === entry.uid ? (
+                        <>
+                          <Button
+                            variant="danger"
+                            disabled={busy}
+                            onClick={() =>
+                              act(async () => {
+                                const token = await auth.currentUser?.getIdToken()
+                                if (!token) throw new Error('Sign in again first.')
+                                await deleteUserAccount(token, entry.uid)
+                                setConfirmingRemoval(null)
+                              }, `${entry.username} has been removed.`)
+                            }
+                          >
+                            Yes, remove {entry.username}
+                          </Button>
+                          <Button variant="ghost" onClick={() => setConfirmingRemoval(null)}>
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingRemoval(entry.uid)}
+                          aria-label={`Remove ${entry.username}`}
+                          title="Remove this account"
+                          className="rounded-full border border-white/10 bg-white/5 p-2 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                        </button>
+                      ))}
+                  </div>
                 )}
               </div>
             ))}

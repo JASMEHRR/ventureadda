@@ -95,12 +95,18 @@ function pemToDer(pem: string): ArrayBuffer {
 /**
  * Cached across invocations that reuse a warm container.
  *
- * Keyed on the service account's address, so a redeploy that swaps the key
- * cannot serve a token minted from the old one. Without the cache, every push
- * would cost an extra RSA sign plus a round trip to Google before the round
- * trip to FCM.
+ * Keyed on the service account's address AND THE SCOPE. The scope was missing
+ * from that key and it was a real bug, not a tidiness point: an access token
+ * carries the scopes it was minted for, so the first caller to ask for
+ * Firestore poisoned the cache for the next caller asking for identity
+ * toolkit, which then got a token with no permission to do what it had been
+ * asked to do. It surfaced as "Could not set that password" — a 403 from
+ * Google, three layers down, on a call that looked correct.
+ *
+ * Keying on the address as well means a redeploy that swaps the key cannot
+ * serve a token minted from the old one.
  */
-let cache: { email: string; token: string; expiresAt: number } | null = null
+let cache: { key: string; token: string; expiresAt: number } | null = null
 
 /**
  * Signs a set of claims with the service account key, RS256.
@@ -145,7 +151,8 @@ export async function getAccessToken(
   scope: string,
 ): Promise<string> {
   const now = Date.now()
-  if (cache && cache.email === account.client_email && cache.expiresAt - REFRESH_MARGIN_MS > now) {
+  const cacheKey = `${account.client_email}|${scope}`
+  if (cache && cache.key === cacheKey && cache.expiresAt - REFRESH_MARGIN_MS > now) {
     return cache.token
   }
 
@@ -183,7 +190,7 @@ export async function getAccessToken(
   }
 
   cache = {
-    email: account.client_email,
+    key: cacheKey,
     token: payload.access_token,
     expiresAt: now + (payload.expires_in ?? LIFETIME_SECONDS) * 1000,
   }
