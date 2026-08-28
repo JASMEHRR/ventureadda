@@ -58,7 +58,9 @@ const STEPS: Step[] = [
   {
     target: 'search',
     title: 'Search',
-    body: 'Finds items, not just shops. Type "brownie", get the brownie.',
+    // The example is one of Glood's stickers rather than an invented brownie:
+    // it is a thing somebody can actually search for here and find.
+    body: 'Finds items, not just shops. Type "F1 sticker", get the sticker.',
   },
   {
     target: 'category',
