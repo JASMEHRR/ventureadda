@@ -63,11 +63,10 @@ export default function AtmosphereBackdrop() {
    * night sky it is hiding a photograph that cannot carry dark text, and over
    * a day photograph it is only softening one that can.
    */
-  const dayImage = day
-    ? settings?.backdropLight
-      ? displayUrl(settings.backdropLight, 1200)
-      : DEFAULT_DAY_BACKDROP
+  const uploadedDayImage = day && settings?.backdropLight
+    ? displayUrl(settings.backdropLight, 1200)
     : null
+  const dayImage = day ? (uploadedDayImage ?? DEFAULT_DAY_BACKDROP) : null
   const url = settings?.backdrop ? displayUrl(settings.backdrop, 1200) : DEFAULT_BACKDROP
 
   useEffect(() => {
@@ -114,10 +113,24 @@ export default function AtmosphereBackdrop() {
         // A real day photograph needs a veil, not a lid: enough to keep the
         // panels legible over it, nowhere near enough to hide it. Only the
         // night sky standing in for one gets covered almost completely.
-        // Day always has a real image behind it now — the shipped one or a
-        // moderator's — so this is a veil at all times rather than the lid it
-        // had to be when it was standing in for a background of its own.
-        className={dayImage ? 'absolute inset-0 opacity-20' : 'absolute inset-0 opacity-[var(--backdrop-wash)]'}
+        /*
+          NO VEIL OVER THE SHIPPED DAY WALLPAPER. It was drawn for this exact
+          job — light, soft, nothing behind the panels to fight — so covering
+          it with a 20% sheet of near-white only did what the flat gradient did
+          before it: made the page look like it had no background. A
+          moderator's uploaded photograph is a different case entirely, since
+          it could be anything, so that one keeps a veil.
+
+          The night sky keeps the full wash, which is not a veil at all: there
+          it is standing in for a background day mode cannot use.
+        */
+        className={
+          dayImage
+            ? uploadedDayImage
+              ? 'absolute inset-0 opacity-30'
+              : 'hidden'
+            : 'absolute inset-0 opacity-[var(--backdrop-wash)]'
+        }
         style={{
           // A GRADIENT, NOT A FLAT SHEET. At 86% white over a starfield the
           // page read as a blank white screen with faint dots on it — the
