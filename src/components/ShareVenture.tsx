@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { Check, Link2, Share2 } from 'lucide-react'
+import { ventureUrl, whatsappShareLink } from '../lib/share'
+import type { ShareableVenture } from '../lib/share'
+
+/**
+ * Two ways to pass a venture on: copy the link, or hand the whole message to
+ * WhatsApp.
+ *
+ * TWO BUTTONS RATHER THAN ONE SHEET. `navigator.share` would collapse these
+ * into a single tap and is genuinely nicer on a phone — but it does not exist
+ * on desktop Chrome or Firefox, which is where sellers manage their listings,
+ * and a button that silently does nothing for half the people who press it is
+ * worse than a button that says what it does. WhatsApp is named outright
+ * because on this campus it is not one option among many; it is where the
+ * link is going.
+ *
+ * The WhatsApp button is an anchor, not a button with an onClick. Middle-click,
+ * long-press and "open in new tab" all work on an anchor and none of them work
+ * on a scripted navigation — and on a phone the anchor is what lets the OS
+ * hand off to the installed app rather than the web client.
+ */
+export default function ShareVenture({
+  venture,
+  ventureId,
+}: {
+  venture: ShareableVenture
+  ventureId: string
+}) {
+  const [copied, setCopied] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  // The origin is read at click time rather than at module load so this is
+  // correct on any deployment without being told which one it is on.
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  const url = ventureUrl(ventureId, origin)
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), 2000)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  const copy = async () => {
+    setFailed(false)
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+    } catch {
+      // Clipboard access is refused outright in some in-app browsers — the
+      // WhatsApp one included, which is exactly where a lot of this traffic
+      // comes from. Rather than a dead button, show the link so it can be
+      // selected by hand.
+      setFailed(true)
+    }
+  }
+
+  return (
+    <div className="shrink-0">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void copy()}
+          aria-label={copied ? 'Link copied' : 'Copy link to this venture'}
+          title="Copy link"
+          className={`flex h-11 w-11 items-center justify-center rounded-full border transition duration-150 active:scale-[0.94] ${
+            copied
+              ? 'border-brand-400/50 bg-brand-500/20 text-brand-300'
+              : 'border-white/12 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          {copied ? (
+            <Check size={17} aria-hidden="true" />
+          ) : (
+            <Link2 size={17} aria-hidden="true" />
+          )}
+        </button>
+
+        <a
+          href={whatsappShareLink(venture, ventureId, origin)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Share ${venture.name} on WhatsApp`}
+          title="Share on WhatsApp"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-whatsapp/40 bg-whatsapp/15 text-whatsapp transition duration-150 hover:bg-whatsapp/25 active:scale-[0.94]"
+        >
+          <Share2 size={17} aria-hidden="true" />
+        </a>
+      </div>
+
+      {/* Announced, not just shown: the button's own label does not change
+          enough to tell a screen reader anything happened. */}
+      <span role="status" className="sr-only">
+        {copied ? 'Link copied to your clipboard.' : ''}
+      </span>
+
+      {failed && (
+        <p className="mt-2 max-w-56 text-[13px] leading-relaxed break-all text-white/45">
+          Copy it by hand: <span className="text-white/70">{url}</span>
+        </p>
+      )}
+    </div>
+  )
+}

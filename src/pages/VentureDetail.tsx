@@ -28,6 +28,7 @@ import { resolveMenuDensity, useAppearance } from '../lib/appearance'
 import { cartQuantity, cartTotal, setCartQuantity, useCart } from '../data/cart'
 import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
+import ShareVenture from '../components/ShareVenture'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
 /**
@@ -451,6 +452,11 @@ export default function VentureDetail() {
           <h2 className="min-w-0 flex-1 text-[23px] leading-tight font-extrabold text-white">
             {v.name}
           </h2>
+
+          {/* Beside the name, which is the one place on the page that is
+              unambiguously about this venture as a whole rather than about one
+              item on its menu. */}
+          <ShareVenture venture={v} ventureId={v.id} />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
