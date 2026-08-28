@@ -254,7 +254,22 @@ export default function VentureDetail() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
-  const menu = useAsyncData(() => listMenuItems(ventureId), [ventureId])
+
+  /**
+   * THE DOCUMENT ID, WHICH IS NOT WHAT IS IN THE URL ANY MORE.
+   *
+   * /venture/glood resolves through the slug claim to a venture whose id is
+   * 3KHid4o2sqQ4J49cE2dV, and every other read on this page keys off that id:
+   * menu items store `ventureId`, so filtering them by "glood" matched nothing
+   * and the page rendered "Nothing on the menu yet" for a seller with fifteen
+   * items. Everything below therefore waits for the venture and uses its id —
+   * never the URL segment, which is a name, not a key.
+   */
+  const resolvedId = venture.data?.id
+  const menu = useAsyncData(
+    () => (resolvedId ? listMenuItems(resolvedId) : Promise.resolve([])),
+    [resolvedId],
+  )
 
   /**
    * Point the shell's search box at this menu while the page is open, and let
@@ -268,9 +283,9 @@ export default function VentureDetail() {
   // One venture-level open per visit. Deliberately not in the same effect as
   // the data load, which re-runs whenever the id changes for other reasons.
   useEffect(() => {
-    if (!ventureId) return
-    void recordVentureView(ventureId)
-  }, [ventureId])
+    if (!resolvedId) return
+    void recordVentureView(resolvedId)
+  }, [resolvedId])
 
   const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [category]: !prev[category] }))

@@ -16,7 +16,16 @@ export default function EditVenture() {
   const [saved, setSaved] = useState(false)
 
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
-  const menu = useAsyncData(() => listMenuItems(ventureId), [ventureId])
+
+  // The document id, not the URL segment: /venture/glood/edit resolves through
+  // the slug claim, and both the menu read and the save below key off the id.
+  // Editing links are built from the id today, but a hand-typed or bookmarked
+  // slug must not silently load an empty menu and then save over the venture.
+  const resolvedId = venture.data?.id
+  const menu = useAsyncData(
+    () => (resolvedId ? listMenuItems(resolvedId) : Promise.resolve([])),
+    [resolvedId],
+  )
 
   useEffect(() => {
     if (saved) navigate('/profile', { replace: true })
@@ -69,7 +78,8 @@ export default function EditVenture() {
   }))
 
   const handleSubmit = async ({ venture: input, items }: VentureFormValues) => {
-    await updateVenture(ventureId, input, items)
+    if (!resolvedId) throw new Error('That venture could not be loaded.')
+    await updateVenture(resolvedId, input, items)
     setSaved(true)
   }
 
