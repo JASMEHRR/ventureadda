@@ -100,7 +100,7 @@ export default function CheckoutModal({
   /** Called once the order document exists, so the caller can clear the cart. */
   onPlaced: (orderId: string) => void
 }) {
-  const { profile, status: authStatus, signInWithGoogle } = useAuth()
+  const { profile, signInWithGoogle } = useAuth()
   const remembered = readBuyer()
 
   const [buyerName, setBuyerName] = useState(remembered.name || (profile?.username ?? ''))
@@ -466,17 +466,12 @@ export default function CheckoutModal({
             <span className="font-mono text-[18px] font-extrabold text-brand-400">₹{total}</span>
           </div>
 
-          {/* Signed-out buyers still get the whole form to read, with a
-              sign-in button in the footer instead of a place-order one.
-              Hiding it until they sign in asks for an account before saying
-              what the account is for. */}
-          {authStatus === 'signedOut' && (
-            <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[15.5px] leading-relaxed text-amber-300">
-              Ordering needs an account, so the seller knows who they are making this for. Browsing
-              never will.
-            </p>
-          )}
-
+          {/* THE "ORDERING NEEDS AN ACCOUNT" WARNING STOOD HERE. It belonged
+              to the old flow, where the footer swapped to "Sign in to order"
+              and the form was a dead end until you had one. Signing in now
+              happens when you press Place order, with everything already
+              typed — so warning people up front is asking them to worry about
+              a step that no longer interrupts them. */}
           <div className="space-y-3.5 border-t border-white/8 pt-3.5">
             <TextField
               id="checkout-name"
