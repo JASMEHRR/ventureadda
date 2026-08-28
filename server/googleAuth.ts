@@ -102,24 +102,19 @@ function pemToDer(pem: string): ArrayBuffer {
  */
 let cache: { email: string; token: string; expiresAt: number } | null = null
 
-export async function getAccessToken(
+/**
+ * Signs a set of claims with the service account key, RS256.
+ *
+ * Pulled out of getAccessToken because it has a second caller now: minting the
+ * custom tokens that let a device finish a sign-in another device started.
+ * Both are the same operation — a JWT the service account vouches for — and
+ * having one copy means the key handling, the PKCS8 import and the deliberate
+ * silence about why an import failed are all in one place rather than two.
+ */
+export async function signJwt(
   account: ServiceAccount,
-  scope: string,
+  claims: Record<string, unknown>,
 ): Promise<string> {
-  const now = Date.now()
-  if (cache && cache.email === account.client_email && cache.expiresAt - REFRESH_MARGIN_MS > now) {
-    return cache.token
-  }
-
-  const issued = Math.floor(now / 1000)
-  const claims = {
-    iss: account.client_email,
-    scope,
-    aud: TOKEN_URL,
-    iat: issued,
-    exp: issued + LIFETIME_SECONDS,
-  }
-
   const unsigned = `${encodeSegment({ alg: 'RS256', typ: 'JWT' })}.${encodeSegment(claims)}`
 
   let key: CryptoKey
@@ -142,13 +137,35 @@ export async function getAccessToken(
     key,
     new TextEncoder().encode(unsigned),
   )
+  return `${unsigned}.${base64Url(signature)}`
+}
+
+export async function getAccessToken(
+  account: ServiceAccount,
+  scope: string,
+): Promise<string> {
+  const now = Date.now()
+  if (cache && cache.email === account.client_email && cache.expiresAt - REFRESH_MARGIN_MS > now) {
+    return cache.token
+  }
+
+  const issued = Math.floor(now / 1000)
+  const claims = {
+    iss: account.client_email,
+    scope,
+    aud: TOKEN_URL,
+    iat: issued,
+    exp: issued + LIFETIME_SECONDS,
+  }
+
+  const assertion = await signJwt(account, claims)
 
   const response = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: `${unsigned}.${base64Url(signature)}`,
+      assertion,
     }),
   })
 

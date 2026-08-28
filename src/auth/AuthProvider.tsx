@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   isSignInWithEmailLink,
   linkWithCredential,
+  signInWithCustomToken,
   signInWithEmailAndPassword,
   updatePassword,
   onAuthStateChanged,
@@ -74,7 +75,9 @@ type AuthContextValue = {
    */
   isOwner: boolean
   signInWithGoogle: () => Promise<void>
-  sendLink: (email: string) => Promise<void>
+  /** `challenge` rides in the link's continue URL, so whichever device opens
+   *  the mail can confirm the address for the device that asked. */
+  sendLink: (email: string, challenge?: string) => Promise<void>
   /** Mails a verification link that adds a Thapar address to this account. */
   sendThaparLink: (email: string) => Promise<void>
   /**
@@ -93,6 +96,8 @@ type AuthContextValue = {
   /** True once this account can sign in with a password. */
   hasPassword: boolean
   signInWithPassword: (email: string, password: string) => Promise<void>
+  /** Signs in with a token minted by api/email-verify — see SignIn. */
+  signInWithToken: (customToken: string) => Promise<void>
   /** Sets one, or replaces the existing one. Requires a live session. */
   setPassword: (password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -281,12 +286,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const sendLink = useCallback(async (email: string) => {
+  const sendLink = useCallback(async (email: string, challenge?: string) => {
     const address = email.trim().toLowerCase()
     await sendSignInLinkToEmail(auth, address, {
       // Must be listed under Authentication → Settings → Authorized domains,
       // or Firebase rejects the request.
-      url: `${window.location.origin}/signin`,
+      //
+      // The challenge id travels here, in the continue URL, which is the only
+      // channel between the device that asked for the link and the device that
+      // opens it. Without it the mail signs in whoever opened it and the
+      // original device learns nothing — see api/email-verify.
+      url: challenge
+        ? `${window.location.origin}/signin?challenge=${encodeURIComponent(challenge)}`
+        : `${window.location.origin}/signin`,
       handleCodeInApp: true,
     })
     window.localStorage.setItem(EMAIL_KEY, address)
@@ -616,6 +628,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
   }, [])
 
+  /**
+   * Signs this device in with a token the server minted.
+   *
+   * The last step of the cross-device sign-in: the address was confirmed on
+   * whatever device opened the mail, and the device that STARTED the sign-in
+   * is the one that should end up signed in. A custom token is how a server
+   * says "this uid, on this device" without the password ever having been sent
+   * anywhere the browser could not already send it.
+   */
+  const signInWithToken = useCallback(async (customToken: string) => {
+    await signInWithCustomToken(auth, customToken)
+  }, [])
+
   const setPassword = useCallback(async (password: string) => {
     const current = auth.currentUser
     if (!current?.email) throw new Error('You are not signed in.')
@@ -683,6 +708,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changeUsername,
       hasPassword,
       signInWithPassword,
+      signInWithToken,
       setPassword,
       signOut,
     }),
@@ -705,6 +731,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changeUsername,
       hasPassword,
       signInWithPassword,
+      signInWithToken,
       setPassword,
       signOut,
     ],

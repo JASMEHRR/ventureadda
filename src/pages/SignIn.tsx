@@ -22,7 +22,21 @@ import { ALLOWED_EMAIL_DOMAIN } from '../lib/firebase'
  * on any device, immediately, forever. First visit: address, link, password.
  * Every visit after: address, password.
  */
-type Mode = 'form' | 'password' | 'setPassword' | 'sent' | 'completing' | 'needsEmail'
+type Mode = 'form' | 'password' | 'setPassword' | 'sent' | 'completing' | 'needsEmail' | 'confirmed'
+
+/** Where the challenge id waits while the reader goes to find the mail. */
+const CHALLENGE_KEY = 'ventureadda.emailChallenge'
+
+async function callVerify<T>(body: Record<string, unknown>): Promise<T> {
+  const response = await fetch('/api/email-verify', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const payload = (await response.json().catch(() => ({}))) as T & { error?: string }
+  if (!response.ok) throw new Error(payload.error ?? 'That did not work. Try again.')
+  return payload
+}
 
 /** Long enough that a second tap is a real retry, short enough not to feel punitive. */
 const RESEND_COOLDOWN_SECONDS = 45
@@ -106,6 +120,7 @@ export default function SignIn() {
     sendLink,
     completeSignInFromLink,
     signInWithPassword,
+    signInWithToken,
     setPassword,
     hasPassword,
   } = useAuth()
@@ -118,6 +133,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
   const [password, setPasswordValue] = useState('')
+  const [challenge, setChallenge] = useState<string | null>(null)
   const attempted = useRef(false)
 
   // A sign-in link lands back on this page. Completing it is guarded by a ref
@@ -131,6 +147,30 @@ export default function SignIn() {
     if (!href.includes('apiKey')) return
 
     setMode('completing')
+
+    /**
+     * A link carrying a challenge id belongs to a sign-in started elsewhere.
+     *
+     * This device confirms the address and stops. It is deliberately NOT
+     * signed in: the person is standing at the device they started on, and
+     * signing in the one that happened to have the mailbox open is the whole
+     * behaviour being fixed.
+     */
+    const verifyId = new URL(href).searchParams.get('challenge')
+    const oobCode = new URL(href).searchParams.get('oobCode')
+    if (verifyId && oobCode) {
+      callVerify({ action: 'confirm', id: verifyId, oobCode })
+        .then(() => {
+          window.history.replaceState({}, '', '/signin')
+          setMode('confirmed')
+        })
+        .catch((cause: unknown) => {
+          setError(errorMessage(cause))
+          setMode('form')
+        })
+      return
+    }
+
     completeSignInFromLink(href).then(
       (result) => {
         if (result === 'needsEmail') {
@@ -152,6 +192,39 @@ export default function SignIn() {
       },
     )
   }, [completeSignInFromLink, navigate])
+
+  /**
+   * Waits for the address to be confirmed somewhere else.
+   *
+   * Two seconds is the interval because this is somebody standing still
+   * looking at a phone, and anything slower feels broken; the challenge
+   * expires on the server after fifteen minutes, so this stops on its own
+   * rather than polling a dead id forever.
+   */
+  useEffect(() => {
+    if (mode !== 'sent' || !challenge) return
+    let cancelled = false
+
+    const timer = window.setInterval(() => {
+      callVerify<{ verified: boolean; expired: boolean }>({ action: 'status', id: challenge })
+        .then((result) => {
+          if (cancelled) return
+          if (result.verified) setMode('setPassword')
+          else if (result.expired) {
+            setError('That link expired before it was opened. Send a new one.')
+            setMode('form')
+          }
+        })
+        .catch(() => {
+          // A dropped request is not worth a message: the next tick retries.
+        })
+    }, 2000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [mode, challenge])
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -185,7 +258,26 @@ export default function SignIn() {
       }
       return
     }
-    await sendLink(address)
+    /**
+     * The link now carries a challenge id, and that is what makes this work
+     * across two devices.
+     *
+     * A Firebase link signs in whichever browser opens it. Type your address
+     * on a phone, open the mail on a laptop, and the laptop is signed in while
+     * the phone sits there — which is not what anybody meant by "check your
+     * email". So the mail carries an id instead: whoever opens it confirms the
+     * address and is told to go back, and THIS device — the one polling below
+     * — is the one that finishes and ends up signed in.
+     */
+    const started = await callVerify<{ id: string }>({ action: 'start', email: address })
+    setChallenge(started.id)
+    try {
+      window.localStorage.setItem(CHALLENGE_KEY, `${started.id}|${address}`)
+    } catch {
+      // Private mode. The poll below still runs for as long as this tab is
+      // open, which covers the case this exists for.
+    }
+    await sendLink(address, started.id)
     setMode('sent')
     setCooldown(RESEND_COOLDOWN_SECONDS)
   }
@@ -233,7 +325,26 @@ export default function SignIn() {
     setError(null)
     setBusy(true)
     try {
-      await setPassword(password)
+      if (challenge) {
+        // The cross-device path: the server sets the password against the
+        // address it saw confirmed, and hands back a token that signs in THIS
+        // device — the one the person is actually holding.
+        const done = await callVerify<{ customToken: string }>({
+          action: 'finish',
+          id: challenge,
+          password,
+        })
+        try {
+          window.localStorage.removeItem(CHALLENGE_KEY)
+        } catch {
+          // Nothing to clean up if storage was never available.
+        }
+        await signInWithToken(done.customToken)
+      } else {
+        // Already signed in — this is somebody adding a password to a session
+        // that a link opened on this same device.
+        await setPassword(password)
+      }
       navigate('/browse', { replace: true })
     } catch (cause) {
       setError(errorMessage(cause))
@@ -290,8 +401,8 @@ export default function SignIn() {
           </>
         }
       >
-        Open it on this device if you can — that keeps things quickest. If you open it elsewhere
-        you will just be asked for your address again.
+        Open it anywhere you like — your phone, another laptop, it does not matter. This page is
+        watching, and the moment the address is confirmed it will carry on right here.
       </EmptyState>
     )
   }
@@ -305,6 +416,23 @@ export default function SignIn() {
    * exactly as it did — through the link — and a forced field on the way in is
    * how people bounce.
    */
+  /**
+   * What the device that opened the mail sees.
+   *
+   * Not signed in, on purpose, and told so plainly. Somebody who opened the
+   * link on a laptop is standing at their phone — signing in the laptop is
+   * the behaviour this whole flow exists to stop, and leaving them looking at
+   * a signed-in laptop with no explanation is how they conclude it went wrong.
+   */
+  if (mode === 'confirmed') {
+    return (
+      <EmptyState icon={MailCheck} title="Address confirmed" className="mx-auto max-w-md">
+        Go back to the device you started on — it is waiting for you and will carry on from here.
+        You can close this tab.
+      </EmptyState>
+    )
+  }
+
   if (mode === 'setPassword') {
     return (
       <div className="mx-auto max-w-md space-y-4">
@@ -314,8 +442,9 @@ export default function SignIn() {
             <div>
               <h2 className="text-[21px] font-extrabold text-white">Address confirmed</h2>
               <p className="mt-1.5 text-[16px] leading-relaxed text-white/50">
-                Set a password and you can sign in from any device without waiting for an email
-                again.
+                {challenge
+                  ? 'That is your address proved. Choose a password and you are in — on this device, and any other, without an email next time.'
+                  : 'Set a password and you can sign in from any device without waiting for an email again.'}
               </p>
             </div>
           </div>
@@ -345,13 +474,18 @@ export default function SignIn() {
             </Button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => navigate('/browse', { replace: true })}
-            className="w-full font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-white/70"
-          >
-            Skip for now
-          </button>
+          {/* Only when a session already exists. On the cross-device path the
+              password IS the sign-in — there is nothing to skip into, and a
+              Skip button would land them back where they started. */}
+          {!challenge && (
+            <button
+              type="button"
+              onClick={() => navigate('/browse', { replace: true })}
+              className="w-full font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-white/70"
+            >
+              Skip for now
+            </button>
+          )}
         </div>
       </div>
     )
