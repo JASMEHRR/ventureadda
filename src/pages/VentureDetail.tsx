@@ -128,6 +128,7 @@ function ItemCard({
   showAsked,
   onSetQuantity,
   asRow,
+  brandIcon,
   venture,
 }: {
   item: MenuItem
@@ -137,6 +138,10 @@ function ItemCard({
   onSetQuantity: (quantity: number) => void
   /** The list layout: a row with the name first, no space kept for a picture. */
   asRow?: boolean
+  /** Whether this menu is a catalogue of brands worth looking a logo up for.
+   *  See catalogueVentures — a bakery's unphotographed drink is not, and was
+   *  being drawn with a jobs board's logo. */
+  brandIcon?: boolean
   /** For the fallback tile — see below. */
   venture: { name: string; logo?: StoredImage }
 }) {
@@ -152,16 +157,19 @@ function ItemCard({
    * says nothing about whose shop this is. Their own logo, or the initial
    * VentureLogo draws when they have not set one, at least belongs to them.
    */
-  const placeholder = (size: number) => (
+  const placeholder = (size: number) =>
     // ...unless the item is itself a brand, in which case that brand's own
     // logo says far more than either. See BrandIcon: a name that is not a
     // brand falls straight through to the seller's mark.
-    <BrandIcon
-      name={item.name}
-      size={size}
-      fallback={<VentureLogo name={venture.name} logo={venture.logo} size={size} />}
-    />
-  )
+    brandIcon ? (
+      <BrandIcon
+        name={item.name}
+        size={size}
+        fallback={<VentureLogo name={venture.name} logo={venture.logo} size={size} />}
+      />
+    ) : (
+      <VentureLogo name={venture.name} logo={venture.logo} size={size} />
+    )
 
   if (asRow) {
     return (
@@ -724,6 +732,7 @@ export default function VentureDetail() {
                         key={item.id}
                         item={item}
                         asRow={density === 'list'}
+                        brandIcon={v.brandLogos}
                         venture={{ name: v.name, logo: v.logo }}
                         quantity={cartQuantity(cart, item.id)}
                         askedCount={localCounts[item.id] ?? item.inquiryCount}

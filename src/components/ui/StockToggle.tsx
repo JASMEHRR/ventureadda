@@ -16,15 +16,31 @@ export default function StockToggle({
   value,
   onChange,
   label,
+  onText = 'In stock',
+  offText = 'Sold out',
 }: {
   value: boolean
   onChange: (next: boolean) => void
   /** Accessible name for the group, e.g. "Item 3 availability". */
   label: string
+  /**
+   * The two states in words, when this is used for something other than stock.
+   * Both halves are always written out — see the note above — so a second yes
+   * and no pair is a label change rather than a second control.
+   */
+  onText?: string
+  offText?: string
 }) {
   const options = [
-    { on: true, text: 'In stock', Icon: Check, active: 'bg-brand-500/20 text-brand-300' },
-    { on: false, text: 'Sold out', Icon: X, active: 'bg-red-500/20 text-red-300' },
+    { on: true, text: onText, Icon: Check, active: 'bg-brand-500/20 text-brand-300' },
+    // Red is right for "sold out" and wrong for a preference that is merely
+    // off, so the off state is only coloured when it is the alarming one.
+    {
+      on: false,
+      text: offText,
+      Icon: X,
+      active: offText === 'Sold out' ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white/70',
+    },
   ]
 
   return (

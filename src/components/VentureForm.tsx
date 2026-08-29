@@ -555,6 +555,7 @@ export default function VentureForm({
   const [deliverySlots, setDeliverySlots] = useState<string[]>(initial?.deliverySlots ?? [])
   const [managerEmails, setManagerEmails] = useState<string[]>(initial?.managerEmails ?? [])
   const [menuDensity, setMenuDensity] = useState<MenuDensity>(initial?.menuDensity ?? 'default')
+  const [brandLogos, setBrandLogos] = useState(initial?.brandLogos ?? false)
   const [items, setItems] = useState<MenuItemDraft[]>(
     initial?.items?.length ? initial.items : [newDraft()],
   )
@@ -675,6 +676,7 @@ export default function VentureForm({
           deliverySlots,
           managerEmails,
           menuDensity,
+          brandLogos,
           logo,
         },
         items: filled.map((item) => ({
@@ -804,6 +806,29 @@ export default function VentureForm({
             options={DENSITY_OPTIONS}
             onChange={setMenuDensity}
           />
+
+          {/* OFF BY DEFAULT, and it has to be a question rather than something
+              the site works out. A shop reselling apps and subscriptions wants
+              every item drawn as the logo people already know; a bakery does
+              not, and its "Monster white" was being drawn with the logo of a
+              jobs board. Only the seller can tell those two apart. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
+            <div className="min-w-0">
+              <p className="text-[15.5px] font-bold text-white">Use company logos</p>
+              <p className="text-[15px] leading-relaxed text-white/45">
+                For items with no photo, show the logo of the brand in the item's name — for a
+                shop selling apps, subscriptions or other brands. Leave this off if you sell your
+                own things.
+              </p>
+            </div>
+            <StockToggle
+              value={brandLogos}
+              onChange={setBrandLogos}
+              label="Use company logos for items without a photo"
+              onText="Brand logos"
+              offText="Your own mark"
+            />
+          </div>
         </section>
 
         <SectionsEditor

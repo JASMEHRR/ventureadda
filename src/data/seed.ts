@@ -42,15 +42,21 @@ import type { MenuItemInput, VentureInput } from './ventures'
  * in on the way out, so the literals stay about the businesses.
  */
 export type SeedVenture = {
-  venture: Omit<VentureInput, 'deliverySlots' | 'menuDensity' | 'managerEmails'> &
-    Partial<Pick<VentureInput, 'deliverySlots' | 'menuDensity' | 'managerEmails'>>
+  venture: Omit<VentureInput, 'deliverySlots' | 'menuDensity' | 'managerEmails' | 'brandLogos'> &
+    Partial<Pick<VentureInput, 'deliverySlots' | 'menuDensity' | 'managerEmails' | 'brandLogos'>>
   items: (Omit<MenuItemInput, 'inStock'> & Partial<Pick<MenuItemInput, 'inStock'>>)[]
 }
 
 /** Fills the defaults so the result is what createVenture actually wants. */
 export function seedInput(entry: SeedVenture): { venture: VentureInput; items: MenuItemInput[] } {
   return {
-    venture: { deliverySlots: [], managerEmails: [], menuDensity: 'default', ...entry.venture },
+    venture: {
+      deliverySlots: [],
+      managerEmails: [],
+      brandLogos: false,
+      menuDensity: 'default',
+      ...entry.venture,
+    },
     items: entry.items.map((item) => ({ inStock: true, ...item })),
   }
 }

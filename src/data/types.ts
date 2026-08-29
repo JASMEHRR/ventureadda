@@ -65,6 +65,21 @@ export type Venture = {
    * change the owner, or edit this list. See firestore.rules.
    */
   managerEmails: string[]
+  /**
+   * Draw items with no photograph as the logo of the brand they name.
+   *
+   * OFF UNLESS THE SELLER SAYS OTHERWISE, and that is the whole point of it
+   * being a setting rather than something inferred. A shop reselling software
+   * lists a hundred and fifty products it will never photograph, every one of
+   * them a company with a logo people recognise. A bakery is not that shop —
+   * its unphotographed "Monster white" was drawn with the logo of monster.com,
+   * a jobs board, which is a claim about what is in the bottle.
+   *
+   * Every heuristic tried here (a long menu, mostly unphotographed) put real
+   * bakeries on the wrong side of the line. The seller knows; nobody else
+   * does. See components/ui/BrandIcon.
+   */
+  brandLogos: boolean
   menuDensity: MenuDensity
   clickCount: number
   /**

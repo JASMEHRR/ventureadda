@@ -35,6 +35,8 @@ export default function ProductCard({
 }) {
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
   const priced = typeof item.price === 'number'
+  // The seller's own setting, off unless they turned it on. See Venture.brandLogos.
+  const brandIcon = venture.brandLogos
   const left = item.stock === undefined ? Infinity : item.stock - quantity
   const to = itemQuery
     ? `${venturePath(venture)}?item=${encodeURIComponent(itemQuery)}`
@@ -52,7 +54,7 @@ export default function ProductCard({
               sellable ? '' : 'grayscale'
             }`}
           />
-        ) : (
+        ) : brandIcon ? (
           // The brand's own logo when the item is one, the seller's mark
           // otherwise — the same fallback ladder the venture page uses, so an
           // item looks like itself wherever it is shown.
@@ -61,6 +63,8 @@ export default function ProductCard({
             size={64}
             fallback={<VentureLogo name={venture.name} logo={venture.logo} size={64} />}
           />
+        ) : (
+          <VentureLogo name={venture.name} logo={venture.logo} size={64} />
         )}
 
         <span className="min-w-0 flex-1">

@@ -16,7 +16,9 @@ import Reveal from '../components/ui/Reveal'
 import VentureCard from '../components/ui/VentureCard'
 import { categoryName } from '../data/types'
 import type { Venture } from '../data/types'
-import { listVentures } from '../data/ventures'
+import { listProducts, listVentures } from '../data/ventures'
+import { shelves, topPicks } from '../data/products'
+import ProductRail from '../components/ProductRail'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { useAuth } from '../auth/AuthProvider'
 
@@ -116,6 +118,7 @@ const PREVIEW_VENTURES: Venture[] = [
     photos: [{ url: '/seed/pastries.jpg', publicId: '' }],
     deliverySlots: [],
     managerEmails: [],
+    brandLogos: false,
     menuDensity: 'default',
     status: 'live',
     clickCount: 0,
@@ -132,6 +135,7 @@ const PREVIEW_VENTURES: Venture[] = [
     photos: [{ url: '/seed/rack.jpg', publicId: '' }],
     deliverySlots: [],
     managerEmails: [],
+    brandLogos: false,
     menuDensity: 'default',
     status: 'live',
     clickCount: 0,
@@ -148,6 +152,7 @@ const PREVIEW_VENTURES: Venture[] = [
     photos: [{ url: '/seed/earrings.jpg', publicId: '' }],
     deliverySlots: [],
     managerEmails: [],
+    brandLogos: false,
     menuDensity: 'default',
     status: 'live',
     clickCount: 0,
@@ -188,6 +193,27 @@ export default function Landing() {
   const live = useAsyncData(() => listVentures(), [])
   const showcase = featuredVentures(live.data ?? [])
   const cards = showcase.length > 0 ? showcase : PREVIEW_VENTURES
+
+  /**
+   * THE SHOP FRONT, and the second read this page makes.
+   *
+   * A landing page that only lists shops asks a stranger to guess which one
+   * sells what they want before it has shown them a single thing for sale.
+   * Every delivery app they already use opens on the goods, and this page can
+   * too: the whole menu of every live venture, arranged into rails.
+   *
+   * THE COST IS REAL AND WORTH NAMING: this reads the menuItems collection
+   * whole on every landing visit, a few hundred documents today. That is the
+   * same read /products makes, and the free tier's daily budget is the ceiling
+   * on it — if traffic ever makes that bite, the fix is to serve this page a
+   * cached slice rather than to hide the products again.
+   *
+   * A failed read leaves the rails out and the rest of the page unchanged.
+   * Products are the best thing on it, not the thing holding it up.
+   */
+  const products = useAsyncData(() => listProducts(), [])
+  const picks = topPicks(products.data ?? [])
+  const rails = shelves(products.data ?? [])
 
   return (
     <div className="min-h-screen">
@@ -309,6 +335,71 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/*
+        EVERYTHING FOR SALE, laid out like the apps this campus already uses.
+
+        One rail of things that can be bought outright, the sections underneath
+        it, and a row of section chips between the two so a visitor who knows
+        what they want can jump rather than scroll. Priced items lead every
+        row — see data/products.ts, where that ordering and the reason for it
+        live — because an item with no price cannot go in a basket, and a shop
+        front whose first four cards all say "ask the seller" is a shop front
+        that does nothing.
+
+        Nothing here renders until the read lands. An empty campus keeps the
+        page it had before, rather than showing a set of empty shelves.
+      */}
+      {picks.length > 0 && (
+        <Section width="max-w-6xl" className="py-10 sm:py-14">
+          <div className="mb-6 text-center">
+            <Eyebrow>On sale now</Eyebrow>
+            <p className="mt-2 text-[16px] text-white/45">
+              Everything students are selling on campus, in one place. Tap to add, or open the
+              shop.
+            </p>
+          </div>
+
+          <div className="space-y-7">
+            <ProductRail title="Ready to order" items={picks} seeAllTo="/products" />
+
+            {/* The chips are the sections themselves, and each one searches for
+                its own name on /products — the products search matches an
+                item's section as well as its name, so the link lands on that
+                shelf's full contents rather than on a filter that has to be
+                maintained separately. */}
+            {rails.length > 0 && (
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {rails.map((shelf) => (
+                  <Link
+                    key={shelf.name}
+                    to={`/products?q=${encodeURIComponent(shelf.name)}`}
+                    className="liquid-glass-input shrink-0 rounded-full px-4 py-2 font-mono text-[12.5px] font-bold tracking-wider text-white/70 uppercase transition duration-150 hover:text-white active:scale-[0.97]"
+                  >
+                    {shelf.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {rails.map((shelf) => (
+              <ProductRail
+                key={shelf.name}
+                title={shelf.name}
+                items={shelf.items}
+                seeAllTo={`/products?q=${encodeURIComponent(shelf.name)}`}
+              />
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button variant="secondary" to="/products">
+              See every product
+              <ArrowRight size={13} aria-hidden="true" />
+            </Button>
+          </div>
+        </Section>
+      )}
 
       {/* The problem */}
       <Section width="max-w-4xl">

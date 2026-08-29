@@ -79,6 +79,9 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
           (email): email is string => typeof email === 'string' && email.trim() !== '',
         )
       : [],
+    // Absent on every venture written before this setting existed, and off is
+    // the behaviour those had.
+    brandLogos: data.brandLogos === true,
     menuDensity: MENU_DENSITIES.includes(data.menuDensity as MenuDensity)
       ? (data.menuDensity as MenuDensity)
       : 'default',
@@ -450,6 +453,7 @@ export type VentureInput = {
   photos: StoredImage[]
   deliverySlots: string[]
   managerEmails: string[]
+  brandLogos: boolean
   menuDensity: MenuDensity
   logo?: StoredImage
 }
