@@ -240,4 +240,42 @@ assert.deepEqual(
 // word-boundary escapes and had never matched anything at all.
 assert.equal(parseMenuList('Cursor Pro, 400')[0].price, '400')
 
+// --- however people happen to write a price ---------------------------------
+//
+// The trailing-price rule used to insist on a dash, which meant the import
+// worked for people who wrote their menu the way the parser expected and
+// quietly lost the price for everybody else. Measured against twenty real
+// shapes, nine failed. These are those shapes.
+
+for (const line of [
+  'Brownie - 280',
+  'Brownie-280',
+  'Brownie: 280',
+  'Brownie = 280',
+  'Brownie | 280',
+  'Brownie @ 280',
+  'Brownie 280',
+  'Brownie (280)',
+  'Brownie Rs. 280',
+  'Brownie ₹280',
+  'Brownie 280/-',
+  '1. Brownie 280',
+]) {
+  assert.deepEqual(
+    parseMenuList(line),
+    [{ name: 'Brownie', price: '280', description: '' }],
+    `failed on: ${line}`,
+  )
+}
+
+// The gap before the number is required, or a name ending in a digit gets cut
+// in half: "F1" became an item called "F" priced at 1, and "iDrive E2" became
+// "iDrive E" at 2.
+assert.deepEqual(parseMenuList('iDrive E2'), [{ name: 'iDrive E2', price: '', description: '' }])
+
+// A price at the FRONT is deliberately not read. "2 kg cake" and "150 Bandra
+// Road" both open with a number that belongs to the name, and grabbing it
+// would rename the item as well as invent a price.
+assert.deepEqual(parseMenuList('2 kg cake'), [{ name: '2 kg cake', price: '', description: '' }])
+
 console.log('menu paste and speech parsing: all checks passed')

@@ -7,6 +7,7 @@ import {
   Grid2x2,
   Grid3x3,
   LayoutGrid,
+  List,
   Minus,
   Plus,
   SearchX,
@@ -17,7 +18,6 @@ import EmptyState from '../components/ui/EmptyState'
 import ReviewSection from '../components/ReviewSection'
 import LoadingLine from '../components/ui/LoadingLine'
 import VentureLogo from '../components/ui/VentureLogo'
-import { LogoMark } from '../components/ui/Logo'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import {
@@ -28,7 +28,7 @@ import {
   recordVentureView,
   venturePath,
 } from '../data/ventures'
-import type { MenuItem } from '../data/ventures'
+import type { MenuItem, StoredImage } from '../data/ventures'
 import { MENU_GRID_CLASS } from '../data/types'
 import type { MenuDensity } from '../data/types'
 import { resolveMenuDensity, useAppearance } from '../lib/appearance'
@@ -64,6 +64,9 @@ function DensityPicker({
     { density: 'roomy', label: 'Large items', Icon: LayoutGrid },
     { density: 'default', label: 'Medium items', Icon: Grid2x2 },
     { density: 'dense', label: 'Small items', Icon: Grid3x3 },
+    // A long menu with no photographs reads as a list, not as a wall of empty
+    // tiles — see MENU_GRID_CLASS in data/types.
+    { density: 'list', label: 'Plain list', Icon: List },
   ]
   return (
     <div
@@ -123,15 +126,110 @@ function ItemCard({
   askedCount,
   showAsked,
   onSetQuantity,
+  asRow,
+  venture,
 }: {
   item: MenuItem
   quantity: number
   askedCount: number
   showAsked: boolean
   onSetQuantity: (quantity: number) => void
+  /** The list layout: a row with the name first, no space kept for a picture. */
+  asRow?: boolean
+  /** For the fallback tile — see below. */
+  venture: { name: string; logo?: StoredImage }
 }) {
   const left = remaining(item, quantity)
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
+
+  /**
+   * THE VENTURE'S OWN MARK, not the site's, when an item has no photograph.
+   *
+   * A menu of a hundred and fifty subscriptions has no product photographs and
+   * never will, so every tile fell back to the VentureAdda logo — a page of
+   * identical marks belonging to the site rather than to the seller, which
+   * says nothing about whose shop this is. Their own logo, or the initial
+   * VentureLogo draws when they have not set one, at least belongs to them.
+   */
+  const placeholder = (size: number) => (
+    <VentureLogo name={venture.name} logo={venture.logo} size={size} />
+  )
+
+  if (asRow) {
+    return (
+      <div
+        className={`liquid-glass-panel flex items-center gap-3 rounded-2xl p-2.5 transition duration-150 ${
+          sellable ? '' : 'opacity-60'
+        }`}
+      >
+        {item.photo ? (
+          <img
+            src={displayUrl(item.photo, 400)}
+            alt=""
+            loading="lazy"
+            className={`h-12 w-12 shrink-0 rounded-xl object-cover ${sellable ? '' : 'grayscale'}`}
+          />
+        ) : (
+          <span aria-hidden="true" className="shrink-0">
+            {placeholder(48)}
+          </span>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[16px] font-bold text-white">{item.name}</p>
+          {item.description && (
+            <p className="truncate text-[14.5px] text-white/45">{item.description}</p>
+          )}
+          <p className="font-mono text-[14px] font-bold text-white/70">
+            {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
+            {!sellable && <span className="ml-2 text-red-300">Sold out</span>}
+            {showAsked && <span className="ml-2 text-brand-400/70">{askedCount} asked</span>}
+          </p>
+        </div>
+
+        {typeof item.price !== 'number' ? (
+          <span className="shrink-0 font-mono text-[13px] text-white/35">Message to ask</span>
+        ) : !sellable ? null : quantity === 0 ? (
+          <button
+            type="button"
+            onClick={() => onSetQuantity(1)}
+            className="shrink-0 rounded-xl bg-white/10 px-4 py-2 text-[14px] font-bold tracking-wide text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.96]"
+          >
+            Add
+            <span className="sr-only"> {item.name} to your order</span>
+          </button>
+        ) : (
+          <div className="flex shrink-0 items-center gap-1 rounded-xl bg-brand-500/15 p-1">
+            <button
+              type="button"
+              onClick={() => onSetQuantity(quantity - 1)}
+              aria-label={`Remove one ${item.name}`}
+              className="rounded-lg p-1.5 text-brand-300 transition duration-150 hover:bg-white/10 active:scale-[0.9]"
+            >
+              <Minus size={13} aria-hidden="true" />
+            </button>
+            <span
+              aria-live="polite"
+              aria-atomic="true"
+              className="min-w-6 text-center font-mono text-[15.5px] font-extrabold text-brand-300"
+            >
+              <span className="sr-only">{item.name}, </span>
+              {quantity}
+            </span>
+            <button
+              type="button"
+              onClick={() => onSetQuantity(quantity + 1)}
+              disabled={left <= 0}
+              aria-label={`Add one more ${item.name}`}
+              className="rounded-lg p-1.5 text-brand-300 transition duration-150 hover:bg-white/10 active:scale-[0.9] disabled:opacity-30"
+            >
+              <Plus size={13} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -150,9 +248,9 @@ function ItemCard({
         ) : (
           <span
             aria-hidden="true"
-            className="flex aspect-square w-full items-center justify-center bg-white/[0.04] text-white/25"
+            className="flex aspect-square w-full items-center justify-center bg-white/[0.04]"
           >
-            <LogoMark size={24} />
+            {placeholder(44)}
           </span>
         )}
         {!sellable && (
@@ -617,6 +715,8 @@ export default function VentureDetail() {
                       <ItemCard
                         key={item.id}
                         item={item}
+                        asRow={density === 'list'}
+                        venture={{ name: v.name, logo: v.logo }}
                         quantity={cartQuantity(cart, item.id)}
                         askedCount={localCounts[item.id] ?? item.inquiryCount}
                         showAsked={showItemStats}

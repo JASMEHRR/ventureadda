@@ -69,6 +69,17 @@ function headingOf(
    * "F1" survives; "Naruto 20" and "1. Anime" do not.
    */
   if (/(?:^|\s)[₹$]?\d[\d,.]*\s*(?:\/-)?(?:\s|$)/.test(trimmed)) return null
+  /**
+   * Anything the item rule can read is an item, whatever shape it is in.
+   *
+   * "Brownie (280)" and "Brownie-280" have no number with whitespace in front
+   * of it, so the standalone-number test above waved them through — and they
+   * were promoted to headings, swallowing themselves and adopting every row
+   * beneath. Asking the trailing-price rule directly is both stricter and
+   * simpler than describing the same shapes twice in two places that can
+   * drift apart.
+   */
+  if (TRAILING_PRICE.test(trimmed)) return null
   if (/₹|\brs\.?\b|\brupees?\b/i.test(trimmed)) return null
 
   const declared = /:\s*$/.test(trimmed)
@@ -136,8 +147,17 @@ const BULLET =
 const LEADING_DECORATION =
   /^\s*(?:[\p{Extended_Pictographic}\u2B50\u2728\uFE0F\u2600-\u27BF]\uFE0F?\s*)+/u
 
+/**
+ * "1. Brownie" and "2) Cake" — an enumerator, not part of the name.
+ *
+ * Capped at three digits and required to be followed by a dot or a bracket,
+ * so a name that genuinely opens with a number keeps it: "150 Bandra Road"
+ * and "2 kg cake" are untouched.
+ */
+const ENUMERATOR = /^\s*\d{1,3}[.)]\s+/
+
 function stripBullet(line: string): { text: string; bulleted: boolean } {
-  const withoutBullet = line.replace(BULLET, '')
+  const withoutBullet = line.replace(BULLET, '').replace(ENUMERATOR, '')
   const bulleted = withoutBullet !== line
   return { text: withoutBullet.replace(LEADING_DECORATION, '').trim(), bulleted }
 }
@@ -213,7 +233,39 @@ function mergeThousands(cells: string[], separator: string): string[] {
  * Only matched when there is no other separator on the line, so a real
  * three-cell paste is never touched by it.
  */
-const TRAILING_DASH_PRICE = /^(.+?)\s+[-–—]\s*(?:₹|rs\.?|rupees?)?\s*(\d[\d,]*(?:\.\d+)?)\s*\/?-?\s*$/i
+/**
+ * A price at the END of a line, however the writer chose to attach it.
+ *
+ * THIS USED TO INSIST ON A DASH, which meant the import worked for people who
+ * happened to write their menu the way the parser expected and quietly lost
+ * the price for everybody else. Measured against twenty real shapes, nine
+ * failed: "Brownie Rs. 280", "Brownie: 280", "Brownie = 280", "Brownie | 280",
+ * "Brownie @ 280", "Brownie ₹280", "Brownie 280/-", "Brownie (280)" and a
+ * plain "Brownie 280". None of those is unusual and none of them is ambiguous
+ * to a person.
+ *
+ * So the separator is optional and may be any of the ones people actually use,
+ * the currency marker may be in front of the number or absent, and the number
+ * may be wrapped in brackets or followed by "/-".
+ *
+ * WHAT IT DELIBERATELY WILL NOT DO is read a price from the FRONT. "2 kg cake"
+ * and "150 Bandra Road" both start with a number that is part of the name, and
+ * a rule that grabbed it would rename the item as well as inventing a price.
+ * The dictation parser reads from the end for the same reason.
+ *
+ * The bracket form requires the brackets to contain nothing but the number, so
+ * "iDrive E2 (1TB-20TB)" and "Notion Business + AI (3/6 Months)" keep their
+ * names intact.
+ */
+/*
+ * The gap before the number is REQUIRED, and it must be a separator, a space
+ * or an opening bracket. Without that the name could end mid-word: the first
+ * version read "F1" as an item called "F" priced at ₹1, and "iDrive E2" as
+ * "iDrive E" at ₹2. F1 is a section on this campus and iDrive is a product, so
+ * both mattered — and the test caught them the moment the rule was widened.
+ */
+const TRAILING_PRICE =
+  /^(.+?)(?:\s*[-–—:=|@~]\s*|\s+|\s*\()\s*(?:₹|rs\.?|rupees?|\$)?\s*(\d[\d,]*(?:\.\d+)?)\s*(?:\/-)?\s*\)?\s*$/i
 
 /**
  * Splits on a separator, but never inside brackets.
@@ -282,7 +334,7 @@ export function parseMenuList(text: string): ParsedRow[] {
 
     const hasSeparator = line.includes('\t') || line.includes(',')
     if (!hasSeparator) {
-      const dashed = line.trim().match(TRAILING_DASH_PRICE)
+      const dashed = line.trim().match(TRAILING_PRICE)
       if (dashed) {
         rows.push({
           name: dashed[1].trim().slice(0, 120),

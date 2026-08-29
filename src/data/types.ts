@@ -86,9 +86,9 @@ export type Venture = {
  * `menuDensity` in lib/appearance.ts — which is why this is a default rather
  * than a lock.
  */
-export type MenuDensity = 'roomy' | 'default' | 'dense'
+export type MenuDensity = 'roomy' | 'default' | 'dense' | 'list'
 
-export const MENU_DENSITIES: MenuDensity[] = ['roomy', 'default', 'dense']
+export const MENU_DENSITIES: MenuDensity[] = ['roomy', 'default', 'dense', 'list']
 
 /**
  * Column counts per density, smallest breakpoint first.
@@ -101,6 +101,19 @@ export const MENU_GRID_CLASS: Record<MenuDensity, string> = {
   roomy: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
   default: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
   dense: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6',
+  /**
+   * A LIST, NOT A GRID — one column, and each item a row rather than a card.
+   *
+   * A photo grid is the right shape for a bakery: four cakes, four
+   * photographs, and the picture is most of what the buyer is deciding on. It
+   * is the wrong shape for a hundred and fifty software subscriptions, which
+   * have no photographs at all — that page renders as screen after screen of
+   * identical empty tiles, each a placeholder above a name.
+   *
+   * Same items, same data; the row simply puts the name first and drops the
+   * space a picture would have taken.
+   */
+  list: 'grid-cols-1',
 }
 
 export type MenuItem = {

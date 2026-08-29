@@ -33,6 +33,10 @@ const DENSITY_OPTIONS: SelectOption<MenuDensity>[] = [
   { value: 'roomy', label: 'Large — big photos, few per row' },
   { value: 'default', label: 'Medium — the usual balance' },
   { value: 'dense', label: 'Small — fit the most on screen' },
+  {
+    value: 'list',
+    label: 'Plain list — no pictures, best for long menus',
+  },
 ]
 
 /** A venture may publish at most this many collection windows. Mirrors firestore.rules. */
