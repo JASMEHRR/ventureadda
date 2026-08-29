@@ -52,15 +52,30 @@ export function validateMenuDrafts(items: MenuItemDraft[]): MenuDraftResult {
     return { ok: false, error: 'Add at least one item to your menu — that is what buyers tap.' }
   }
 
-  // Number('') is 0, which is finite and not negative, so a named item with no
-  // price used to publish at ₹0 — a wrong price in front of a buyer, which is
-  // worse than no listing.
+  /**
+   * A PRICE IS OPTIONAL NOW. It used to be required, on the reasoning that ₹0
+   * in front of a buyer is worse than no listing — which is true, and is not
+   * an argument for demanding a number. Plenty of what gets sold here is
+   * priced in the conversation: a custom cake, an embroidered jacket, a
+   * sticker sheet that depends on how many you want. Refusing those items
+   * meant refusing the listing.
+   *
+   * So an empty price is allowed and means "ask" — the item shows without a
+   * number and cannot be added to a cart, because a cart total made of guesses
+   * is the failure this whole check was written to prevent. A price that was
+   * TYPED and is not a whole non-negative number is still refused: that is a
+   * mistake, not a decision.
+   */
   const badPrice = started.find((item) => {
+    if (item.price.trim() === '') return false
     const value = Number(item.price)
-    return item.price.trim() === '' || !Number.isFinite(value) || value < 0
+    return !Number.isFinite(value) || value < 0
   })
   if (badPrice) {
-    return { ok: false, error: `"${badPrice.name}" needs a price in whole rupees.` }
+    return {
+      ok: false,
+      error: `"${badPrice.name}" has a price that is not a whole number of rupees. Clear it to let buyers ask instead.`,
+    }
   }
 
   // Blank is the normal case and means "not counting" — only a value that was

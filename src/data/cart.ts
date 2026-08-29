@@ -181,6 +181,17 @@ export function setCartQuantity(
     return
   }
 
+  /**
+   * An item with no price cannot be in a cart.
+   *
+   * Absent means "ask the seller", and a cart is a list of things with a
+   * total. One guess in it makes every number below it a guess too, and the
+   * buyer finds out at the point they are sending the order. The venture page
+   * does not offer an Add button for these; this is the same rule at the data
+   * layer, where it cannot be got round.
+   */
+  if (typeof item.price !== 'number') return
+
   const entry: CartEntry = {
     itemId: item.id,
     ventureId: venture.id,
@@ -244,6 +255,12 @@ export function reconcileCart(live: Map<string, MenuItem>): {
     // longer on screen under that name.
     const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
     if (!sellable) {
+      removed.push(item.name)
+      continue
+    }
+    // A seller who has cleared the price since this went in the cart is saying
+    // "ask me" — the line leaves rather than staying at yesterday's number.
+    if (typeof item.price !== 'number') {
       removed.push(item.name)
       continue
     }

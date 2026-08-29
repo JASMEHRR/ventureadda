@@ -164,9 +164,23 @@ function ItemCard({
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
         <p className="line-clamp-2 text-[16px] font-bold text-white">{item.name}</p>
-        <p className="mt-auto font-mono text-[15.5px] font-bold text-white/90">₹{item.price}</p>
+        {typeof item.price === 'number' ? (
+          <p className="mt-auto font-mono text-[15.5px] font-bold text-white/90">₹{item.price}</p>
+        ) : (
+          /* No price set: the seller quotes it in the conversation. Said as
+             "Ask" rather than shown as ₹0, which would be a claim they never
+             made — and the Add button goes with it, because a cart total with
+             a guess in it is wrong for every line under it too. */
+          <p className="mt-auto font-mono text-[14px] font-bold tracking-wide text-white/45 uppercase">
+            Ask
+          </p>
+        )}
 
-        {!sellable ? (
+        {typeof item.price !== 'number' ? (
+          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center text-[13.5px] leading-snug text-white/45">
+            Message the seller for a price
+          </p>
+        ) : !sellable ? (
           <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[13px] font-bold tracking-wide text-white/40 uppercase">
             Unavailable
           </p>

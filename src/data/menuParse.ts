@@ -12,7 +12,67 @@
  */
 
 /** Price stays a string, exactly as the draft rows hold it. */
-export type ParsedRow = { name: string; price: string; description: string }
+export type ParsedRow = {
+  name: string
+  price: string
+  description: string
+  /** The heading this row was sitting under, when the paste had headings. */
+  category?: string
+}
+
+/**
+ * Whether a line is a section heading rather than an item.
+ *
+ * A pasted menu usually keeps the shape it had on the page it came from:
+ *
+ *   Anime
+ *   Naruto sticker, 20
+ *   Gojo sticker, 25
+ *   Drinks:
+ *   Cold coffee, 40
+ *
+ * Those headings used to become items — "Anime" priced at nothing — which the
+ * seller then had to find and delete, and the grouping they had already done
+ * was thrown away. Now the heading names the section and the rows beneath it
+ * inherit it.
+ *
+ * A heading is a short line with no digits and no separator — but that alone
+ * is not enough, because a name-only item looks identical. "Chai" on its own
+ * is something somebody means to sell, not a section with nothing in it.
+ *
+ * So the line AFTER it decides. A heading either ends in a colon, which is
+ * somebody saying so outright, or is followed by a line that reads like an
+ * item — one with a separator or a number in it. A list of bare names stays a
+ * list of bare names.
+ *
+ * Conservative on purpose: mistaking an item for a heading loses the item,
+ * while mistaking a heading for an item leaves one row to delete. The second
+ * is the cheaper mistake, so anything ambiguous stays an item.
+ */
+function headingOf(line: string, next: string | undefined): string | null {
+  const trimmed = line.trim()
+  if (!trimmed) return null
+  // A separator means cells, which means a row.
+  if (trimmed.includes('\t') || trimmed.includes(',')) return null
+  // Any digit at all is far more likely to be a price or a quantity.
+  if (/\d/.test(trimmed)) return null
+
+  const declared = /:\s*$/.test(trimmed)
+  const withoutColon = trimmed.replace(/[:\u2013\u2014-]+$/, '').trim()
+  if (!withoutColon) return null
+  // Headings are short. Four words is "Cakes and celebration boxes"; a
+  // sentence longer than that is a description somebody pasted.
+  if (withoutColon.length > 40 || withoutColon.split(/\s+/).length > 4) return null
+
+  if (!declared) {
+    // No colon, so the next line has to earn it: something that reads as an
+    // item rather than another bare name.
+    if (next === undefined) return null
+    if (!next.includes('\t') && !next.includes(',') && !/\d/.test(next)) return null
+  }
+
+  return withoutColon.slice(0, 40)
+}
 
 /** Currency noise a person will paste or say without thinking about it. */
 const PRICE_NOISE = /[₹$]|\brs\.?\b|\brupees?\b|\/-|,/gi
@@ -76,15 +136,31 @@ const TRAILING_DASH_PRICE = /^(.+?)\s+[-–—]\s*(?:₹|rs\.?|rupees?)?\s*(\d[\
  */
 export function parseMenuList(text: string): ParsedRow[] {
   const rows: ParsedRow[] = []
+  /** The heading rows are currently falling under, if any. */
+  let section: string | undefined
 
-  for (const line of text.split(/\r?\n/)) {
+  const lines = text.split(/\r?\n/)
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
     if (!line.trim()) continue
+
+    const next = lines.slice(index + 1).find((candidate) => candidate.trim() !== '')
+    const heading = headingOf(line, next)
+    if (heading) {
+      section = heading
+      continue
+    }
 
     const hasSeparator = line.includes('\t') || line.includes(',')
     if (!hasSeparator) {
       const dashed = line.trim().match(TRAILING_DASH_PRICE)
       if (dashed) {
-        rows.push({ name: dashed[1].trim().slice(0, 120), price: normalisePrice(dashed[2]), description: '' })
+        rows.push({
+          name: dashed[1].trim().slice(0, 120),
+          price: normalisePrice(dashed[2]),
+          description: '',
+          ...(section ? { category: section } : {}),
+        })
         continue
       }
     }
@@ -109,6 +185,7 @@ export function parseMenuList(text: string): ParsedRow[] {
       name: name.slice(0, 120),
       price: normalisePrice(cells[1] ?? ''),
       description: cells.slice(2).join(separator).trim().slice(0, 300),
+      ...(section ? { category: section } : {}),
     })
   }
 

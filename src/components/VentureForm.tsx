@@ -452,6 +452,9 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           name: item.name,
           description: item.description,
           price: item.price,
+          // A pasted list that had headings keeps them: the seller already
+          // grouped their menu once, on whatever page they copied it from.
+          category: item.category ?? '',
         })),
       ]
     })
@@ -532,7 +535,8 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           id: item.id,
           name: item.name.trim(),
           description: item.description.trim(),
-          price: Math.round(Number(item.price)),
+          // Blank is a decision, not an omission — see validateMenuDrafts.
+          price: item.price.trim() === '' ? undefined : Math.round(Number(item.price)),
           category: item.category.trim() || undefined,
           inStock: item.inStock,
           // Blank means the seller is not counting. Number('') is 0, which
@@ -715,7 +719,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
                   inputMode="numeric"
                   value={item.price}
                   onChange={(event) => patchItem(item.key, { price: event.target.value })}
-                  placeholder="₹ 450"
+                  placeholder="₹ 450, or leave blank"
                   className={`${inputClass} sm:w-28`}
                 />
                 <input

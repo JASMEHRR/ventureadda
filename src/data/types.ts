@@ -108,8 +108,15 @@ export type MenuItem = {
   ventureId: string
   name: string
   description?: string
-  /** Whole rupees. No fractional currency anywhere in this product. */
-  price: number
+  /**
+   * Whole rupees, or absent when the seller has not set one.
+   *
+   * Absent means "ask" rather than free: the item is shown without a number
+   * and cannot be added to a cart, because a total made partly of guesses is
+   * worse than no total. Plenty here is priced in conversation — a custom
+   * cake, an embroidered jacket — and refusing those items refused the listing.
+   */
+  price?: number
   photo?: StoredImage
   /**
    * Free text, e.g. "Snacks", "Drinks" — a section within one venture's own

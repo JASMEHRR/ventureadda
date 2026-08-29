@@ -203,7 +203,7 @@ export default function Browse() {
                     </span>
                     <span className="mt-1 flex items-baseline gap-2">
                       <span className="font-mono text-[15.5px] font-bold text-brand-400">
-                        ₹{item.price}
+                        {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
                       </span>
                       {!sellable && (
                         <span className="font-mono text-[12.5px] font-bold tracking-wider text-red-300 uppercase">

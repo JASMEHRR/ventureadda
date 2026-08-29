@@ -56,11 +56,17 @@ assert.match(
   /^Item 3 /,
 )
 
-// A named row with no price is refused rather than published at zero.
-assert.match(err(validateMenuDrafts([draft({ name: 'Cake' })])), /needs a price/)
-assert.match(err(validateMenuDrafts([draft({ name: 'Cake', price: '   ' })])), /needs a price/)
-assert.match(err(validateMenuDrafts([draft({ name: 'Cake', price: 'free' })])), /needs a price/)
-assert.match(err(validateMenuDrafts([draft({ name: 'Cake', price: '-5' })])), /needs a price/)
+// A PRICE IS OPTIONAL. A blank one means "ask the seller" — a custom cake or
+// an embroidered jacket has no number until somebody asks, and refusing those
+// items refused the listing. It is published without a price, and the venture
+// page shows "Ask" and no Add button rather than a cart line built on a guess.
+assert.equal(ok(validateMenuDrafts([draft({ name: 'Cake' })])).length, 1)
+assert.equal(ok(validateMenuDrafts([draft({ name: 'Cake', price: '   ' })])).length, 1)
+
+// A price that was TYPED and is not a whole non-negative number is still
+// refused: that is a mistake, not a decision.
+assert.match(err(validateMenuDrafts([draft({ name: 'Cake', price: 'free' })])), /not a whole number/)
+assert.match(err(validateMenuDrafts([draft({ name: 'Cake', price: '-5' })])), /not a whole number/)
 
 // Zero is a legitimate price someone may actually mean, when typed.
 assert.equal(ok(validateMenuDrafts([draft({ name: 'Free sample', price: '0' })])).length, 1)

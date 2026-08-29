@@ -328,8 +328,14 @@ service cloud.firestore {
 
       allow create: if isSeller()
                     && request.resource.data.inquiryCount == 0
-                    && request.resource.data.price is number
-                    && request.resource.data.price >= 0
+                    // OPTIONAL NOW. An absent price means "ask the seller" —
+                    // plenty here is quoted in the conversation, and refusing
+                    // those items refused the listing. Still a whole
+                    // non-negative number when it IS there, because a wrong
+                    // price in front of a buyer is worse than no price.
+                    && (!('price' in request.resource.data)
+                        || (request.resource.data.price is number
+                            && request.resource.data.price >= 0))
                     && request.resource.data.inStock is bool
                     // Optional. Absent means the seller is not counting units,
                     // which is the common case and must stay writable.

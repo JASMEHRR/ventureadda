@@ -124,4 +124,46 @@ assert.deepEqual(parseMenuSpeech('mystery box'), [
 
 assert.deepEqual(parseMenuSpeech(''), [])
 
+// --- sections in a pasted list ----------------------------------------------
+//
+// A menu copied off an Instagram bio or a WhatsApp broadcast keeps the shape it
+// had there, headings included. Those used to become items — "Anime", priced at
+// nothing — which the seller then had to hunt down and delete, throwing away
+// the grouping they had already done.
+
+assert.deepEqual(
+  parseMenuList(
+    ['Anime', 'Naruto sticker, 20', 'Gojo sticker, 25', 'Custom orders:', 'Name sticker'].join(
+      '\n',
+    ),
+  ),
+  [
+    { name: 'Naruto sticker', price: '20', description: '', category: 'Anime' },
+    { name: 'Gojo sticker', price: '25', description: '', category: 'Anime' },
+    // A colon says "heading" outright, so this one needs no priced line under
+    // it — and the item beneath keeps its empty price, which now means "ask".
+    { name: 'Name sticker', price: '', description: '', category: 'Custom orders' },
+  ],
+)
+
+// A bare name with nothing that reads like an item after it is an item, not a
+// section with nothing in it. Losing an item is the worse of the two mistakes.
+assert.deepEqual(parseMenuList('Chai'), [{ name: 'Chai', price: '', description: '' }])
+assert.deepEqual(
+  parseMenuList(['Chai', 'Coffee', 'Samosa'].join('\n')).map((row) => row.name),
+  ['Chai', 'Coffee', 'Samosa'],
+)
+
+// Anything with a digit, a separator or too many words stays an item.
+assert.deepEqual(
+  parseMenuList(
+    ['Brownie 2 pack', 'Chocolate fudge cake with hazelnut praline', 'Cake, 450'].join('\n'),
+  ).map((row) => [row.name, row.category ?? null]),
+  [
+    ['Brownie 2 pack', null],
+    ['Chocolate fudge cake with hazelnut praline', null],
+    ['Cake', null],
+  ],
+)
+
 console.log('menu paste and speech parsing: all checks passed')

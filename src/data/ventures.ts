@@ -93,7 +93,9 @@ function toMenuItem(snapshot: QueryDocumentSnapshot<DocumentData>): MenuItem {
     ventureId: data.ventureId ?? '',
     name: data.name ?? '',
     description: data.description || undefined,
-    price: typeof data.price === 'number' ? data.price : 0,
+    // Absent stays absent — 0 would publish a free item, which is a different
+    // claim from "ask".
+    price: typeof data.price === 'number' ? data.price : undefined,
     photo: data.photo ?? undefined,
     category: data.category || undefined,
     // Absent means in stock. Every item written before this field existed has
@@ -392,7 +394,8 @@ export type MenuItemInput = {
   id?: string
   name: string
   description: string
-  price: number
+  /** Absent means the buyer asks. */
+  price?: number
   category?: string
   inStock: boolean
   /** Undefined means the seller is not counting units. */
@@ -417,8 +420,11 @@ function menuItemPayload(ventureId: string, item: MenuItemInput) {
     ventureId,
     name: item.name,
     description: item.description,
-    price: item.price,
     inStock: item.inStock,
+    // Omitted rather than written as null: the rules accept a missing price
+    // and refuse a non-number, and an absent field is what the reader turns
+    // back into "ask".
+    ...(typeof item.price === 'number' ? { price: item.price } : {}),
     ...(item.photo ? { photo: item.photo } : {}),
     ...(item.category ? { category: item.category } : {}),
   }
