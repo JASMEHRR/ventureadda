@@ -56,6 +56,15 @@ export type Venture = {
    * absent slug means a longer link rather than a broken one.
    */
   slug?: string
+  /**
+   * Addresses allowed to edit this listing besides the owner's own.
+   *
+   * Lower-cased, and compared in the rules against the signed-in token's
+   * verified address — so this is a real permission, not a display field.
+   * A co-owner may edit the venture and its menu; they cannot delete it,
+   * change the owner, or edit this list. See firestore.rules.
+   */
+  managerEmails: string[]
   menuDensity: MenuDensity
   clickCount: number
   /**

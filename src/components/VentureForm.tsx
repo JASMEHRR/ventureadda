@@ -13,6 +13,7 @@ import { CATEGORIES } from '../data/types'
 import type { MenuDensity, MenuItemDraft, StoredImage } from '../data/types'
 import type { MenuItemInput, VentureInput } from '../data/ventures'
 import { validateMenuDrafts } from '../data/menuDrafts'
+import { useAuth } from '../auth/AuthProvider'
 import type { ParsedRow } from '../data/menuParse'
 
 const CATEGORY_OPTIONS: SelectOption<string>[] = CATEGORIES.map((category) => ({
@@ -64,6 +65,12 @@ type VentureFormProps = {
   initial?: Partial<VentureInput> & { items?: MenuItemDraft[] }
   submitLabel: string
   onSubmit: (values: VentureFormValues) => Promise<void>
+  /**
+   * Whether this person may change who else can edit the listing. False when a
+   * co-owner is the one editing: the rules refuse that write, and a field that
+   * looks editable and then fails the whole save is worse than no field.
+   */
+  canEditManagers?: boolean
 }
 
 /**
@@ -404,7 +411,140 @@ function SlotsEditor({
   )
 }
 
-export default function VentureForm({ initial, submitLabel, onSubmit }: VentureFormProps) {
+/** Enough of an address to be worth sending anywhere. The real check is
+ *  Firebase's own, when that person signs in. */
+function looksLikeEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+const MAX_MANAGERS = 10
+
+/**
+ * The other people who run this shop.
+ *
+ * Most ventures here are two or three friends, and only one of them filled
+ * this form in — so every menu change went through whoever happened to hold
+ * the login. An address listed here can edit the listing and its menu from
+ * their own account.
+ *
+ * NOT AN OWNER, deliberately. A co-owner cannot delete the venture, cannot
+ * change who owns it, and cannot edit this list — otherwise the first person
+ * added could remove the person who added them. Handing a shop over entirely
+ * is a moderator job, which keeps it recoverable.
+ *
+ * Stored lower-cased, because the rules compare against the lower-cased
+ * address on the signed-in token and "Rishab@thapar.edu" typed here would
+ * silently never match.
+ */
+function ManagersEditor({
+  managers,
+  onChange,
+  ownerEmail,
+}: {
+  managers: string[]
+  onChange: (next: string[]) => void
+  /** The account filling this form in, so it cannot add itself and wonder why
+   *  nothing changed. Absent when the address is not known. */
+  ownerEmail?: string
+}) {
+  const [draft, setDraft] = useState('')
+  const [problem, setProblem] = useState<string | null>(null)
+
+  const add = () => {
+    const value = draft.trim().toLowerCase()
+    if (!value) return
+    if (!looksLikeEmail(value)) {
+      setProblem('That does not look like an email address.')
+      return
+    }
+    if (value === ownerEmail?.toLowerCase()) {
+      setProblem('That is you — you already own this listing.')
+      return
+    }
+    if (managers.includes(value)) {
+      setDraft('')
+      return
+    }
+    if (managers.length >= MAX_MANAGERS) return
+    setProblem(null)
+    onChange([...managers, value])
+    setDraft('')
+  }
+
+  return (
+    <Field
+      id="venture-manager-input"
+      label="People who can edit this listing"
+      hint={
+        problem ??
+        (managers.length >= MAX_MANAGERS
+          ? `That is the maximum of ${MAX_MANAGERS}.`
+          : 'Optional. Their email address, the one they sign in with. They can edit this listing and its menu, but cannot delete it or change this list.')
+      }
+    >
+      {managers.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {managers.map((email) => (
+            <span
+              key={email}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] py-1.5 pr-1.5 pl-3 text-[15px] font-bold text-white/80"
+            >
+              {email}
+              <button
+                type="button"
+                onClick={() => onChange(managers.filter((other) => other !== email))}
+                aria-label={`Remove ${email}`}
+                className="rounded-full p-1 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.9]"
+              >
+                <X size={11} aria-hidden="true" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          id="venture-manager-input"
+          type="email"
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            setProblem(null)
+          }}
+          // Same reason as the slots field: Enter here would submit the whole
+          // venture.
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            add()
+          }}
+          maxLength={120}
+          disabled={managers.length >= MAX_MANAGERS}
+          placeholder="friend@thapar.edu"
+          className={`${inputClass} disabled:opacity-40`}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={add}
+          disabled={draft.trim() === '' || managers.length >= MAX_MANAGERS}
+          className="shrink-0"
+        >
+          Add
+        </Button>
+      </div>
+    </Field>
+  )
+}
+
+export default function VentureForm({
+  initial,
+  submitLabel,
+  onSubmit,
+  canEditManagers = true,
+}: VentureFormProps) {
+  const { user } = useAuth()
   const [name, setName] = useState(initial?.name ?? '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? 'food')
   const [description, setDescription] = useState(initial?.description ?? '')
@@ -413,6 +553,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
   const [photos, setPhotos] = useState<StoredImage[]>(initial?.photos ?? [])
   const [logo, setLogo] = useState<StoredImage | undefined>(initial?.logo)
   const [deliverySlots, setDeliverySlots] = useState<string[]>(initial?.deliverySlots ?? [])
+  const [managerEmails, setManagerEmails] = useState<string[]>(initial?.managerEmails ?? [])
   const [menuDensity, setMenuDensity] = useState<MenuDensity>(initial?.menuDensity ?? 'default')
   const [items, setItems] = useState<MenuItemDraft[]>(
     initial?.items?.length ? initial.items : [newDraft()],
@@ -532,6 +673,7 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           phone: digits,
           photos,
           deliverySlots,
+          managerEmails,
           menuDensity,
           logo,
         },
@@ -612,6 +754,14 @@ export default function VentureForm({ initial, submitLabel, onSubmit }: VentureF
           />
 
           <SlotsEditor slots={deliverySlots} onChange={setDeliverySlots} />
+
+          {canEditManagers && (
+            <ManagersEditor
+              managers={managerEmails}
+              onChange={setManagerEmails}
+              ownerEmail={user?.email ?? undefined}
+            />
+          )}
 
           <TextField
             id="venture-phone"

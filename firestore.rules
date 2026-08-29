@@ -1,4 +1,4 @@
-// Ruleset revision 1787936038. This line exists to change the file's
+// Ruleset revision 1788000900. This line exists to change the file's
 // content hash: firebase-tools skips the upload when it believes the rules are
 // unchanged, and it has been wrong about that more than once in this project —
 // silently leaving an older ruleset live while reporting a successful deploy.
@@ -55,6 +55,33 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email != null
         && request.auth.token.email_verified == true;
+    }
+
+    // A CO-OWNER OF ONE VENTURE, by address rather than by uid.
+    //
+    // A shop here is usually run by two or three people and only one of them
+    // filed it, so "only the account that submitted it may touch it" means the
+    // others send edits over WhatsApp to whoever has the login. The owner
+    // writes their friends' addresses on the listing and they can edit it.
+    //
+    // Addresses, not uids, because the owner knows their friend's email and
+    // does not know their uid — resolving one to the other needs an admin call
+    // and an account that may not exist yet. The token's email is set by
+    // Firebase, not by the client, and email_verified is what stops an
+    // unverified account claiming somebody else's address.
+    //
+    // A manager may edit the listing and its menu. They may not change who
+    // owns it, who else manages it, or its approval status: see the update
+    // rule below. That is what keeps this from being a way to take a shop.
+    function managesVenture(venture) {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && venture.get('managerEmails', []).hasAny([request.auth.token.email.lower()]);
+    }
+
+    function managesVentureId(ventureId) {
+      return managesVenture(get(/databases/$(database)/documents/ventures/$(ventureId)).data);
     }
 
     /**
@@ -278,10 +305,18 @@ service cloud.firestore {
       // through everyone's pending submissions.
       allow read: if resource.data.status == 'live'
                   || isModerator()
-                  || (request.auth != null && resource.data.ownerId == request.auth.uid);
+                  || (request.auth != null && resource.data.ownerId == request.auth.uid)
+                  // Matches the array-contains query a manager's own listing
+                  // page makes, and lets them see a venture still in the queue.
+                  || managesVenture(resource.data);
 
       allow create: if isSeller()
                     && request.resource.data.ownerId == request.auth.uid
+                    // Capped for the same reason deliverySlots is: every entry
+                    // is an address that can edit this listing.
+                    && (!('managerEmails' in request.resource.data)
+                        || (request.resource.data.managerEmails is list
+                            && request.resource.data.managerEmails.size() <= 10))
                     // The entire point of the approval queue. An owner who
                     // could set this would publish straight past you.
                     && request.resource.data.status == 'pending'
@@ -314,6 +349,21 @@ service cloud.firestore {
                         // here is an unbounded list in front of every buyer.
                         && (!('deliverySlots' in request.resource.data)
                             || (request.resource.data.deliverySlots is list
+                                && request.resource.data.deliverySlots.size() <= 12)))
+                    // A co-owner, on the same terms as the owner except for
+                    // the three fields that decide who is in charge. Without
+                    // the managerEmails clause a manager could add themselves
+                    // as owner-equivalent on any venture they were let into,
+                    // and drop the real owner off it.
+                    || (isSeller()
+                        && managesVenture(resource.data)
+                        && request.resource.data.ownerId == resource.data.ownerId
+                        && request.resource.data.status == resource.data.status
+                        && request.resource.data.clickCount == resource.data.clickCount
+                        && request.resource.data.get('managerEmails', [])
+                           == resource.data.get('managerEmails', [])
+                        && (!('deliverySlots' in request.resource.data)
+                            || (request.resource.data.deliverySlots is list
                                 && request.resource.data.deliverySlots.size() <= 12)));
 
       allow delete: if isModerator()
@@ -343,7 +393,8 @@ service cloud.firestore {
                         || request.resource.data.stock == null
                         || (request.resource.data.stock is int
                             && request.resource.data.stock >= 0))
-                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId == request.auth.uid;
+                    && (get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId == request.auth.uid
+                        || managesVentureId(request.resource.data.ventureId));
 
       allow update: if
                     // Anyone at all, signed in or not, may add exactly one to
@@ -357,12 +408,14 @@ service cloud.firestore {
                      && request.resource.data.inquiryCount == resource.data.inquiryCount + 1)
                     || isModerator()
                     || (isSeller()
-                        && get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid
+                        && (get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid
+                            || managesVentureId(resource.data.ventureId))
                         && request.resource.data.inquiryCount == resource.data.inquiryCount);
 
       allow delete: if isModerator()
                     || (request.auth != null
-                        && get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid);
+                        && (get(/databases/$(database)/documents/ventures/$(resource.data.ventureId)).data.ownerId == request.auth.uid
+                            || managesVentureId(resource.data.ventureId)));
     }
 
     match /orders/{orderId} {

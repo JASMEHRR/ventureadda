@@ -130,7 +130,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
       const items = await extractMenu(file)
       const rows = items.map((item) => ({
         name: item.name,
-        price: String(item.price),
+        price: item.price === undefined ? '' : String(item.price),
         description: item.description,
       }))
       onAdd(rows)

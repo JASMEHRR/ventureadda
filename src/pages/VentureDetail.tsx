@@ -18,6 +18,7 @@ import EmptyState from '../components/ui/EmptyState'
 import ReviewSection from '../components/ReviewSection'
 import LoadingLine from '../components/ui/LoadingLine'
 import VentureLogo from '../components/ui/VentureLogo'
+import BrandIcon from '../components/ui/BrandIcon'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
 import {
@@ -152,7 +153,14 @@ function ItemCard({
    * VentureLogo draws when they have not set one, at least belongs to them.
    */
   const placeholder = (size: number) => (
-    <VentureLogo name={venture.name} logo={venture.logo} size={size} />
+    // ...unless the item is itself a brand, in which case that brand's own
+    // logo says far more than either. See BrandIcon: a name that is not a
+    // brand falls straight through to the seller's mark.
+    <BrandIcon
+      name={item.name}
+      size={size}
+      fallback={<VentureLogo name={venture.name} logo={venture.logo} size={size} />}
+    />
   )
 
   if (asRow) {

@@ -73,6 +73,12 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
         )
       : [],
     slug: typeof data.slug === 'string' && data.slug !== '' ? data.slug : undefined,
+    // Absent on every venture written before co-owners existed.
+    managerEmails: Array.isArray(data.managerEmails)
+      ? (data.managerEmails as unknown[]).filter(
+          (email): email is string => typeof email === 'string' && email.trim() !== '',
+        )
+      : [],
     menuDensity: MENU_DENSITIES.includes(data.menuDensity as MenuDensity)
       ? (data.menuDensity as MenuDensity)
       : 'default',
@@ -378,6 +384,29 @@ export async function listVenturesByOwner(ownerId: string): Promise<Venture[]> {
   return snapshot.docs.map(toVenture)
 }
 
+/**
+ * Every listing this person can edit: their own, and the ones they have been
+ * added to as a co-owner.
+ *
+ * Two queries rather than one, because Firestore has no OR across different
+ * fields — and both are shapes the read rule allows on its own. The second is
+ * skipped for an account with no address at all, which is not a case that
+ * exists today but costs nothing to not ask about.
+ */
+export async function listVenturesForUser(
+  ownerId: string,
+  email: string | null | undefined,
+): Promise<Venture[]> {
+  const own = await listVenturesByOwner(ownerId)
+  if (!email) return own
+
+  const managed = await getDocs(
+    query(venturesRef, where('managerEmails', 'array-contains', email.toLowerCase())),
+  )
+  const seen = new Set(own.map((venture) => venture.id))
+  return [...own, ...managed.docs.filter((doc) => !seen.has(doc.id)).map(toVenture)]
+}
+
 export type VentureInput = {
   name: string
   categoryId: string
@@ -386,6 +415,7 @@ export type VentureInput = {
   phone: string
   photos: StoredImage[]
   deliverySlots: string[]
+  managerEmails: string[]
   menuDensity: MenuDensity
   logo?: StoredImage
 }

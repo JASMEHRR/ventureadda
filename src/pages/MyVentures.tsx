@@ -8,7 +8,7 @@ import Modal from '../components/ui/Modal'
 import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { deleteVenture, listMenuItems, listVenturesByOwner } from '../data/ventures'
+import { deleteVenture, listMenuItems, listVenturesForUser } from '../data/ventures'
 import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
 
@@ -36,7 +36,7 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default function MyVentures() {
-  const { profile, status, canPost } = useAuth()
+  const { profile, status, canPost, user } = useAuth()
   const [refreshToken, setRefreshToken] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState<Venture | null>(null)
   const [busy, setBusy] = useState(false)
@@ -46,8 +46,8 @@ export default function MyVentures() {
   const [removed, setRemoved] = useState<string[]>([])
 
   const mine = useAsyncData(
-    () => (profile ? listVenturesByOwner(profile.uid) : Promise.resolve([])),
-    [profile?.uid, refreshToken],
+    () => (profile ? listVenturesForUser(profile.uid, user?.email) : Promise.resolve([])),
+    [profile?.uid, user?.email, refreshToken],
   )
 
   const itemCounts = useAsyncData(async () => {
@@ -150,6 +150,12 @@ export default function MyVentures() {
                 <p className="truncate text-[17px] font-bold text-white">{venture.name}</p>
                 <p className="truncate text-[15px] text-white/40">
                   {categoryName(venture.categoryId)}
+                  {/* This list is no longer only your own listings: it is
+                      everything you can edit, and a shop somebody added you to
+                      behaves differently — no delete, and the co-owner list is
+                      theirs to change, not yours. Saying so here is cheaper
+                      than letting them find out at the button. */}
+                  {venture.ownerId !== profile.uid && ' — you are a co-owner'}
                 </p>
                 {venture.status === 'rejected' && venture.rejectionReason && (
                   <p className="mt-1 text-[15px] text-red-400">{venture.rejectionReason}</p>
@@ -183,7 +189,7 @@ export default function MyVentures() {
               {/* Only while it is not live. A live listing is something people
                   have found and may have messaged, so taking it down is a
                   moderator conversation rather than a button next to Edit. */}
-              {venture.status !== 'live' && (
+              {venture.status !== 'live' && venture.ownerId === profile.uid && (
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(venture)}

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, ImagePlus, Loader2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Loader2, X } from 'lucide-react'
 import { ACCEPT_ATTRIBUTE, displayUrl, uploadImage } from '../../lib/cloudinary'
 import type { StoredImage } from '../../data/types'
 
@@ -38,7 +38,15 @@ type PhotoUploaderProps = {
  * 4:3 box so a grid of cards stays a grid, which means a portrait shot loses
  * its top and bottom — and the answer to a crop the owner does not like is
  * letting them lead with a different photo, not letting one listing set its
- * own height. Arrows rather than drag and drop: two buttons work with a
+ * own height.
+ *
+ * A PICTURE IS AS OFTEN COPIED AS IT IS SAVED — off a WhatsApp thread, out of
+ * a screenshot tool, from another tab — and making somebody save it to disk
+ * first just to pick it back out of a file dialog is a detour. Ctrl+V works
+ * anywhere inside this control, and the Paste button covers the browsers and
+ * phones where there is no keyboard to press it on.
+ *
+ * Arrows rather than drag and drop: two buttons work with a
  * keyboard, a screen reader and a thumb, and drag and drop reliably does none
  * of the three without a library this project does not need.
  */
@@ -55,7 +63,7 @@ export default function PhotoUploader({
 
   const atLimit = photos.length >= max
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = async (files: readonly File[] | FileList | null) => {
     if (!files || files.length === 0) return
     setError(null)
     setBusy(true)
@@ -78,8 +86,47 @@ export default function PhotoUploader({
     }
   }
 
+  /** Ctrl+V while anything inside this control has focus. */
+  const handlePaste = (event: React.ClipboardEvent) => {
+    const files = [...event.clipboardData.files].filter((file) =>
+      file.type.startsWith('image/'),
+    )
+    if (files.length === 0) return
+    // Only once we know there is an image: otherwise a paste meant for a text
+    // field that happens to sit inside here would be swallowed.
+    event.preventDefault()
+    void handleFiles(files)
+  }
+
+  /**
+   * The Paste button, for when there is no keyboard — or no focus in the right
+   * place, which on a phone is always. Reading the clipboard needs permission
+   * and is not implemented everywhere, so a refusal is explained rather than
+   * swallowed: the file picker still works and the message says so.
+   */
+  const pasteFromClipboard = async () => {
+    setError(null)
+    try {
+      const contents = await navigator.clipboard.read()
+      const files: File[] = []
+      for (const item of contents) {
+        const type = item.types.find((candidate) => candidate.startsWith('image/'))
+        if (!type) continue
+        const blob = await item.getType(type)
+        files.push(new File([blob], 'pasted', { type: blob.type }))
+      }
+      if (files.length === 0) {
+        setError('No picture on the clipboard. Copy one, then press Paste.')
+        return
+      }
+      await handleFiles(files)
+    } catch {
+      setError('This browser will not let a page read the clipboard. Press Ctrl+V here, or use Add.')
+    }
+  }
+
   return (
-    <div>
+    <div onPaste={handlePaste}>
       <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
         {label}
       </span>
@@ -152,6 +199,18 @@ export default function PhotoUploader({
             <span className="font-mono text-[12.5px] tracking-wider uppercase">
               {busy ? 'Sending' : 'Add'}
             </span>
+          </button>
+        )}
+
+        {!atLimit && (
+          <button
+            type="button"
+            onClick={() => void pasteFromClipboard()}
+            disabled={busy}
+            className="liquid-glass-input flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl text-white/40 transition duration-150 hover:text-white/80 active:scale-[0.96] disabled:opacity-50"
+          >
+            <ClipboardPaste size={18} aria-hidden="true" />
+            <span className="font-mono text-[12.5px] tracking-wider uppercase">Paste</span>
           </button>
         )}
       </div>

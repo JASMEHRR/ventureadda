@@ -11,7 +11,7 @@ import type { MenuItemDraft } from '../data/types'
 
 export default function EditVenture() {
   const { ventureId = '' } = useParams()
-  const { profile, status } = useAuth()
+  const { profile, status, user } = useAuth()
   const navigate = useNavigate()
   const [saved, setSaved] = useState(false)
 
@@ -54,7 +54,13 @@ export default function EditVenture() {
 
   // The rules enforce this too; the check here is so the page says something
   // useful instead of failing on save.
-  const mayEdit = venture.data.ownerId === profile.uid || profile.isModerator
+  const isOwner = venture.data.ownerId === profile.uid
+  // A co-owner the owner listed by address. The rules agree, and they may edit
+  // everything here except who else is on that list.
+  const isManager = Boolean(
+    user?.email && venture.data.managerEmails.includes(user.email.toLowerCase()),
+  )
+  const mayEdit = isOwner || isManager || profile.isModerator
   if (!mayEdit) {
     return (
       <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[16px] text-white/50">
@@ -68,7 +74,11 @@ export default function EditVenture() {
     id: item.id,
     name: item.name,
     description: item.description ?? '',
-    price: String(item.price),
+    // Same trap as stock below, and this one shipped: since a price became
+    // optional, String(undefined) wrote the word "undefined" into the box on
+    // every unpriced item — which then failed validation and made the whole
+    // listing unsavable, menu edits and all.
+    price: item.price === undefined ? '' : String(item.price),
     category: item.category ?? '',
     // Undefined means the seller was not counting, and the form says that with
     // an empty field. String(undefined) would put the word "undefined" in it.
@@ -94,6 +104,7 @@ export default function EditVenture() {
         initial={{ ...venture.data, items: drafts }}
         submitLabel="Save changes"
         onSubmit={handleSubmit}
+        canEditManagers={isOwner || profile.isModerator}
       />
     </div>
   )
