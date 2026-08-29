@@ -103,8 +103,16 @@ function headingOf(line: string, next: string | undefined, nextBulleted: boolean
  * "➤ Cursor Pro (1 Year)" under "🤖 AI & Developer Tools", and every one of
  * those glyphs used to end up inside the item name. The seller then had 150
  * rows to clean by hand, which is the opposite of what an import is for.
+ *
+ * CODE POINTS, NOT SURROGATE PAIRS. This first read `\uD83D[\uDE80-\uDE82]`
+ * for the rocket, which under the `u` flag is a pair of lone surrogates and
+ * matches nothing whatsoever. The bullet went unrecognised, so "\uD83D\uDE80 Railway
+ * Hobby" \u2014 an item with no number in it \u2014 was read as a section heading, and
+ * every row after it was filed under one of the venture's own products. Silent
+ * and plausible: the only way to see it was to look at the parsed output.
  */
-const BULLET = /^\s*(?:[\u2022\u2023\u25B8\u25B6\u27A4\u27A2\u2794\u2192\u21B3>\-*+]|\uD83D[\uDE80-\uDE82])\s*/u
+const BULLET =
+  /^\s*(?:[\u2022\u2023\u25B8\u25B6\u27A4\u27A2\u2794\u2192\u21B3>\-*+]|[\u{1F680}\u{1F449}\u{1F448}\u{1F53B}\u{2705}\u{1F4CC}])\s*/u
 
 /** Any leading emoji or symbol run, with the space after it. Headings in these
  *  lists are decorated rather than bulleted: "🎨 Design & Creative". */
