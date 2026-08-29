@@ -172,7 +172,7 @@ export default function Browse() {
             </span>
           </header>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
             {productMatches.data!.map((match) => (
               <ProductCard
                 key={match.item.id}

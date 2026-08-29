@@ -131,20 +131,26 @@ export default function Products() {
       {products.data && (
         <section className="space-y-3">
           <header className="flex flex-wrap items-center justify-between gap-3 px-1">
-            <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-              {query.trim() !== ''
-                ? `Matching “${query.trim()}”`
-                : categoryId
-                  ? categoryName(categoryId)
-                  : 'Everything on sale'}
-            </h2>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="font-mono text-[13px] font-bold text-white/30">
+            <div className="min-w-0">
+              <h2 className="text-[20px] font-extrabold tracking-tight text-white">
+                {query.trim() !== ''
+                  ? `Matching “${query.trim()}”`
+                  : categoryId
+                    ? categoryName(categoryId)
+                    : 'Everything on sale'}
+              </h2>
+              <p className="mt-0.5 font-mono text-[13px] font-bold text-white/30">
                 {shown.length} {shown.length === 1 ? 'item' : 'items'}
                 {sellers > 0 && ` · ${sellers} ${sellers === 1 ? 'shop' : 'shops'}`}
-              </span>
+              </p>
+            </div>
 
+            {/* The count belongs to the heading, not to the controls: on a
+                phone the old single row broke as "333 items · 4 shops
+                [Everything]" with the sort control orphaned on a third line,
+                which reads as three unrelated things rather than one filter
+                bar. */}
+            <div className="flex items-center gap-2.5">
               <Select
                 label="Availability"
                 labelHidden
@@ -179,7 +185,9 @@ export default function Products() {
                 : 'No approved venture has listed an item yet. Once one does, it shows up here.'}
             </EmptyState>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            // Three columns at the widest, not five. See ProductCard: the
+            // five-column row could not fit a product's name.
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
               {shown.map((match) => (
                 <ProductCard
                   key={match.item.id}

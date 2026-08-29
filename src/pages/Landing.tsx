@@ -212,8 +212,11 @@ export default function Landing() {
    * Products are the best thing on it, not the thing holding it up.
    */
   const products = useAsyncData(() => listProducts(), [])
-  const picks = topPicks(products.data ?? [])
-  const rails = shelves(products.data ?? [])
+  // Fewer, shorter rows than the data could fill. Six shelves of twelve was a
+  // wall of small cards, and a home page is meant to show a few things
+  // clearly and send you to /products for the rest.
+  const picks = topPicks(products.data ?? [], 10)
+  const rails = shelves(products.data ?? [], { maxShelves: 3, perShelf: 10 })
 
   return (
     <div className="min-h-screen">
@@ -339,13 +342,17 @@ export default function Landing() {
       {/*
         EVERYTHING FOR SALE, laid out like the apps this campus already uses.
 
-        One rail of things that can be bought outright, the sections underneath
-        it, and a row of section chips between the two so a visitor who knows
-        what they want can jump rather than scroll. Priced items lead every
-        row — see data/products.ts, where that ordering and the reason for it
-        live — because an item with no price cannot go in a basket, and a shop
-        front whose first four cards all say "ask the seller" is a shop front
-        that does nothing.
+        One rail of things that can be bought outright, then three sections
+        under it. Priced items lead every row — see data/products.ts, where
+        that ordering and the reason for it live — because an item with no
+        price cannot go in a basket, and a shop front whose first four cards
+        all say "ask the seller" is a shop front that does nothing.
+
+        THE CHIPS ARE GONE and so are three of the six shelves. A row of
+        section names sitting directly above a stack of sections labelled with
+        those same names was the same list twice, and it was the first thing on
+        the page after the rail. Everything it linked to is a heading below it
+        or one tap away on /products.
 
         Nothing here renders until the read lands. An empty campus keeps the
         page it had before, rather than showing a set of empty shelves.
@@ -360,27 +367,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="space-y-7">
+          <div className="space-y-12">
             <ProductRail title="Ready to order" items={picks} seeAllTo="/products" />
-
-            {/* The chips are the sections themselves, and each one searches for
-                its own name on /products — the products search matches an
-                item's section as well as its name, so the link lands on that
-                shelf's full contents rather than on a filter that has to be
-                maintained separately. */}
-            {rails.length > 0 && (
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {rails.map((shelf) => (
-                  <Link
-                    key={shelf.name}
-                    to={`/products?q=${encodeURIComponent(shelf.name)}`}
-                    className="liquid-glass-input shrink-0 rounded-full px-4 py-2 font-mono text-[12.5px] font-bold tracking-wider text-white/70 uppercase transition duration-150 hover:text-white active:scale-[0.97]"
-                  >
-                    {shelf.name}
-                  </Link>
-                ))}
-              </div>
-            )}
 
             {rails.map((shelf) => (
               <ProductRail

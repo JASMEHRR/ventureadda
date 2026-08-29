@@ -19,6 +19,12 @@ import type { ItemMatch } from '../data/ventures'
  * arrows to maintain, and a thumb, a trackpad and Tab all move it already.
  * Desktop gets a hint that it is draggable from the same half-cut card a phone
  * uses.
+ *
+ * THE TILES WERE TOO SMALL, and small tiles are what made the page feel busy
+ * rather than full: at 160px every name was cut mid-word, so each row was
+ * seven ellipses and no information, and seven of those rows stacked read as
+ * noise. Wider tiles, two lines for a name, and real space between the rows.
+ * A shop front is meant to look like a few things you can see clearly.
  */
 function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
   const { item, venture } = match
@@ -28,9 +34,9 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
   const priced = typeof item.price === 'number'
 
   return (
-    <div className="liquid-glass-panel flex w-40 shrink-0 snap-start flex-col rounded-2xl p-2.5 sm:w-44">
+    <div className="liquid-glass-panel flex w-52 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-56">
       <Link to={venturePath(venture)} className="block">
-        <span className="mb-2 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
+        <span className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
           {item.photo ? (
             <img
               src={displayUrl(item.photo, 400)}
@@ -43,22 +49,27 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
             // otherwise — the same ladder the venture page and /products use.
             <BrandIcon
               name={item.name}
-              size={72}
-              fallback={<VentureLogo name={venture.name} logo={venture.logo} size={72} />}
+              size={88}
+              fallback={<VentureLogo name={venture.name} logo={venture.logo} size={88} />}
             />
           ) : (
-            <VentureLogo name={venture.name} logo={venture.logo} size={72} />
+            <VentureLogo name={venture.name} logo={venture.logo} size={88} />
           )}
         </span>
 
-        <span className="block truncate text-[15.5px] font-bold text-white">{item.name}</span>
-        <span className="block truncate font-mono text-[12.5px] tracking-wider text-white/35 uppercase">
+        {/* Two lines, then an ellipsis, and a fixed height for them — a row of
+            cards whose tops line up and whose prices do not is worse than a
+            clipped name. */}
+        <span className="line-clamp-2 min-h-[2.6em] text-[16.5px] leading-snug font-bold text-white">
+          {item.name}
+        </span>
+        <span className="mt-0.5 block truncate font-mono text-[12.5px] tracking-wider text-white/35 uppercase">
           {venture.name}
         </span>
       </Link>
 
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="font-mono text-[15px] font-bold text-brand-400">
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <span className="font-mono text-[16.5px] font-bold text-brand-400">
           {priced ? `₹${item.price}` : 'Ask'}
         </span>
 
@@ -74,7 +85,7 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
           <button
             type="button"
             onClick={() => setCartQuantity(item, venture, 1)}
-            className="rounded-lg bg-white/10 px-3 py-1.5 font-mono text-[12.5px] font-extrabold tracking-wider text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.94]"
+            className="rounded-lg bg-white/10 px-4 py-2 font-mono text-[13px] font-extrabold tracking-wider text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.94]"
           >
             <Plus size={11} aria-hidden="true" className="mr-1 inline" />
             Add
@@ -85,7 +96,7 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
             type="button"
             onClick={() => setCartQuantity(item, venture, quantity + 1)}
             aria-label={`Add one more ${item.name}`}
-            className="rounded-lg bg-brand-500/20 px-3 py-1.5 font-mono text-[12.5px] font-extrabold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/30 active:scale-[0.94]"
+            className="rounded-lg bg-brand-500/20 px-4 py-2 font-mono text-[13px] font-extrabold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/30 active:scale-[0.94]"
           >
             {quantity} in cart
           </button>
@@ -110,9 +121,9 @@ export default function ProductRail({
   if (items.length === 0) return null
 
   return (
-    <section className="space-y-2.5">
+    <section className="space-y-3.5">
       <header className="flex items-baseline justify-between gap-3 px-1">
-        <h3 className="truncate font-mono text-[13px] font-extrabold tracking-[0.22em] text-white uppercase">
+        <h3 className="truncate text-[19px] font-extrabold tracking-tight text-white">
           {title}
         </h3>
         {seeAllTo && (
@@ -129,7 +140,7 @@ export default function ProductRail({
       {/* -mx-1 px-1 so the first and last cards are not clipped by the scroll
           container's own edge, and [scrollbar-width:none] because a permanent
           scrollbar under every row is six scrollbars on one page. */}
-      <div className="-mx-1 flex snap-x gap-2.5 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((match) => (
           <Tile key={match.item.id} match={match} quantity={cartQuantity(cart, match.item.id)} />
         ))}

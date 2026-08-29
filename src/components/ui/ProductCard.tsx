@@ -20,6 +20,13 @@ import type { ItemMatch } from '../../data/ventures'
  * find the one already on screen, and the cart has grouped by seller since it
  * was built, so a basket assembled across three shops is three orders and
  * always was.
+ *
+ * IT USED TO BE HALF THIS SIZE, five to a row, and the row was the problem.
+ * At that width every name was cut mid-word — "Adobe Creative Clo…", "After
+ * Sex C…" — so the one thing a card exists to say was the thing it could not
+ * say. It is wider now, the name gets two lines before it gives up, and the
+ * grid stops at three columns. Fewer things on screen, each of them readable,
+ * is more product than five columns of ellipses.
  */
 export default function ProductCard({
   match: { item, venture },
@@ -43,14 +50,14 @@ export default function ProductCard({
     : venturePath(venture)
 
   return (
-    <div className="liquid-glass-panel flex items-center gap-3 rounded-2xl p-3 transition duration-150 hover:bg-white/[0.06]">
-      <Link to={to} className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="liquid-glass-panel flex items-center gap-4 rounded-2xl p-4 transition duration-150 hover:bg-white/[0.06]">
+      <Link to={to} className="flex min-w-0 flex-1 items-center gap-4">
         {item.photo ? (
           <img
             src={displayUrl(item.photo, 400)}
             alt=""
             loading="lazy"
-            className={`h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-white/10 ring-inset ${
+            className={`h-20 w-20 shrink-0 rounded-2xl object-cover ring-1 ring-white/10 ring-inset ${
               sellable ? '' : 'grayscale'
             }`}
           />
@@ -60,20 +67,24 @@ export default function ProductCard({
           // item looks like itself wherever it is shown.
           <BrandIcon
             name={item.name}
-            size={64}
-            fallback={<VentureLogo name={venture.name} logo={venture.logo} size={64} />}
+            size={80}
+            fallback={<VentureLogo name={venture.name} logo={venture.logo} size={80} />}
           />
         ) : (
-          <VentureLogo name={venture.name} logo={venture.logo} size={64} />
+          <VentureLogo name={venture.name} logo={venture.logo} size={80} />
         )}
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[16.5px] font-bold text-white">{item.name}</span>
-          <span className="block truncate font-mono text-[13px] tracking-wider text-white/35 uppercase">
+          {/* Two lines, then an ellipsis. One line cut every second name in
+              half; unlimited lines makes a grid of cards of different heights. */}
+          <span className="line-clamp-2 text-[17px] leading-snug font-bold text-white">
+            {item.name}
+          </span>
+          <span className="mt-0.5 block truncate font-mono text-[13px] tracking-wider text-white/35 uppercase">
             {venture.name}
           </span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="font-mono text-[15.5px] font-bold text-brand-400">
+          <span className="mt-1.5 flex items-baseline gap-2">
+            <span className="font-mono text-[17px] font-bold text-brand-400">
               {priced ? `₹${item.price}` : 'Ask'}
             </span>
             {!sellable && (
@@ -93,7 +104,7 @@ export default function ProductCard({
             <button
               type="button"
               onClick={() => setCartQuantity(item, venture, 1)}
-              className="rounded-xl bg-white/10 px-3.5 py-2 text-[14px] font-bold tracking-wide text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.96]"
+              className="rounded-xl bg-white/10 px-5 py-2.5 text-[15px] font-bold tracking-wide text-white/70 uppercase transition duration-150 hover:bg-brand-500/25 hover:text-brand-300 active:scale-[0.96]"
             >
               Add
               <span className="sr-only"> {item.name} to your order</span>
