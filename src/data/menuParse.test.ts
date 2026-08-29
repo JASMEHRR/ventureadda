@@ -204,4 +204,40 @@ assert.deepEqual(
   [{ name: 'Ferrari sticker', price: '30', description: '', category: 'F1' }],
 )
 
+// --- the format the copyable AI prompt asks for -----------------------------
+//
+// MenuImport hands sellers a prompt for their own assistant: colon headings,
+// one item per line, price after a comma, no price where there is none. That
+// output has to parse perfectly or the feature meant to make importing
+// reliable is the one that breaks it — and it did. An item with no price
+// sitting directly above a priced one was promoted to a heading, so the item
+// vanished and everything after it was filed underneath it.
+
+{
+  const rows = parseMenuList(
+    [
+      'Top selling:',
+      'Cursor Pro 1 Year',
+      'AI and developer tools:',
+      'Cursor Pro (1 Year)',
+      'Gemini AI Pro + 2TB (18 Months), 1200',
+    ].join('\n'),
+  )
+
+  assert.deepEqual(
+    rows.map((row) => [row.category ?? null, row.name, row.price]),
+    [
+      ['Top selling', 'Cursor Pro 1 Year', ''],
+      // Kept as an item, not turned into a section for the line below it.
+      ['AI and developer tools', 'Cursor Pro (1 Year)', ''],
+      ['AI and developer tools', 'Gemini AI Pro + 2TB (18 Months)', '1200'],
+    ],
+  )
+}
+
+// "Cursor" contains the letters r and s, which is not a currency marker. The
+// guard meant to spot "Rs." was written with literal control bytes instead of
+// word-boundary escapes and had never matched anything at all.
+assert.equal(parseMenuList('Cursor Pro, 400')[0].price, '400')
+
 console.log('menu paste and speech parsing: all checks passed')

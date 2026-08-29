@@ -49,7 +49,12 @@ export type ParsedRow = {
  * while mistaking a heading for an item leaves one row to delete. The second
  * is the cheaper mistake, so anything ambiguous stays an item.
  */
-function headingOf(line: string, next: string | undefined, nextBulleted: boolean): string | null {
+function headingOf(
+  line: string,
+  next: string | undefined,
+  nextBulleted: boolean,
+  declaredSeen: boolean,
+): string | null {
   const trimmed = line.trim()
   if (!trimmed) return null
   // A separator means cells, which means a row.
@@ -64,7 +69,7 @@ function headingOf(line: string, next: string | undefined, nextBulleted: boolean
    * "F1" survives; "Naruto 20" and "1. Anime" do not.
    */
   if (/(?:^|\s)[₹$]?\d[\d,.]*\s*(?:\/-)?(?:\s|$)/.test(trimmed)) return null
-  if (/₹|rs\.?|rupees?/i.test(trimmed)) return null
+  if (/₹|\brs\.?\b|\brupees?\b/i.test(trimmed)) return null
 
   const declared = /:\s*$/.test(trimmed)
   const withoutColon = trimmed.replace(/[:\u2013\u2014-]+$/, '').trim()
@@ -83,6 +88,18 @@ function headingOf(line: string, next: string | undefined, nextBulleted: boolean
   if (withoutColon.length > 34 || withoutColon.split(/\s+/).length > 5) return null
 
   if (!declared) {
+    /**
+     * A LIST THAT PUNCTUATES ITS HEADINGS PUNCTUATES ALL OF THEM.
+     *
+     * Once a colon has been seen, an unpunctuated line is an item — full stop.
+     * Without this, a priceless item sitting directly above a priced one
+     * ("Cursor Pro (1 Year)" then "Gemini AI Pro, 1200") is indistinguishable
+     * from a heading, and gets promoted into one: the item disappears and
+     * everything after it is filed under it. That is exactly the shape the
+     * copyable AI prompt asks for, so the format meant to make importing
+     * reliable was the format most likely to break.
+     */
+    if (declaredSeen) return null
     // No colon, so the line after it has to earn it.
     if (next === undefined) return null
     // A bulleted line beneath is the strongest signal there is: a broadcast
@@ -238,6 +255,8 @@ export function parseMenuList(text: string): ParsedRow[] {
   const rows: ParsedRow[] = []
   /** The heading rows are currently falling under, if any. */
   let section: string | undefined
+  /** Whether this list punctuates its headings with a colon — see headingOf. */
+  let declaredSeen = false
 
   const lines = text.split(/\r?\n/)
   for (let index = 0; index < lines.length; index += 1) {
@@ -254,9 +273,10 @@ export function parseMenuList(text: string): ParsedRow[] {
     // list is the heading for the items under it.
     const heading = bulleted
       ? null
-      : headingOf(line, nextParts?.text, nextParts?.bulleted ?? false)
+      : headingOf(line, nextParts?.text, nextParts?.bulleted ?? false, declaredSeen)
     if (heading) {
       section = heading
+      if (/:\s*$/.test(line.trim())) declaredSeen = true
       continue
     }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, ClipboardList, Loader2, Mic, Square } from 'lucide-react'
+import { Camera, Check, ClipboardList, Loader2, Mic, Square } from 'lucide-react'
 import Button from './ui/Button'
 import { SCAN_ACCEPT, extractMenu } from '../lib/extractMenu'
 import { parseMenuList, parseMenuSpeech } from '../data/menuParse'
@@ -46,6 +46,41 @@ function speechRecognition(): SpeechRecognitionLike | null {
 
 type Mode = 'none' | 'paste' | 'voice'
 
+/**
+ * What to send an AI, along with a messy list, to get one this parser reads
+ * perfectly.
+ *
+ * WHY THIS EXISTS. The parser has been taught a lot of real shapes — bullets,
+ * emoji headings, commas inside names, prices with thousands separators — and
+ * it still guesses. It has to: "Railway Hobby" and "Design & Creative" are the
+ * same shape, and only a reader who knows what the shop sells can say which is
+ * a product and which is a section. Every one of those guesses is a row
+ * somebody has to check.
+ *
+ * Sellers already have something that reads a list the way a person does, on
+ * the phone in their hand. So rather than guessing better, hand them the exact
+ * spec and let their own assistant do the conversion once. The output needs no
+ * guessing at all: headings are explicit, one item per line, price after a
+ * comma or left out entirely.
+ *
+ * Written as instructions to the AI rather than to the seller, because that is
+ * who reads it — the seller only has to paste it and their list underneath.
+ */
+const AI_PROMPT = `Rewrite my menu below into this exact plain-text format, and reply with nothing but the finished list.
+
+Rules:
+1. Sections: put each section heading on its own line ending with a colon. Example: "Drinks:"
+2. Items: one per line, no bullets, no emoji, no numbering.
+3. Price: put it after a comma. Example: "Cold coffee, 40"
+4. No price: leave the line as just the name. Example: "Custom cake"
+5. Optional description: put it after the price in a second comma. Example: "Cake, 450, serves four"
+6. Never put a comma inside an item's name — replace it with a space or use brackets.
+7. Keep every item. Do not invent prices, do not merge items, do not reorder them.
+8. Drop banners, greetings, phone numbers and anything that is not a section or an item.
+
+My list:
+`
+
 export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
@@ -54,6 +89,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
   const [scanning, setScanning] = useState(false)
   const [listening, setListening] = useState(false)
   const [pasted, setPasted] = useState('')
+  const [promptCopied, setPromptCopied] = useState(false)
   const [heard, setHeard] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -260,8 +296,50 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
           />
           <p className="mt-1.5 text-[15px] text-white/35">
             Name, price, description. Pasting straight from a spreadsheet works — the header row
-            is ignored.
+            is ignored. Sections work too: put a heading on its own line ending with a colon.
           </p>
+
+          {/* THE ESCAPE HATCH FOR A MESSY LIST. A WhatsApp broadcast full of
+              emoji and bullets parses well now and still guesses — it has to,
+              because a product and a section are the same shape on the page.
+              A seller's own assistant can read it the way a person does, so
+              this hands over the exact spec and lets them do the conversion
+              once, at which point nothing is left to guess. */}
+          <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3.5">
+            <p className="text-[15px] leading-relaxed text-white/55">
+              Messy list — emoji, bullets, WhatsApp forward? Copy this prompt, send it to
+              ChatGPT or Gemini with your list underneath, and paste back what it gives you.
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(AI_PROMPT)
+                    .then(() => setPromptCopied(true))
+                    .catch(() => {
+                      // Clipboard refused — WhatsApp's in-app browser does
+                      // this. Drop the prompt into the box itself so it can be
+                      // selected by hand; their list goes underneath it, which
+                      // is where it was going anyway.
+                      setPasted(AI_PROMPT)
+                    })
+                }}
+              >
+                {promptCopied ? (
+                  <>
+                    <Check size={13} aria-hidden="true" />
+                    Prompt copied
+                  </>
+                ) : (
+                  <>
+                    <ClipboardList size={13} aria-hidden="true" />
+                    Copy the prompt
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
           <div className="mt-2.5 flex gap-2">
             <Button onClick={applyPaste} disabled={pasted.trim() === ''}>
               Add these items
