@@ -49,29 +49,72 @@ export type ParsedRow = {
  * while mistaking a heading for an item leaves one row to delete. The second
  * is the cheaper mistake, so anything ambiguous stays an item.
  */
-function headingOf(line: string, next: string | undefined): string | null {
+function headingOf(line: string, next: string | undefined, nextBulleted: boolean): string | null {
   const trimmed = line.trim()
   if (!trimmed) return null
   // A separator means cells, which means a row.
   if (trimmed.includes('\t') || trimmed.includes(',')) return null
-  // Any digit at all is far more likely to be a price or a quantity.
-  if (/\d/.test(trimmed)) return null
+  /**
+   * A STANDALONE number, not any digit at all.
+   *
+   * "Any digit" was the first rule and it threw away the section this campus
+   * most obviously has: F1. Marvel, anime, F1, memes — the digit is part of
+   * the name, not a price. So what disqualifies a line is a number standing on
+   * its own, or a currency marker, which is what a price actually looks like.
+   * "F1" survives; "Naruto 20" and "1. Anime" do not.
+   */
+  if (/(?:^|\s)[₹$]?\d[\d,.]*\s*(?:\/-)?(?:\s|$)/.test(trimmed)) return null
+  if (/₹|rs\.?|rupees?/i.test(trimmed)) return null
 
   const declared = /:\s*$/.test(trimmed)
   const withoutColon = trimmed.replace(/[:\u2013\u2014-]+$/, '').trim()
   if (!withoutColon) return null
-  // Headings are short. Four words is "Cakes and celebration boxes"; a
-  // sentence longer than that is a description somebody pasted.
-  if (withoutColon.length > 40 || withoutColon.split(/\s+/).length > 4) return null
+  /**
+   * Headings are short, and the ceiling is measured rather than guessed.
+   *
+   * The real broadcast lists this was built against top out at five words and
+   * twenty-seven characters — "TOP SELLING & MOST DEMANDED", "Storage •
+   * Security • VPN". Raising it to six words to be generous immediately swept
+   * up "Chocolate fudge cake with hazelnut praline", an item, and made every
+   * row after it a child of a section named after a cake. The test caught it;
+   * the ceiling is now just above what real headings need and well below what
+   * a described item runs to.
+   */
+  if (withoutColon.length > 34 || withoutColon.split(/\s+/).length > 5) return null
 
   if (!declared) {
-    // No colon, so the next line has to earn it: something that reads as an
-    // item rather than another bare name.
+    // No colon, so the line after it has to earn it.
     if (next === undefined) return null
-    if (!next.includes('\t') && !next.includes(',') && !/\d/.test(next)) return null
+    // A bulleted line beneath is the strongest signal there is: a broadcast
+    // list marks its items and leaves its headings bare, so an unbulleted line
+    // followed by bulleted ones is a section by construction.
+    if (!nextBulleted && !next.includes('\t') && !next.includes(',') && !/\d/.test(next)) {
+      return null
+    }
   }
 
   return withoutColon.slice(0, 40)
+}
+
+/**
+ * Bullets and decoration, stripped before anything else looks at a line.
+ *
+ * A menu pasted out of a WhatsApp broadcast is not a spreadsheet — it is
+ * "➤ Cursor Pro (1 Year)" under "🤖 AI & Developer Tools", and every one of
+ * those glyphs used to end up inside the item name. The seller then had 150
+ * rows to clean by hand, which is the opposite of what an import is for.
+ */
+const BULLET = /^\s*(?:[\u2022\u2023\u25B8\u25B6\u27A4\u27A2\u2794\u2192\u21B3>\-*+]|\uD83D[\uDE80-\uDE82])\s*/u
+
+/** Any leading emoji or symbol run, with the space after it. Headings in these
+ *  lists are decorated rather than bulleted: "🎨 Design & Creative". */
+const LEADING_DECORATION =
+  /^\s*(?:[\p{Extended_Pictographic}\u2B50\u2728\uFE0F\u2600-\u27BF]\uFE0F?\s*)+/u
+
+function stripBullet(line: string): { text: string; bulleted: boolean } {
+  const withoutBullet = line.replace(BULLET, '')
+  const bulleted = withoutBullet !== line
+  return { text: withoutBullet.replace(LEADING_DECORATION, '').trim(), bulleted }
 }
 
 /** Currency noise a person will paste or say without thinking about it. */
@@ -109,8 +152,29 @@ const HEADER_WORDS = new Set(['name', 'item', 'product', 'title'])
  * "Cake, 450, 500g serves four" intact.
  */
 function mergeThousands(cells: string[], separator: string): string[] {
-  if (separator !== ',' || cells.length < 3) return cells
+  if (separator !== ',') return cells
   const merged = [...cells]
+
+  /**
+   * The same break, but inside the NAME: "Scalingo $2,400 Credits (12 Months)"
+   * splits into "Scalingo $2" and "400 Credits (12 Months)", which reads as an
+   * item called "Scalingo $2" priced at 400. Both halves wrong, from a line
+   * that is obviously one thing.
+   *
+   * Merged only when the first cell ends in a digit AND the second starts with
+   * two or three digits that are followed by something else. A second cell of
+   * nothing but digits is a price and is left alone, which is what keeps
+   * "Pack of 2, 40" intact.
+   */
+  while (
+    merged.length >= 2 &&
+    /\d\s*$/.test(merged[0]) &&
+    /^\s*\d{2,3}\s*\S/.test(merged[1])
+  ) {
+    merged.splice(0, 2, `${merged[0]},${merged[1].trim()}`)
+  }
+
+  if (merged.length < 3) return merged
   while (merged.length >= 3 && /\d\s*$/.test(merged[1]) && /^\s*\d{2,3}\s*$/.test(merged[2])) {
     merged.splice(1, 2, `${merged[1]}${merged[2].trim()}`)
   }
@@ -127,6 +191,34 @@ function mergeThousands(cells: string[], separator: string): string[] {
 const TRAILING_DASH_PRICE = /^(.+?)\s+[-–—]\s*(?:₹|rs\.?|rupees?)?\s*(\d[\d,]*(?:\.\d+)?)\s*\/?-?\s*$/i
 
 /**
+ * Splits on a separator, but never inside brackets.
+ *
+ * "Manus Pro (4,000 Credits/Month)" is one item with a comma in the middle of
+ * its own name, and a plain split turned it into "Manus Pro (4" priced at 0 —
+ * a mangled name AND an invented price, from a line no human would misread.
+ * Anything inside ( ) or [ ] belongs to the cell it started in.
+ */
+function splitOutsideBrackets(line: string, separator: string): string[] {
+  const cells: string[] = []
+  let depth = 0
+  let current = ''
+
+  for (const character of line) {
+    if (character === '(' || character === '[') depth += 1
+    else if (character === ')' || character === ']') depth = Math.max(0, depth - 1)
+
+    if (character === separator && depth === 0) {
+      cells.push(current)
+      current = ''
+      continue
+    }
+    current += character
+  }
+  cells.push(current)
+  return cells
+}
+
+/**
  * Parses a pasted list, one item per line.
  *
  * Tab-separated is checked before comma, because pasting a column out of Excel
@@ -141,11 +233,20 @@ export function parseMenuList(text: string): ParsedRow[] {
 
   const lines = text.split(/\r?\n/)
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]
-    if (!line.trim()) continue
+    const raw = lines[index]
+    if (!raw.trim()) continue
 
-    const next = lines.slice(index + 1).find((candidate) => candidate.trim() !== '')
-    const heading = headingOf(line, next)
+    const { text: line, bulleted } = stripBullet(raw)
+    if (!line) continue
+
+    const rawNext = lines.slice(index + 1).find((candidate) => candidate.trim() !== '')
+    const nextParts = rawNext === undefined ? null : stripBullet(rawNext)
+
+    // A bulleted line is an item, full stop. Nothing marked as one item in a
+    // list is the heading for the items under it.
+    const heading = bulleted
+      ? null
+      : headingOf(line, nextParts?.text, nextParts?.bulleted ?? false)
     if (heading) {
       section = heading
       continue
@@ -166,7 +267,7 @@ export function parseMenuList(text: string): ParsedRow[] {
     }
 
     const separator = line.includes('\t') ? '\t' : ','
-    const cells = mergeThousands(line.split(separator), separator)
+    const cells = mergeThousands(splitOutsideBrackets(line, separator), separator)
     const name = (cells[0] ?? '').trim()
     if (!name) continue
 

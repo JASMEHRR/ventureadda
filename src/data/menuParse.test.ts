@@ -166,4 +166,42 @@ assert.deepEqual(
   ],
 )
 
+// --- a WhatsApp broadcast, which is what people actually paste ---------------
+//
+// Bulleted items under decorated headings, no prices, commas inside names.
+// Every one of those used to go wrong: the glyphs ended up in the item names,
+// the headings became items, and "(4,000 Credits/Month)" split at its own
+// comma into an item called "Manus Pro (4" priced at ₹0.
+
+{
+  const rows = parseMenuList(
+    [
+      '🤖 AI & Developer Tools',
+      '➤ Cursor Pro (1 Year)',
+      '➤ Manus Pro (4,000 Credits/Month)',
+      '💻 Developer & Cloud',
+      '➤ Scalingo $2,400 Credits (12 Months)',
+      '➤ GitLab Ultimate',
+    ].join('\n'),
+  )
+
+  assert.deepEqual(
+    rows.map((row) => [row.category ?? null, row.name, row.price]),
+    [
+      ['AI & Developer Tools', 'Cursor Pro (1 Year)', ''],
+      // The comma belongs to the name, not to a price.
+      ['AI & Developer Tools', 'Manus Pro (4,000 Credits/Month)', ''],
+      // Same break, outside the brackets this time.
+      ['Developer & Cloud', 'Scalingo $2,400 Credits (12 Months)', ''],
+      ['Developer & Cloud', 'GitLab Ultimate', ''],
+    ],
+  )
+}
+
+// A digit inside a word is not a price: F1 is a section on this campus.
+assert.deepEqual(
+  parseMenuList(['F1', 'Ferrari sticker, 30'].join('\n')),
+  [{ name: 'Ferrari sticker', price: '30', description: '', category: 'F1' }],
+)
+
 console.log('menu paste and speech parsing: all checks passed')
