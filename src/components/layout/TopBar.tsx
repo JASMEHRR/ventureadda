@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Moon, Plus, Search, ShoppingCart, Sun, UserRound, X } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
@@ -14,6 +14,9 @@ import { resolveTheme, useAppearance } from '../../lib/appearance'
 
 /** Where the browse controls point. '/' is the landing page. */
 const BROWSE_PATH = '/browse'
+
+/** Pages that read `?category=` themselves. See setCategory below. */
+const FILTERABLE_PATHS = [BROWSE_PATH, '/products']
 
 const CATEGORY_OPTIONS: SelectOption<string>[] = [
   { value: 'all', label: 'All categories' },
@@ -35,6 +38,7 @@ const CATEGORY_OPTIONS: SelectOption<string>[] = [
  */
 export default function TopBar() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { status, profile, user } = useAuth()
 
   /**
@@ -106,7 +110,12 @@ export default function TopBar() {
     const params = new URLSearchParams(searchParams)
     if (value === 'all') params.delete('category')
     else params.set('category', value)
-    navigate({ pathname: BROWSE_PATH, search: params.toString() })
+    // Filtering keeps you where you are when the page understands the filter.
+    // The products grid reads `?category=` exactly as the directory does, and
+    // being thrown back to a list of shops for narrowing a list of items is
+    // the filter undoing what it was asked to do.
+    const target = FILTERABLE_PATHS.includes(pathname) ? pathname : BROWSE_PATH
+    navigate({ pathname: target, search: params.toString() })
   }
 
   return (

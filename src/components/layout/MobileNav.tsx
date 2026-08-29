@@ -55,11 +55,11 @@ export default function MobileNav({
               <>
                 <Icon size={18} aria-hidden="true" className={isActive ? 'text-brand-400' : ''} />
                 <span
-                  className={`font-mono text-[12.5px] tracking-wider uppercase ${
+                  className={`font-mono text-[12.5px] tracking-wider whitespace-nowrap uppercase ${
                     isActive ? 'font-extrabold' : 'font-bold'
                   }`}
                 >
-                  {item.label}
+                  {item.shortLabel ?? item.label}
                 </span>
               </>
             )}

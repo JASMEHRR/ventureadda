@@ -62,6 +62,16 @@ export function useMenuQuery(): string {
 const BROWSE_PATH = '/browse'
 
 /**
+ * Pages that read `?q=` themselves.
+ *
+ * Typing on one of these filters where you are standing; typing anywhere else
+ * takes you to the directory. Products was the case that made this a list:
+ * without it, searching from the products grid threw you out to Browse and
+ * showed you shops instead of the thing you had just typed.
+ */
+const SEARCHABLE_PATHS = [BROWSE_PATH, '/products']
+
+/**
  * Everything the two search fields need, so they stay identical.
  *
  * They are rendered at different breakpoints — the sidebar from `md` up, the
@@ -102,7 +112,7 @@ export function useShellSearch(): {
       // Menu search never navigates: the whole point is that you stay on the
       // venture you are reading. Directory search from a venture page does
       // navigate, but that case cannot arise while a scope is set.
-      if (inMenu || pathname === BROWSE_PATH) {
+      if (inMenu || SEARCHABLE_PATHS.includes(pathname)) {
         // replace, so a search does not stack one history entry per keystroke
         // for the back button to walk through.
         setSearchParams(params, { replace: true })

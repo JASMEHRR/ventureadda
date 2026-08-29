@@ -1,15 +1,14 @@
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Plus, SearchX, Store } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import VentureCard from '../components/ui/VentureCard'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { listCategories, listVentures, searchMenuItems, venturePath } from '../data/ventures'
-import VentureLogo from '../components/ui/VentureLogo'
-import { displayUrl } from '../lib/cloudinary'
+import { listCategories, listVentures, searchMenuItems } from '../data/ventures'
+import ProductCard from '../components/ui/ProductCard'
+import { cartQuantity, useCart } from '../data/cart'
 import { listRatingSummaries } from '../data/reviews'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
@@ -79,6 +78,9 @@ export default function Browse() {
   // already binds to a venture group's contents — one shadowing the other is a
   // bug waiting for whoever edits this next.
   const productMatches = useAsyncData(() => searchMenuItems(query), [query])
+
+  // One subscription for the page rather than one per card. See Products.
+  const cart = useCart()
 
   const categoryName = (id: string) =>
     categories.data?.find((category) => category.id === id)?.name ?? ''
@@ -171,51 +173,23 @@ export default function Browse() {
           </header>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {productMatches.data!.map(({ item, venture }) => {
-              const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
-              return (
-                <Link
-                  key={item.id}
-                  // Straight to the seller's page with the menu already
-                  // filtered to what was typed, so the item is on screen on
-                  // arrival rather than somewhere in a grid of forty.
-                  to={`${venturePath(venture)}?item=${encodeURIComponent(query.trim())}`}
-                  className="liquid-glass-panel flex items-center gap-3 rounded-2xl p-3 transition duration-150 hover:bg-white/[0.06] active:scale-[0.99]"
-                >
-                  {item.photo ? (
-                    <img
-                      src={displayUrl(item.photo, 400)}
-                      alt=""
-                      loading="lazy"
-                      className={`h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-white/10 ring-inset ${
-                        sellable ? '' : 'grayscale'
-                      }`}
-                    />
-                  ) : (
-                    <VentureLogo name={venture.name} logo={venture.logo} size={64} />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[16.5px] font-bold text-white">
-                      {item.name}
-                    </span>
-                    <span className="block truncate font-mono text-[13px] tracking-wider text-white/35 uppercase">
-                      {venture.name}
-                    </span>
-                    <span className="mt-1 flex items-baseline gap-2">
-                      <span className="font-mono text-[15.5px] font-bold text-brand-400">
-                        {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
-                      </span>
-                      {!sellable && (
-                        <span className="font-mono text-[12.5px] font-bold tracking-wider text-red-300 uppercase">
-                          Sold out
-                        </span>
-                      )}
-                    </span>
-                  </span>
-                </Link>
-              )
-            })}
+            {productMatches.data!.map((match) => (
+              <ProductCard
+                key={match.item.id}
+                match={match}
+                quantity={cartQuantity(cart, match.item.id)}
+                // Straight to the seller's page with the menu already filtered
+                // to what was typed, so the item is on screen on arrival rather
+                // than somewhere in a grid of forty.
+                itemQuery={query.trim()}
+              />
+            ))}
           </div>
+
+          {/* The same grid, the same card and the same stepper the products
+              page uses: a result here is a product, and it behaved differently
+              from one there for no reason other than that it was written
+              twice. */}
         </section>
       )}
 

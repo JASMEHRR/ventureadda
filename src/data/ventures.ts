@@ -179,8 +179,32 @@ export type ItemMatch = {
  * the alternative is a search product for a directory of forty sellers.
  */
 export async function searchMenuItems(needle: string): Promise<ItemMatch[]> {
-  const q = needle.trim().toLowerCase()
-  if (!q) return []
+  if (!needle.trim()) return []
+  return listProducts({ query: needle })
+}
+
+/**
+ * EVERY product on the site, which is what /products is.
+ *
+ * The directory has always been a list of shops, and finding a thing meant
+ * knowing which shop sold it or typing its name into a search box — fine for
+ * "brownie", useless for "what is actually on sale here". This is the other
+ * way in: one grid of items, filterable, that nobody has to guess a word to
+ * open.
+ *
+ * Same two reads as searchMenuItems, which is now a caller of this: the whole
+ * menuItems collection and every live venture, joined and filtered in memory.
+ * See the note above for why that is the right shape at this size and where
+ * the ceiling is.
+ *
+ * Sold-out items are kept, and for a stronger reason here than in search: a
+ * page claiming to be everything on campus that quietly drops today's
+ * sold-out cakes is lying about the campus.
+ */
+export async function listProducts(
+  options: { query?: string; categoryId?: string } = {},
+): Promise<ItemMatch[]> {
+  const q = (options.query ?? '').trim().toLowerCase()
 
   const [ventureSnapshot, itemSnapshot] = await Promise.all([
     getDocs(query(venturesRef, where('status', '==', 'live'))),
@@ -188,13 +212,20 @@ export async function searchMenuItems(needle: string): Promise<ItemMatch[]> {
   ])
 
   // Live ventures only. A pending or rejected listing is one no moderator has
-  // approved, and its menu must not be reachable through a search box.
-  const live = new Map(ventureSnapshot.docs.map(toVenture).map((v) => [v.id, v]))
+  // approved, and its menu must not be reachable through a search box or a
+  // products page.
+  const live = new Map(
+    ventureSnapshot.docs
+      .map(toVenture)
+      .filter((venture) => !options.categoryId || venture.categoryId === options.categoryId)
+      .map((venture) => [venture.id, venture]),
+  )
 
   return itemSnapshot.docs
     .map(toMenuItem)
     .filter(
       (item) =>
+        q === '' ||
         item.name.toLowerCase().includes(q) ||
         (item.description ?? '').toLowerCase().includes(q) ||
         (item.category ?? '').toLowerCase().includes(q),
@@ -205,9 +236,12 @@ export async function searchMenuItems(needle: string): Promise<ItemMatch[]> {
     })
     .sort((a, b) => {
       // A name match beats a description match: someone typing "beanie" wants
-      // the beanie, not the scarf whose description mentions one.
-      const aName = a.item.name.toLowerCase().includes(q)
-      const bName = b.item.name.toLowerCase().includes(q)
+      // the beanie, not the scarf whose description mentions one. With no
+      // search term both sides are false and this falls through to the name,
+      // which is the stable order an unfiltered grid needs — Firestore's own
+      // document order differs between reads.
+      const aName = q !== '' && a.item.name.toLowerCase().includes(q)
+      const bName = q !== '' && b.item.name.toLowerCase().includes(q)
       if (aName !== bName) return aName ? -1 : 1
       return a.item.name.localeCompare(b.item.name)
     })

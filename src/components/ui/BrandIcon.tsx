@@ -76,11 +76,21 @@ const QUALIFIERS = new Set([
 ])
 
 /**
- * Domains worth asking about for this name, best guess first.
+ * The one domain worth asking about for this name.
  *
- * Two at most. The first word is the brand in nearly every listing written the
- * way people write them, and `.ai` is the second guess because half of what
- * this venture sells is an AI tool with an AI domain.
+ * ONE GUESS, NOT TWO, and that is a correction rather than a simplification.
+ * It used to fall back to `.ai` when `.com` failed, on the reasoning that half
+ * of what this venture sells is an AI tool. But a failure is not only "no such
+ * icon" — a page of three hundred items asks for three hundred icons, the
+ * service throttles some of them, and every throttled `.com` was quietly
+ * promoted to a `.ai` belonging to somebody else. "Adobe Creative Cloud" was
+ * showing the icon of a parked domain at adobe.ai.
+ *
+ * A wrong logo on a listing is worse than no logo: it is a claim about what
+ * the seller is selling. So a name either resolves on the first ask or falls
+ * back to the seller's own mark. A brand whose site is not a .com keeps its
+ * icon by having the domain written into the item name, which is how these
+ * lists are usually written anyway ("Customer.io Essentials").
  */
 export function brandDomains(name: string): string[] {
   // A name that already contains a domain is not a guess: "Customer.io" is
@@ -99,7 +109,7 @@ export function brandDomains(name: string): string[] {
   // A single letter is not a brand, and asking about it is a wasted request
   // that would sometimes come back with somebody else's logo.
   if (!brand || brand.length < 3) return []
-  return [`${brand}.com`, `${brand}.ai`]
+  return [`${brand}.com`]
 }
 
 export default function BrandIcon({

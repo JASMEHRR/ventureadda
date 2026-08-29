@@ -1,5 +1,6 @@
 import {
   ClipboardList,
+  LayoutGrid,
   MessageSquare,
   Package,
   Palette,
@@ -15,6 +16,13 @@ export type NavItem = {
   icon: LucideIcon
   /** Hidden from the mobile bar, which only has room for four. */
   desktopOnly?: boolean
+  /**
+   * What the phone bar calls this, when the full label does not fit a fifth of
+   * a 375px screen. "Your orders" wrapped onto two lines there and made its
+   * cell taller than the four beside it. The sidebar keeps the long name,
+   * where it has to be told apart from the seller's own Orders row.
+   */
+  shortLabel?: string
 }
 
 /**
@@ -37,6 +45,11 @@ export type NavItem = {
  */
 export const PRIMARY_NAV: NavItem[] = [
   { to: '/browse', label: 'Browse', icon: Store },
+  // A second entry, on a bar the note above says holds four — and it earns the
+  // slot because it is a different question, not another route to the same
+  // filter. Browse lists shops; this lists what they sell, which is what
+  // somebody with nothing particular in mind is actually looking for.
+  { to: '/products', label: 'Products', icon: LayoutGrid },
   { to: '/chat', label: 'All Chat', icon: MessageSquare },
 ]
 
@@ -44,7 +57,9 @@ export const PRIMARY_NAV: NavItem[] = [
  * The buyer's own orders. Shown to anyone signed in, seller or not — buying is
  * the one thing every account here can do.
  */
-export const BUYER_NAV: NavItem[] = [{ to: '/my-orders', label: 'Your orders', icon: Package }]
+export const BUYER_NAV: NavItem[] = [
+  { to: '/my-orders', label: 'Your orders', shortLabel: 'Orders', icon: Package },
+]
 
 /**
  * Shown only to accounts that may list a venture, and only on desktop.
@@ -87,6 +102,7 @@ export const DEV_NAV: NavItem[] = [
  */
 const PAGE_TITLES: Record<string, string> = {
   '/browse': 'Browse ventures',
+  '/products': 'Browse products',
   '/chat': 'All Chat',
   '/add': 'List a venture',
   '/moderator': 'Review queue',

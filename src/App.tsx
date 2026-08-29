@@ -29,6 +29,7 @@ import Browse from './pages/Browse'
  * open, and AddVenture and EditVenture drag in the form, the Cloudinary
  * uploader and the menu scanner.
  */
+const Products = lazy(() => import('./pages/Products'))
 const VentureDetail = lazy(() => import('./pages/VentureDetail'))
 const EditVenture = lazy(() => import('./pages/EditVenture'))
 const AddVenture = lazy(() => import('./pages/AddVenture'))
@@ -76,6 +77,7 @@ export default function App() {
               element={
                 <Suspense fallback={<LoadingLine label="Loading…" />}>
                   <Routes>
+                    <Route path="products" element={<Products />} />
                     <Route path="venture/:ventureId" element={<VentureDetail />} />
                     <Route path="venture/:ventureId/edit" element={<EditVenture />} />
                     <Route path="signin" element={<SignIn />} />
