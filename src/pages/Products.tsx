@@ -261,13 +261,35 @@ export default function Products() {
               hides the answer while you look for it. */}
           {tree.length > 0 && (
             <div
-              className={`shrink-0 transition-[width] duration-300 ease-out md:sticky md:top-24 md:self-start ${
+              /*
+                NO TRANSITION ON THIS WIDTH, deliberately, and it is the one
+                place on the site where instant is the smoother answer.
+
+                Width is a layout property, so animating it re-lays-out
+                everything to the right — a grid of a hundred and seventy-six
+                cards — on every frame, and each visible card carries a
+                backdrop-filter that has to re-sample the page behind it at the
+                same time. Thirty frames of that arrived as about six. The
+                sidebar gets away with the same trick because it usually opens
+                over a shorter page; this one never does.
+
+                So the width changes once, in a single frame, and what makes it
+                read as deliberate rather than abrupt is the hover delay in
+                front of it: by the time it moves, the pointer has been sitting
+                on the rail for 90ms and the move is expected. Nothing here
+                stutters, because there is nothing to stutter.
+              */
+              className={`shrink-0 md:sticky md:top-24 md:self-start ${
                 pointed ? 'md:w-64' : 'md:w-48'
               }`}
             >
               <nav
                 aria-label="Sections"
                 {...railHandlers}
+                // `contain: layout` so the sections opening and closing inside
+                // this panel is the panel's own business — without it every
+                // height change here asks the page around it to re-measure.
+                style={{ contain: 'layout' }}
                 className="liquid-glass-panel sticky top-20 z-20 overflow-hidden rounded-2xl p-2 md:static md:w-full"
               >
                 <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] md:max-h-[70vh] md:flex-col md:overflow-x-visible md:overflow-y-auto [&::-webkit-scrollbar]:hidden">

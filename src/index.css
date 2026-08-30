@@ -325,3 +325,25 @@
     contain-intrinsic-size: auto var(--surface-height, 140px);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   While a panel is opening, blur less.
+
+   The sidebar still animates its width, which is a layout property: every
+   frame re-lays-out the page beside it, and every glass surface on screen
+   re-samples the pixels behind it at the new position. The blur radius is what
+   makes that expensive — the cost scales with it — and 20px across a dozen
+   surfaces is what turned a 300ms slide into a stutter on the longer pages.
+
+   Six pixels for the third of a second the panel is moving. It is still glass,
+   it is still frosted, and the difference is hard to catch on a backdrop that
+   is mostly dark sky — which is the trade: a slightly sharper background for
+   that moment, in exchange for the movement being smooth.
+   --------------------------------------------------------------------------- */
+@layer components {
+  :root[data-shifting] .liquid-glass-panel,
+  :root[data-shifting] .liquid-glass-highlight,
+  :root[data-shifting] .liquid-glass-input {
+    backdrop-filter: blur(6px) saturate(120%);
+  }
+}

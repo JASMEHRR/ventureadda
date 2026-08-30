@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-react'
 import { LogoMark } from '../ui/Logo'
@@ -200,6 +200,25 @@ export default function Sidebar({
    */
   const { active: pointed, handlers } = useHoverIntent()
   const expanded = !collapsed || pointed
+
+  /**
+   * Tells the stylesheet the page is mid-move, for exactly as long as it is.
+   *
+   * See the `data-shifting` block in index.css: the blur drops from 20px to 6
+   * while the panel animates, because a dozen surfaces re-sampling a 20px blur
+   * on every frame of a layout animation is what the stutter was made of.
+   * Removed on a timer rather than transitionend, which does not fire when the
+   * reader has motion turned off and there is no transition to end.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.shifting = ''
+    const timer = window.setTimeout(() => delete root.dataset.shifting, 320)
+    return () => {
+      window.clearTimeout(timer)
+      delete root.dataset.shifting
+    }
+  }, [expanded])
 
   const items = [
     ...PRIMARY_NAV,
