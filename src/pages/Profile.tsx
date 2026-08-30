@@ -9,6 +9,7 @@ import {
   Settings as SettingsIcon,
   Shield,
   Store,
+  MessageSquare,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
@@ -134,7 +135,7 @@ function AddThaparEmail() {
 
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-white/10" />
-        <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+        <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">
           or
         </span>
         <span className="h-px flex-1 bg-white/10" />
@@ -199,7 +200,7 @@ function ProfileLink({
       <Icon size={18} className="shrink-0 text-brand-400" aria-hidden="true" />
       <span className="min-w-0 flex-1">
         <span className="block text-[17px] font-bold text-white">{label}</span>
-        <span className="block text-[15px] text-white/45">{detail}</span>
+        <span className="block text-[15px] text-white/60">{detail}</span>
       </span>
       {badge > 0 && (
         <span className="shrink-0 rounded-full bg-brand-500/25 px-2.5 py-1 font-mono text-[14px] font-extrabold text-brand-300">
@@ -333,7 +334,7 @@ export default function Profile() {
           <Avatar name={profile.username} style={profile.avatar} className="h-12 w-12 text-[19px]" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[21px] font-extrabold text-white">{profile.username}</p>
-            <p className="truncate text-[15.5px] text-white/45">{profile.email}</p>
+            <p className="truncate text-[15.5px] text-white/60">{profile.email}</p>
           </div>
         </div>
 
@@ -386,6 +387,15 @@ export default function Profile() {
           />
         </>
       )}
+
+      {/* Its own row here because the phone bar no longer carries it — see
+          PRIMARY_NAV. This is the way in on a phone. */}
+      <ProfileLink
+        to="/chat"
+        icon={MessageSquare}
+        label="All Chat"
+        detail="Feedback about the site: bugs, confusions, things you want"
+      />
 
       <ProfileLink
         to="/settings"

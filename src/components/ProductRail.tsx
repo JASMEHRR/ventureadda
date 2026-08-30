@@ -66,7 +66,7 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
         <span className="line-clamp-2 min-h-[2.6em] text-[16.5px] leading-snug font-bold text-white">
           {item.name}
         </span>
-        <span className="mt-0.5 block truncate font-mono text-[12.5px] tracking-wider text-white/35 uppercase">
+        <span className="mt-0.5 block truncate font-mono text-[12.5px] tracking-wider text-white/55 uppercase">
           {venture.name}
         </span>
       </Link>
@@ -83,7 +83,7 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
             Sold out
           </span>
         ) : !priced ? (
-          <span className="font-mono text-[12px] tracking-wider text-white/30 uppercase">Ask</span>
+          <span className="font-mono text-[12px] tracking-wider text-white/55 uppercase">Ask</span>
         ) : quantity === 0 ? (
           <button
             type="button"

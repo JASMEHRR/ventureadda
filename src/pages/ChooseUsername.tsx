@@ -71,7 +71,7 @@ export default function ChooseUsername({
           </p>
           {/* Said before the choice, not after. It cannot be changed later and
               nobody reads a warning that arrives with the confirmation. */}
-          <p className="mt-1.5 text-[15.5px] leading-relaxed text-white/40">
+          <p className="mt-1.5 text-[15.5px] leading-relaxed text-white/60">
             Usernames are permanent — they cannot be changed or released later.
           </p>
         </div>

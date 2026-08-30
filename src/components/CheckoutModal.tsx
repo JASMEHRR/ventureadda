@@ -419,7 +419,7 @@ export default function CheckoutModal({
           )}
 
           {payment === 'cod' && (
-            <p className="text-[15px] leading-relaxed text-white/45">
+            <p className="text-[15px] leading-relaxed text-white/60">
               Paying cash: expect a quick call to check the order is real before they make it.
             </p>
           )}
@@ -460,7 +460,7 @@ export default function CheckoutModal({
           </div>
 
           <div className="flex items-center justify-between border-t border-white/8 pt-3">
-            <span className="font-mono text-[13px] font-bold tracking-[0.18em] text-white/40 uppercase">
+            <span className="font-mono text-[13px] font-bold tracking-[0.18em] text-white/60 uppercase">
               Total
             </span>
             <span className="font-mono text-[18px] font-extrabold text-brand-400">₹{total}</span>
@@ -584,8 +584,8 @@ export default function CheckoutModal({
             </p>
           )}
 
-          <p className="flex items-start gap-2 border-t border-white/8 pt-3.5 text-[15px] leading-relaxed text-white/45">
-            <Phone size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+          <p className="flex items-start gap-2 border-t border-white/8 pt-3.5 text-[15px] leading-relaxed text-white/60">
+            <Phone size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
             <span>
               Seller&rsquo;s number: <span className="font-mono text-white/70">{venture.phone}</span>
               . No money is paid through this site.

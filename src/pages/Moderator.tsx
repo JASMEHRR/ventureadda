@@ -82,11 +82,11 @@ function VentureRow({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[12.5px] tracking-[0.22em] text-white/30 uppercase">
+          <p className="font-mono text-[12.5px] tracking-[0.22em] text-white/55 uppercase">
             {categoryName(venture.categoryId)}
           </p>
           <h3 className="mt-1 truncate text-[18px] font-extrabold text-white">{venture.name}</h3>
-          <p className="mt-0.5 truncate text-[15.5px] text-white/45">
+          <p className="mt-0.5 truncate text-[15.5px] text-white/60">
             {venture.ownerUsername} · {venture.hours}
           </p>
           <p className="mt-2 line-clamp-2 text-[15.5px] leading-snug text-white/55">
@@ -94,7 +94,7 @@ function VentureRow({
           </p>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="flex items-center gap-1.5 font-mono text-[13px] text-white/35">
+            <span className="flex items-center gap-1.5 font-mono text-[13px] text-white/55">
               <MousePointerClick size={11} aria-hidden="true" />
               {venture.clickCount} opens
             </span>
@@ -187,7 +187,7 @@ function MaintenancePanel({
         )}
       </div>
 
-      <p className="text-[15px] leading-relaxed text-white/45">
+      <p className="text-[15px] leading-relaxed text-white/60">
         Everyone except moderators sees a closed sign between these two times, and the site comes
         back on its own at the end — nobody has to remember to reopen it. You keep full access
         throughout, with a bar across the top so you cannot forget it is closed.
@@ -269,13 +269,13 @@ function TrafficPanel({ days }: { days: TrafficDay[] }) {
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Traffic
         </h2>
-        <span className="font-mono text-[13px] text-white/30">
+        <span className="font-mono text-[13px] text-white/55">
           {todayCount} today · {total} in {days.length || 0} day{days.length === 1 ? '' : 's'}
         </span>
       </div>
 
       {ordered.length === 0 ? (
-        <p className="text-[15px] text-white/45">
+        <p className="text-[15px] text-white/60">
           Nothing counted yet. The first visit after this went live starts it off.
         </p>
       ) : (
@@ -283,7 +283,7 @@ function TrafficPanel({ days }: { days: TrafficDay[] }) {
           <div className="flex h-28 items-end gap-1.5">
             {ordered.map((day) => (
               <div key={day.day} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-                <span className="font-mono text-[12px] font-bold text-white/40">{day.count}</span>
+                <span className="font-mono text-[12px] font-bold text-white/60">{day.count}</span>
                 <div
                   // A visited day always draws something: a bar rounded down to
                   // nothing looks like a day nobody came, which is a different
@@ -294,12 +294,12 @@ function TrafficPanel({ days }: { days: TrafficDay[] }) {
                   }`}
                   title={`${day.count} on ${day.day}`}
                 />
-                <span className="font-mono text-[11px] text-white/25">{day.day.slice(8)}</span>
+                <span className="font-mono text-[11px] text-white/50">{day.day.slice(8)}</span>
               </div>
             ))}
           </div>
 
-          <p className="text-[14.5px] leading-relaxed text-white/40">
+          <p className="text-[14.5px] leading-relaxed text-white/60">
             Tabs that opened the site, counted once each per day — not people, and not page
             views. Somebody on a phone and a laptop is two; somebody reading six ventures in one
             sitting is one.
@@ -463,7 +463,7 @@ export default function Moderator() {
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Site backdrop
         </h2>
-        <p className="text-[15px] text-white/45">
+        <p className="text-[15px] text-white/60">
           Shown behind the whole app, to every visitor. Leave empty for the default.
         </p>
         <PhotoUploader
@@ -493,7 +493,7 @@ export default function Moderator() {
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Readable links
         </h2>
-        <p className="text-[15px] leading-relaxed text-white/45">
+        <p className="text-[15px] leading-relaxed text-white/60">
           Ventures listed before this existed still have a link made of their database id —
           /venture/3KHid4o2sqQ4J49cE2dV rather than /venture/glood. This gives every live one a
           link with its name in it. Old links keep working; nothing breaks.
@@ -520,7 +520,7 @@ export default function Moderator() {
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Ways in
         </h2>
-        <p className="text-[15px] leading-relaxed text-white/45">
+        <p className="text-[15px] leading-relaxed text-white/60">
           Signing in by email address sends mail, and Firebase&rsquo;s free tier caps how much of
           that there is. When the cap is spent every email sign-in fails, which looks like the
           site being broken — so it can be put away entirely. Google sends no mail and is never
@@ -555,7 +555,7 @@ export default function Moderator() {
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Checkout options
         </h2>
-        <p className="text-[15px] leading-relaxed text-white/45">
+        <p className="text-[15px] leading-relaxed text-white/60">
           &ldquo;The seller contacts me&rdquo; puts the order on the seller&rsquo;s dashboard and
           asks the buyer to wait for a call — a promise nothing on this site can keep, because
           nothing makes a seller open that dashboard. Off, every order goes out through WhatsApp
@@ -642,14 +642,14 @@ export default function Moderator() {
                 <Shield
                   size={15}
                   aria-hidden="true"
-                  className={entry.isModerator ? 'text-brand-400' : 'text-white/20'}
+                  className={entry.isModerator ? 'text-brand-400' : 'text-white/50'}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[16px] font-bold text-white">{entry.username}</p>
-                  <p className="truncate text-[15px] text-white/40">{entry.email}</p>
+                  <p className="truncate text-[15px] text-white/60">{entry.email}</p>
                 </div>
                 {entry.email === OWNER_EMAIL ? (
-                  <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-white/30 uppercase">
+                  <span className="shrink-0 font-mono text-[12.5px] font-bold tracking-wider text-white/55 uppercase">
                     Owner
                   </span>
                 ) : (
@@ -709,7 +709,7 @@ export default function Moderator() {
                           onClick={() => setConfirmingRemoval(entry.uid)}
                           aria-label={`Remove ${entry.username}`}
                           title="Remove this account"
-                          className="rounded-full border border-white/10 bg-white/5 p-2 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                          className="rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
                         >
                           <Trash2 size={14} aria-hidden="true" />
                         </button>
@@ -729,7 +729,7 @@ export default function Moderator() {
           <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Moderators
           </h2>
-          <p className="text-[15px] text-white/45">
+          <p className="text-[15px] text-white/60">
             Look up anyone by their username to grant or remove moderator access.
           </p>
 
@@ -757,7 +757,7 @@ export default function Moderator() {
           </div>
 
           {moderatorResult === 'not-found' && (
-            <p className="text-[15.5px] text-white/45">No account with that username.</p>
+            <p className="text-[15.5px] text-white/60">No account with that username.</p>
           )}
 
           {moderatorResult && moderatorResult !== 'not-found' && (
@@ -765,16 +765,16 @@ export default function Moderator() {
               <Shield
                 size={16}
                 aria-hidden="true"
-                className={moderatorResult.isModerator ? 'text-brand-400' : 'text-white/25'}
+                className={moderatorResult.isModerator ? 'text-brand-400' : 'text-white/50'}
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[16px] font-bold text-white">
                   {moderatorResult.username}
                 </p>
-                <p className="truncate text-[15px] text-white/40">{moderatorResult.email}</p>
+                <p className="truncate text-[15px] text-white/60">{moderatorResult.email}</p>
               </div>
               {moderatorResult.email === OWNER_EMAIL ? (
-                <span className="font-mono text-[13px] tracking-wider text-white/30 uppercase">
+                <span className="font-mono text-[13px] tracking-wider text-white/55 uppercase">
                   Owner
                 </span>
               ) : (
@@ -790,7 +790,7 @@ export default function Moderator() {
           )}
 
           <div className="space-y-3 border-t border-white/8 pt-3.5">
-            <p className="text-[15px] text-white/45">
+            <p className="text-[15px] text-white/60">
               Pre-approve an address that has not signed up yet. It can then sign in and post like
               a Thapar account — and if you also check "make moderator", it becomes one the moment
               it first signs in.
@@ -846,7 +846,7 @@ export default function Moderator() {
                       onClick={() => void revokeEmailAction(entry.email)}
                       disabled={busy}
                       aria-label={`Revoke pre-approval for ${entry.email}`}
-                      className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                      className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
                     >
                       <Trash2 size={12} aria-hidden="true" />
                     </button>
@@ -868,7 +868,7 @@ export default function Moderator() {
             className={`flex-1 rounded-xl px-4 py-2.5 font-mono text-[14px] tracking-wider uppercase transition duration-150 active:scale-[0.98] ${
               tab === value
                 ? 'bg-white/15 font-extrabold text-white'
-                : 'font-bold text-white/40 hover:bg-white/[0.07] hover:text-white/85'
+                : 'font-bold text-white/60 hover:bg-white/[0.07] hover:text-white/85'
             }`}
           >
             {value === 'pending' ? `Pending (${pending.data?.length ?? 0})` : 'Live listings'}
@@ -896,7 +896,7 @@ export default function Moderator() {
             <LoadingLine label="Loading the queue…" inset={false} />
           )}
           {pending.data?.length === 0 && (
-            <p className="liquid-glass-panel rounded-3xl px-6 py-12 text-center text-[16px] text-white/45">
+            <p className="liquid-glass-panel rounded-3xl px-6 py-12 text-center text-[16px] text-white/60">
               Nothing waiting. New submissions land here.
             </p>
           )}
@@ -928,7 +928,7 @@ export default function Moderator() {
               </Button>
               <Link
                 to={`/venture/${venture.id}`}
-                className="ml-auto font-mono text-[13px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="ml-auto font-mono text-[13px] tracking-wider text-white/60 uppercase transition hover:text-white"
               >
                 Preview
               </Link>
@@ -992,7 +992,7 @@ export default function Moderator() {
               </Button>
               <Link
                 to={`/venture/${venture.id}`}
-                className="ml-auto font-mono text-[13px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="ml-auto font-mono text-[13px] tracking-wider text-white/60 uppercase transition hover:text-white"
               >
                 View
               </Link>

@@ -96,7 +96,7 @@ function errorMessage(cause: unknown): string {
 function InboxAdvice() {
   return (
     <div className="mt-5 w-full max-w-sm rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-left">
-      <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+      <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
         Check spam
       </p>
       <p className="mt-2 text-[15.5px] leading-relaxed text-white/60">
@@ -107,7 +107,7 @@ function InboxAdvice() {
       <p className="mt-2 rounded-lg bg-black/25 px-3 py-2 font-mono text-[14px] break-all text-white/70">
         {SENDER_ADDRESS}
       </p>
-      <p className="mt-2 text-[15px] leading-relaxed text-white/40">
+      <p className="mt-2 text-[15px] leading-relaxed text-white/60">
         Marking it "not spam" means the next one arrives properly.
       </p>
     </div>
@@ -508,7 +508,7 @@ export default function SignIn() {
             <button
               type="button"
               onClick={() => navigate('/browse', { replace: true })}
-              className="w-full font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-white/70"
+              className="w-full font-mono text-[13px] font-bold tracking-wider text-white/60 uppercase transition hover:text-white/70"
             >
               Skip for now
             </button>
@@ -558,7 +558,7 @@ export default function SignIn() {
               around. A button says what it does; the reason it exists goes
               above it. */}
           <div className="border-t border-white/8 pt-4 text-center">
-            <p className="text-[14.5px] leading-relaxed text-white/45">
+            <p className="text-[14.5px] leading-relaxed text-white/60">
               No password yet, or forgotten it?
             </p>
             <Button variant="secondary" className="mt-2.5" loading={busy} onClick={() => void emailLink()}>
@@ -574,7 +574,7 @@ export default function SignIn() {
               setPasswordValue('')
               setMode('form')
             }}
-            className="w-full font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-white/70"
+            className="w-full font-mono text-[13px] font-bold tracking-wider text-white/60 uppercase transition hover:text-white/70"
           >
             Use a different address
           </button>
@@ -614,7 +614,7 @@ export default function SignIn() {
             {emailSignIn && (
               <div className="flex items-center gap-3">
                 <span className="h-px flex-1 bg-white/10" />
-                <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+                <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">
                   or
                 </span>
                 <span className="h-px flex-1 bg-white/10" />
@@ -660,7 +660,7 @@ export default function SignIn() {
           </div>
         )}
 
-        <p className="flex items-start gap-2 text-[15px] leading-relaxed text-white/40">
+        <p className="flex items-start gap-2 text-[15px] leading-relaxed text-white/60">
           <ShieldCheck size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-brand-400" />
           <span>
             {emailSignIn

@@ -62,7 +62,7 @@ function Section({ eyebrow, note, children }: { eyebrow: string; note: string; c
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           {eyebrow}
         </h2>
-        <p className="mt-1 text-[15px] text-white/40">{note}</p>
+        <p className="mt-1 text-[15px] text-white/60">{note}</p>
       </header>
       {children}
     </motion.section>
@@ -85,7 +85,7 @@ export default function DesignDemo() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="liquid-glass-highlight glass-shimmer rounded-[1.75rem] px-5 py-6 sm:px-7 sm:py-8"
       >
-        <p className="font-mono text-[12.5px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
+        <p className="font-mono text-[12.5px] font-extrabold tracking-[0.28em] text-white/60 uppercase">
           Design system · Step 0
         </p>
         {/* Deliberately not an h1 — TopBar owns the page heading now, and the
@@ -105,7 +105,7 @@ export default function DesignDemo() {
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="liquid-glass-panel rounded-3xl p-5">
-            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
               liquid-glass-panel
             </p>
             <p className="mt-2 text-[16px] text-white/70">
@@ -114,7 +114,7 @@ export default function DesignDemo() {
             </p>
           </div>
           <div className="liquid-glass-highlight rounded-3xl p-5">
-            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
               liquid-glass-highlight
             </p>
             <p className="mt-2 text-[16px] text-white/70">
@@ -208,14 +208,14 @@ export default function DesignDemo() {
               className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
             />
             <div className="px-2 pt-3.5 pb-1.5">
-              <span className="font-mono text-[12.5px] tracking-[0.22em] text-white/30 uppercase">
+              <span className="font-mono text-[12.5px] tracking-[0.22em] text-white/55 uppercase">
                 Food &amp; Snacks
               </span>
               <h3 className="mt-1.5 text-[19px] font-extrabold text-white">Hostel Bakes</h3>
               <p className="mt-1 text-[16px] text-white/55">
                 Fresh brownies and cakes, baked in H-block. Order by 6pm for same-day.
               </p>
-              <div className="mt-3 flex items-center gap-1.5 text-white/40">
+              <div className="mt-3 flex items-center gap-1.5 text-white/60">
                 <Clock size={11} aria-hidden="true" />
                 <span className="font-mono text-[13px] tracking-wider uppercase">
                   Open · 4pm – 11pm
@@ -231,14 +231,14 @@ export default function DesignDemo() {
               className="aspect-4/3 w-full rounded-2xl object-cover ring-1 ring-white/10 ring-inset"
             />
             <div className="px-2 pt-3.5 pb-1.5">
-              <span className="font-mono text-[12.5px] tracking-[0.22em] text-white/30 uppercase">
+              <span className="font-mono text-[12.5px] tracking-[0.22em] text-white/55 uppercase">
                 Food &amp; Snacks
               </span>
               <h3 className="mt-1.5 text-[19px] font-extrabold text-white">Midnight Batter</h3>
               <p className="mt-1 text-[16px] text-white/55">
                 Late-night cake slices and jar desserts. Delivers to all hostels.
               </p>
-              <div className="mt-3 flex items-center gap-1.5 text-white/40">
+              <div className="mt-3 flex items-center gap-1.5 text-white/60">
                 <Clock size={11} aria-hidden="true" />
                 <span className="font-mono text-[13px] tracking-wider uppercase">
                   Open · 9pm – 2am
@@ -325,16 +325,16 @@ export default function DesignDemo() {
               type="button"
               className="group flex w-full items-center gap-3.5 rounded-2xl px-3 py-3.5 text-left transition duration-150 hover:bg-white/[0.05] active:scale-[0.99]"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/45 transition-colors group-hover:text-brand-400">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/60 transition-colors group-hover:text-brand-400">
                 <Icon size={16} aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-mono text-[15px] font-extrabold tracking-wider text-white uppercase">
                   {title}
                 </span>
-                <span className="mt-0.5 block truncate text-[15px] text-white/45">{body}</span>
+                <span className="mt-0.5 block truncate text-[15px] text-white/60">{body}</span>
               </span>
-              <span className="shrink-0 font-mono text-[14px] font-bold text-white/30">
+              <span className="shrink-0 font-mono text-[14px] font-bold text-white/55">
                 {count}
               </span>
             </button>
@@ -377,7 +377,7 @@ export default function DesignDemo() {
         </div>
       </Section>
 
-      <p className="px-1 pt-2 text-center font-mono text-[12.5px] tracking-[0.22em] text-white/25 uppercase">
+      <p className="px-1 pt-2 text-center font-mono text-[12.5px] tracking-[0.22em] text-white/50 uppercase">
         Backdrop · Joshua Woroniecki / Unsplash
       </p>
     </div>

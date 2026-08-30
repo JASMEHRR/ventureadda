@@ -100,7 +100,7 @@ function SectionPicker({
 }) {
   return (
     <div>
-      <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+      <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
         Section
       </span>
 
@@ -204,12 +204,12 @@ function SectionsEditor({
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Menu sections
         </h2>
-        <span className="font-mono text-[13px] text-white/30">
+        <span className="font-mono text-[13px] text-white/55">
           {sections.length} {sections.length === 1 ? 'section' : 'sections'}
         </span>
       </div>
 
-      <p className="text-[15.5px] leading-relaxed text-white/45">
+      <p className="text-[15.5px] leading-relaxed text-white/60">
         The headings your menu is grouped under, like Snacks or Drinks. Rename one here and every
         item under it follows. Optional — a menu with no sections is one plain list.
       </p>
@@ -252,7 +252,7 @@ function SectionsEditor({
                     <span className="min-w-0 flex-1 truncate text-[16px] font-bold text-white/85">
                       {section}
                     </span>
-                    <span className="font-mono text-[13px] text-white/30">
+                    <span className="font-mono text-[13px] text-white/55">
                       {used} {used === 1 ? 'item' : 'items'}
                     </span>
                     <button
@@ -262,7 +262,7 @@ function SectionsEditor({
                         setRename(section)
                       }}
                       aria-label={`Rename the ${section} section`}
-                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:text-white active:scale-[0.94]"
+                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition duration-150 hover:text-white active:scale-[0.94]"
                     >
                       <Pencil size={13} aria-hidden="true" />
                     </button>
@@ -278,7 +278,7 @@ function SectionsEditor({
                           : `Remove this section. Its ${used} ${used === 1 ? 'item stays' : 'items stay'} on the menu, ungrouped.`
                       }
                       aria-label={`Remove the ${section} section`}
-                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
                     >
                       <Trash2 size={13} aria-hidden="true" />
                     </button>
@@ -371,7 +371,7 @@ function SlotsEditor({
                 type="button"
                 onClick={() => onChange(slots.filter((other) => other !== slot))}
                 aria-label={`Remove the ${slot} window`}
-                className="rounded-full p-1 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.9]"
+                className="rounded-full p-1 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.9]"
               >
                 <X size={11} aria-hidden="true" />
               </button>
@@ -494,7 +494,7 @@ function ManagersEditor({
                 type="button"
                 onClick={() => onChange(managers.filter((other) => other !== email))}
                 aria-label={`Remove ${email}`}
-                className="rounded-full p-1 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.9]"
+                className="rounded-full p-1 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.9]"
               >
                 <X size={11} aria-hidden="true" />
               </button>
@@ -808,7 +808,7 @@ export default function VentureForm({
           <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Menu layout
           </h2>
-          <p className="text-[15.5px] leading-relaxed text-white/45">
+          <p className="text-[15.5px] leading-relaxed text-white/60">
             Where your menu starts for everyone who opens it. Buyers can resize it on their own
             device if they prefer, so this is your default rather than a lock.
           </p>
@@ -827,7 +827,7 @@ export default function VentureForm({
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
             <div className="min-w-0">
               <p className="text-[15.5px] font-bold text-white">Use company logos</p>
-              <p className="text-[15px] leading-relaxed text-white/45">
+              <p className="text-[15px] leading-relaxed text-white/60">
                 For items with no photo, show the logo of the brand in the item's name — for a
                 shop selling apps, subscriptions or other brands. Leave this off if you sell your
                 own things.
@@ -867,7 +867,7 @@ export default function VentureForm({
             <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
               Menu
             </h2>
-            <span className="font-mono text-[13px] text-white/30">
+            <span className="font-mono text-[13px] text-white/55">
               {items.length} {items.length === 1 ? 'item' : 'items'}
             </span>
           </div>
@@ -875,7 +875,7 @@ export default function VentureForm({
           {items.map((item, index) => (
             <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/30 uppercase">
+                <span className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">
                   Item {index + 1}
                 </span>
                 <div className="flex items-center gap-2">
@@ -889,7 +889,7 @@ export default function VentureForm({
                       type="button"
                       onClick={() => setItems((prev) => prev.filter((row) => row.key !== item.key))}
                       aria-label={`Remove item ${index + 1}`}
-                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/45 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                      className="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
                     >
                       <Trash2 size={13} aria-hidden="true" />
                     </button>
@@ -982,21 +982,21 @@ export default function VentureForm({
               every extra line of it is a line of the form you cannot see. */}
           <dl className="hidden gap-1 lg:grid">
             <div className="flex items-baseline justify-between gap-2">
-              <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/30 uppercase">
+              <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/55 uppercase">
                 Items
               </dt>
               <dd className="font-mono text-[15px] font-bold text-white/70">{items.length}</dd>
             </div>
             {soldOutCount > 0 && (
               <div className="flex items-baseline justify-between gap-2">
-                <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/30 uppercase">
+                <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/55 uppercase">
                   Sold out
                 </dt>
                 <dd className="font-mono text-[15px] font-bold text-red-400">{soldOutCount}</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between gap-2">
-              <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/30 uppercase">
+              <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/55 uppercase">
                 Windows
               </dt>
               <dd className="font-mono text-[15px] font-bold text-white/70">

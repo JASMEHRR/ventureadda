@@ -60,7 +60,7 @@ export default function ListRow({
       ) : Icon ? (
         <span
           aria-hidden="true"
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/45"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/60"
         >
           <Icon size={18} />
         </span>
@@ -69,7 +69,7 @@ export default function ListRow({
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[17px] font-bold text-white">{title}</span>
         {description && (
-          <span className="mt-0.5 block truncate text-[15px] text-white/45">{description}</span>
+          <span className="mt-0.5 block truncate text-[15px] text-white/60">{description}</span>
         )}
       </span>
 
@@ -81,7 +81,7 @@ export default function ListRow({
         <ActionIcon
           size={18}
           aria-hidden="true"
-          className="shrink-0 text-white/30 transition-colors group-hover:text-white"
+          className="shrink-0 text-white/55 transition-colors group-hover:text-white"
         />
       )}
 

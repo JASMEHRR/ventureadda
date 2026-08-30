@@ -110,7 +110,7 @@ function SidebarLink({
               size={16}
               aria-hidden="true"
               className={`transition-colors ${
-                isActive ? 'text-brand-400' : 'text-white/40 group-hover:text-white/85'
+                isActive ? 'text-brand-400' : 'text-white/60 group-hover:text-white/85'
               }`}
             />
             {/* Collapsed, the rail has no room for the count, so it becomes a
@@ -128,7 +128,7 @@ function SidebarLink({
                 className={`min-w-0 flex-1 truncate font-mono text-[14px] tracking-wider uppercase transition-colors ${
                   isActive
                     ? 'font-extrabold text-white'
-                    : 'font-bold text-white/40 group-hover:text-white/85'
+                    : 'font-bold text-white/60 group-hover:text-white/85'
                 }`}
               >
                 {item.label}
@@ -241,7 +241,7 @@ export default function Sidebar({
           </Link>
         ) : (
           <div className="min-w-0">
-            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.28em] text-white/40 uppercase">
+            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.28em] text-white/60 uppercase">
               Thapar
             </p>
             <Link to="/browse" className="mt-1 block">
@@ -256,7 +256,7 @@ export default function Sidebar({
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-expanded={!collapsed}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/45 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
         >
           {collapsed ? (
             <PanelLeftOpen size={15} aria-hidden="true" />
@@ -307,7 +307,7 @@ export default function Sidebar({
       </Link>
 
       {expanded && (
-        <p className="mt-6 px-4 pb-1 font-mono text-[12.5px] tracking-[0.18em] text-white/20 uppercase">
+        <p className="mt-6 px-4 pb-1 font-mono text-[12.5px] tracking-[0.18em] text-white/50 uppercase">
           No payments on site
         </p>
       )}

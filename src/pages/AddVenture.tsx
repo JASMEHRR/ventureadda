@@ -39,7 +39,7 @@ function OnBehalfOf({
       <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
         Whose venture is this
       </h2>
-      <p className="text-[15px] leading-relaxed text-white/45">
+      <p className="text-[15px] leading-relaxed text-white/60">
         Leave this empty and it is yours. Put somebody else&rsquo;s address in and the listing is
         filed under them — no account needed on their side yet. When they sign in with Google on
         that address one day, it is already waiting for them, with this venture on it.

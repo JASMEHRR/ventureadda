@@ -138,6 +138,8 @@ export default function Walkthrough() {
   const [step, setStep] = useState(0)
   const [box, setBox] = useState<Box | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+  /** The offer strip, so a tap on it is not a tap dismissing it. */
+  const askRef = useRef<HTMLDivElement>(null)
   /** Measured, not guessed — see the placement note below. */
   const [cardSize, setCardSize] = useState({ width: 340, height: 170 })
 
@@ -155,6 +157,50 @@ export default function Walkthrough() {
     const timer = window.setTimeout(() => setMode('asking'), 1200)
     return () => window.clearTimeout(timer)
   }, [])
+
+  /**
+   * THE OFFER GETS OUT OF THE WAY once the visitor starts using the site.
+   *
+   * It used to sit there until answered, which meant it followed them from
+   * page to page with a card over the bottom of each one — it covered the
+   * opening hours on a venture card, the description on a shop page, and the
+   * whole empty state in chat. Somebody scrolling or tapping has answered the
+   * question by doing rather than by pressing No thanks.
+   *
+   * Dismissed for this session only, deliberately: it is not written to
+   * storage, so a visitor who scrolled past it on their first look is offered
+   * the tour again another day. A real "no" still writes the flag.
+   *
+   * The scroll threshold keeps a stray touch or a bounce from counting.
+   */
+  useEffect(() => {
+    if (mode !== 'asking') return
+    const startedAt = window.scrollY
+
+    const onScroll = () => {
+      if (Math.abs(window.scrollY - startedAt) > 80) setMode(null)
+    }
+
+    /**
+     * A tap anywhere except on the offer itself.
+     *
+     * The exception is not a detail: pointerdown fires before click, so
+     * dismissing on every pointerdown unmounted the strip under the finger
+     * and the click on "Show me" landed on nothing. The tour could not be
+     * started at all.
+     */
+    const onPointerDown = (event: PointerEvent) => {
+      if (askRef.current?.contains(event.target as Node | null)) return
+      setMode(null)
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('pointerdown', onPointerDown, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('pointerdown', onPointerDown)
+    }
+  }, [mode])
 
   const remember = () => {
     try {
@@ -251,26 +297,36 @@ export default function Walkthrough() {
 
   if (mode === 'asking') {
     return (
-      <div className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-lg md:bottom-6">
-        <div className="liquid-glass-highlight flex flex-wrap items-center gap-3 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-          <Compass size={20} aria-hidden="true" className="shrink-0 text-brand-400" />
-          <p className="min-w-40 flex-1 text-[15px] leading-relaxed text-white/75">
-            First time here? Let me walk you round — it takes about a minute.
-          </p>
-          <div className="flex shrink-0 gap-2">
-            <Button
-              variant="primary"
-              onClick={() => {
-                setStep(0)
-                setMode('touring')
-              }}
-            >
-              Show me
-            </Button>
-            <Button variant="ghost" onClick={finish}>
-              No thanks
-            </Button>
-          </div>
+      /* A strip, not a card. It sits above the phone bar and is one line tall,
+         so what it covers is a sliver of the page rather than a corner of it —
+         and it leaves on its own the moment anybody scrolls. */
+      <div ref={askRef} className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-md md:bottom-6">
+        <div className="liquid-glass-highlight flex items-center gap-2 rounded-2xl py-2 pr-2 pl-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <Compass size={16} aria-hidden="true" className="shrink-0 text-brand-400" />
+          {/* Four words, because at 375px the strip is a line: the sentence
+              this used to carry truncated to "First time he…", which costs the
+              space and says nothing. The "no" is an X rather than a word for
+              the same reason — declining is the one thing nobody needs a label
+              to understand. */}
+          <p className="min-w-0 flex-1 truncate text-[14.5px] text-white/75">First time here?</p>
+          <Button
+            variant="primary"
+            className="shrink-0 px-3.5 py-1.5 text-[13px]"
+            onClick={() => {
+              setStep(0)
+              setMode('touring')
+            }}
+          >
+            Show me
+          </Button>
+          <button
+            type="button"
+            onClick={finish}
+            aria-label="No thanks, do not offer the tour again"
+            className="shrink-0 rounded-lg p-2 text-white/55 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
         </div>
       </div>
     )
@@ -379,7 +435,7 @@ export default function Walkthrough() {
             type="button"
             onClick={finish}
             aria-label="End the walkthrough"
-            className="shrink-0 rounded-full p-2 text-white/40 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+            className="shrink-0 rounded-full p-2 text-white/60 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
           >
             <X size={15} aria-hidden="true" />
           </button>

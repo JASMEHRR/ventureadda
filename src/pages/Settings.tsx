@@ -44,7 +44,7 @@ function Slider({
       <div className="flex items-baseline justify-between gap-3">
         <label
           htmlFor={id}
-          className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+          className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase"
         >
           {label}
         </label>
@@ -63,7 +63,7 @@ function Slider({
         // the whole touch target, and this one already announces its value.
         className="mt-2 w-full accent-brand-400"
       />
-      <p className="mt-1 text-[15px] leading-relaxed text-white/40">{hint}</p>
+      <p className="mt-1 text-[15px] leading-relaxed text-white/60">{hint}</p>
     </div>
   )
 }

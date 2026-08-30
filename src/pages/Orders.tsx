@@ -86,7 +86,7 @@ function OrderCard({
               </span>
             )}
           </p>
-          <p className="font-mono text-[13px] tracking-wider text-white/35 uppercase">
+          <p className="font-mono text-[13px] tracking-wider text-white/55 uppercase">
             {when(order.createdAt)} · {order.ventureName}
           </p>
         </div>
@@ -102,7 +102,7 @@ function OrderCard({
           <li key={line.itemId + line.name} className="flex items-baseline gap-2 text-[16px]">
             <span className="font-mono font-bold text-brand-400">{line.quantity}×</span>
             <span className="min-w-0 flex-1 truncate text-white/80">{line.name}</span>
-            <span className="shrink-0 font-mono text-[15px] text-white/45">
+            <span className="shrink-0 font-mono text-[15px] text-white/60">
               ₹{line.price * line.quantity}
             </span>
           </li>
@@ -110,7 +110,7 @@ function OrderCard({
       </ul>
 
       <div className="flex items-center justify-between border-t border-white/8 pt-2.5">
-        <span className="font-mono text-[12.5px] font-bold tracking-[0.18em] text-white/35 uppercase">
+        <span className="font-mono text-[12.5px] font-bold tracking-[0.18em] text-white/55 uppercase">
           {PAYMENT_LABEL[order.payment]}
         </span>
         <span className="font-mono text-[17px] font-extrabold text-brand-400">₹{order.total}</span>
@@ -119,19 +119,19 @@ function OrderCard({
       <dl className="space-y-1.5 border-t border-white/8 pt-2.5 text-[15.5px]">
         <div className="flex items-start gap-2">
           <dt className="sr-only">Deliver to</dt>
-          <MapPin size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+          <MapPin size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
           <dd className="min-w-0 flex-1 text-white/70">{order.deliveryAddress}</dd>
         </div>
         {order.deliverySlot && (
           <div className="flex items-start gap-2">
             <dt className="sr-only">Time</dt>
-            <Clock size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+            <Clock size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
             <dd className="min-w-0 flex-1 text-white/70">{order.deliverySlot}</dd>
           </div>
         )}
         <div className="flex items-start gap-2">
           <dt className="sr-only">Phone</dt>
-          <Phone size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+          <Phone size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
           <dd className="min-w-0 flex-1">
             {/* A real tel: link. On the phone this seller is almost certainly
                 reading this on, that is the whole interaction. */}
@@ -172,7 +172,7 @@ function OrderCard({
           onClick={onDelete}
           disabled={busy}
           aria-label={`Delete the order from ${order.buyerName}`}
-          className="ml-auto rounded-full border border-white/10 bg-white/5 p-1.5 text-white/35 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94] disabled:opacity-40"
+          className="ml-auto rounded-full border border-white/10 bg-white/5 p-1.5 text-white/55 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94] disabled:opacity-40"
         >
           <Trash2 size={13} aria-hidden="true" />
         </button>
@@ -311,7 +311,7 @@ export default function Orders() {
 
       {open.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
             Open · {open.length}
           </h3>
           {open.map((order) => (
@@ -328,7 +328,7 @@ export default function Orders() {
 
       {done.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
             Completed · {done.length}
           </h3>
           {done.map((order) => (

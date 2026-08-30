@@ -3,6 +3,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { Check, ChevronDown } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 export type SelectOption<T extends string> = { value: T; label: string }
 
@@ -20,6 +21,17 @@ type SelectProps<T extends string> = {
   triggerClassName?: string
   /** Names this control for the walkthrough — see components/Walkthrough. */
   dataTour?: string
+  /**
+   * Stands in for the label below `sm`, where there is no room for words.
+   *
+   * The top bar's category control was 96px wide on a phone and rendered
+   * "ALL…" — a control labelled with punctuation. With an icon the trigger is
+   * a tap target rather than a truncated sentence, and the full names are all
+   * in the menu it opens anyway. The accessible name is unchanged either way.
+   */
+  icon?: LucideIcon
+  /** Puts a dot on that icon, for "this filter is doing something". */
+  iconActive?: boolean
 }
 
 /** Typeahead buffer lifetime, matching the usual native select behaviour. */
@@ -83,6 +95,8 @@ export default function Select<T extends string>({
   placeholder = 'Select…',
   className = '',
   dataTour,
+  icon: Icon,
+  iconActive = false,
   triggerClassName = 'liquid-glass-input flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-left text-[15.5px] font-bold transition duration-150 active:scale-[0.99]',
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false)
@@ -298,7 +312,7 @@ export default function Select<T extends string>({
         className={
           labelHidden
             ? 'sr-only'
-            : 'mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase'
+            : 'mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase'
         }
       >
         {label}
@@ -328,13 +342,27 @@ export default function Select<T extends string>({
         onKeyDown={handleKeyDown}
         className={triggerClassName}
       >
-        <span className={`truncate ${selectedLabel ? 'text-white' : 'text-white/30'}`}>
+        {Icon && (
+          <span aria-hidden="true" className="relative flex sm:hidden">
+            <Icon size={16} className={iconActive ? 'text-brand-300' : 'text-white/70'} />
+            {iconActive && (
+              <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-brand-400" />
+            )}
+          </span>
+        )}
+        <span
+          className={`truncate ${selectedLabel ? 'text-white' : 'text-white/55'} ${
+            Icon ? 'hidden sm:block' : ''
+          }`}
+        >
           {selectedLabel ?? placeholder}
         </span>
         <ChevronDown
           size={14}
           aria-hidden="true"
-          className={`shrink-0 text-white/40 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-white/60 transition-transform duration-200 ${
+            open ? 'rotate-180' : ''
+          } ${Icon ? 'hidden sm:block' : ''}`}
         />
       </button>
 

@@ -50,7 +50,16 @@ export const PRIMARY_NAV: NavItem[] = [
   // filter. Browse lists shops; this lists what they sell, which is what
   // somebody with nothing particular in mind is actually looking for.
   { to: '/products', label: 'Products', icon: LayoutGrid },
-  { to: '/chat', label: 'All Chat', icon: MessageSquare },
+  /**
+   * DESKTOP ONLY, for now, and that is a judgement about the room rather than
+   * about the feature. The phone bar holds four things; this was one of them,
+   * and it currently opens on "Nothing here yet". A tab that leads to an empty
+   * room reads as a dead product to a visitor who has never seen it full.
+   *
+   * It keeps its sidebar row and its place on the profile page, so nobody who
+   * wants it has lost it. Drop `desktopOnly` the day it has traffic.
+   */
+  { to: '/chat', label: 'All Chat', icon: MessageSquare, desktopOnly: true },
 ]
 
 /**

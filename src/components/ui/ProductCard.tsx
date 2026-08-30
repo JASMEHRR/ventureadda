@@ -80,7 +80,7 @@ export default function ProductCard({
           <span className="line-clamp-2 text-[17px] leading-snug font-bold text-white">
             {item.name}
           </span>
-          <span className="mt-0.5 block truncate font-mono text-[13px] tracking-wider text-white/35 uppercase">
+          <span className="mt-0.5 block truncate font-mono text-[13px] tracking-wider text-white/55 uppercase">
             {venture.name}
           </span>
           <span className="mt-1.5 flex items-baseline gap-2">

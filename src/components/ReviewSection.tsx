@@ -83,7 +83,7 @@ export default function ReviewSection({
             <span className="font-mono text-[15px] font-bold text-white">
               {summary.average.toFixed(1)}
             </span>
-            <span className="font-mono text-[13px] text-white/30">
+            <span className="font-mono text-[13px] text-white/55">
               {summary.count} {summary.count === 1 ? 'review' : 'reviews'}
             </span>
           </span>
@@ -93,7 +93,7 @@ export default function ReviewSection({
       {/* Owners cannot review their own venture — the rules refuse it, and
           saying so here is friendlier than a permission error. */}
       {isOwner && (
-        <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[16px] text-white/45">
+        <p className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[16px] text-white/60">
           This is your venture, so you cannot review it.
         </p>
       )}
@@ -116,7 +116,7 @@ export default function ReviewSection({
                 {mine && (
                   <span className="mt-1 flex items-center gap-2">
                     <StarDisplay value={mine.rating} size={12} />
-                    <span className="text-[15.5px] text-white/45">{mine.comment || 'No comment'}</span>
+                    <span className="text-[15.5px] text-white/60">{mine.comment || 'No comment'}</span>
                   </span>
                 )}
               </div>
@@ -127,7 +127,7 @@ export default function ReviewSection({
           ) : (
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+                <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
                   Your rating
                 </span>
                 <StarInput value={rating} onChange={setRating} />
@@ -176,7 +176,7 @@ export default function ReviewSection({
       )}
 
       {reviews.data && all.length === 0 && (
-        <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[16px] text-white/45">
+        <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[16px] text-white/60">
           No reviews yet.
         </p>
       )}
@@ -190,12 +190,12 @@ export default function ReviewSection({
                 <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                   <span className="text-[16px] font-bold text-white">{review.username}</span>
                   {!review.deleted && <StarDisplay value={review.rating} size={11} />}
-                  <time className="font-mono text-[13px] tracking-wider text-white/30">
+                  <time className="font-mono text-[13px] tracking-wider text-white/55">
                     {dateLabel(review.createdAt)}
                   </time>
                 </div>
                 {review.deleted ? (
-                  <p className="mt-1 text-[16px] text-white/25 italic">
+                  <p className="mt-1 text-[16px] text-white/50 italic">
                     Review removed by a moderator
                   </p>
                 ) : (
@@ -212,7 +212,7 @@ export default function ReviewSection({
                   type="button"
                   onClick={() => setConfirmDelete(review)}
                   aria-label={`Remove review from ${review.username}`}
-                  className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/30 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                  className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/55 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
                 >
                   <Trash2 size={13} aria-hidden="true" />
                 </button>

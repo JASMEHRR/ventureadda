@@ -53,7 +53,7 @@ export default function ChoiceGroup<T extends string>({
     <div>
       <span
         id={labelId}
-        className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+        className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase"
       >
         {label}
       </span>
@@ -90,7 +90,7 @@ export default function ChoiceGroup<T extends string>({
                   {choice.label}
                 </span>
                 {choice.detail && (
-                  <span className="mt-0.5 block text-[15px] leading-relaxed text-white/45">
+                  <span className="mt-0.5 block text-[15px] leading-relaxed text-white/60">
                     {choice.detail}
                   </span>
                 )}

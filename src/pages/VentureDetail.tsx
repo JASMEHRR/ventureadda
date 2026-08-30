@@ -88,7 +88,7 @@ function DensityPicker({
             className={`rounded-full p-2.5 transition duration-150 active:scale-[0.94] ${
               active
                 ? 'bg-brand-500/20 text-brand-300'
-                : 'text-white/40 hover:bg-white/8 hover:text-white'
+                : 'text-white/60 hover:bg-white/8 hover:text-white'
             }`}
           >
             <Icon size={14} aria-hidden="true" />
@@ -194,7 +194,7 @@ function ItemCard({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[16px] font-bold text-white">{item.name}</p>
           {item.description && (
-            <p className="truncate text-[14.5px] text-white/45">{item.description}</p>
+            <p className="truncate text-[14.5px] text-white/60">{item.description}</p>
           )}
           <p className="font-mono text-[14px] font-bold text-white/70">
             {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
@@ -204,7 +204,7 @@ function ItemCard({
         </div>
 
         {typeof item.price !== 'number' ? (
-          <span className="shrink-0 font-mono text-[13px] text-white/35">Message to ask</span>
+          <span className="shrink-0 font-mono text-[13px] text-white/55">Message to ask</span>
         ) : !sellable ? null : quantity === 0 ? (
           <button
             type="button"
@@ -285,17 +285,17 @@ function ItemCard({
              "Ask" rather than shown as ₹0, which would be a claim they never
              made — and the Add button goes with it, because a cart total with
              a guess in it is wrong for every line under it too. */
-          <p className="mt-auto font-mono text-[14px] font-bold tracking-wide text-white/45 uppercase">
+          <p className="mt-auto font-mono text-[14px] font-bold tracking-wide text-white/60 uppercase">
             Ask
           </p>
         )}
 
         {typeof item.price !== 'number' ? (
-          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center text-[13.5px] leading-snug text-white/45">
+          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center text-[13.5px] leading-snug text-white/60">
             Message the seller for a price
           </p>
         ) : !sellable ? (
-          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[13px] font-bold tracking-wide text-white/40 uppercase">
+          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[13px] font-bold tracking-wide text-white/60 uppercase">
             Unavailable
           </p>
         ) : quantity === 0 ? (
@@ -546,7 +546,7 @@ export default function VentureDetail() {
     <div className="space-y-4">
       <Link
         to="/browse"
-        className="inline-flex items-center gap-2 rounded-full px-1 py-1 font-mono text-[13px] font-bold tracking-[0.18em] text-white/40 uppercase transition-colors hover:text-white"
+        className="inline-flex items-center gap-2 rounded-full px-1 py-1 font-mono text-[13px] font-bold tracking-[0.18em] text-white/60 uppercase transition-colors hover:text-white"
       >
         <ArrowLeft size={13} aria-hidden="true" />
         All ventures
@@ -620,14 +620,14 @@ export default function VentureDetail() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="flex items-center gap-1.5 text-white/40">
+          <span className="flex items-center gap-1.5 text-white/60">
             <Clock size={12} aria-hidden="true" />
             <span className="font-mono text-[13px] tracking-wider uppercase">{v.hours}</span>
           </span>
         </div>
 
         <p className="mt-3 text-[16.5px] leading-relaxed text-white/70">{v.description}</p>
-        <p className="mt-3 font-mono text-[13px] tracking-[0.18em] text-white/30 uppercase">
+        <p className="mt-3 font-mono text-[13px] tracking-[0.18em] text-white/55 uppercase">
           Run by {v.ownerUsername}
         </p>
         </section>
@@ -639,7 +639,7 @@ export default function VentureDetail() {
             Menu
           </h2>
           <div className="flex min-w-0 items-center gap-3">
-            <span className="truncate font-mono text-[13px] font-bold text-white/30">
+            <span className="truncate font-mono text-[13px] font-bold text-white/55">
               {needle
                 ? `${matching.length} of ${menu.data?.length ?? 0} items`
                 : 'Add what you want, then open your cart'}
@@ -652,7 +652,7 @@ export default function VentureDetail() {
         </header>
 
         {menu.data?.length === 0 && (
-          <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[16px] text-white/45">
+          <p className="liquid-glass-panel rounded-2xl px-5 py-6 text-center text-[16px] text-white/60">
             Nothing on the menu yet.
           </p>
         )}
@@ -720,7 +720,7 @@ export default function VentureDetail() {
                       className={`shrink-0 text-brand-400 transition-transform duration-150 ${collapsed ? '-rotate-90' : ''}`}
                     />
                     <span className="text-[19px] font-extrabold text-white">{group.category}</span>
-                    <span className="font-mono text-[14px] font-bold text-white/35">
+                    <span className="font-mono text-[14px] font-bold text-white/55">
                       {group.items.length}
                     </span>
                   </button>

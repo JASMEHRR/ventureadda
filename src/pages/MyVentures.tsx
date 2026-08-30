@@ -148,7 +148,7 @@ export default function MyVentures() {
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[17px] font-bold text-white">{venture.name}</p>
-                <p className="truncate text-[15px] text-white/40">
+                <p className="truncate text-[15px] text-white/60">
                   {categoryName(venture.categoryId)}
                   {/* This list is no longer only your own listings: it is
                       everything you can edit, and a shop somebody added you to
@@ -176,13 +176,13 @@ export default function MyVentures() {
               </span>
               <Link
                 to={`/venture/${venture.id}`}
-                className="shrink-0 font-mono text-[13px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="shrink-0 font-mono text-[13px] tracking-wider text-white/60 uppercase transition hover:text-white"
               >
                 View
               </Link>
               <Link
                 to={`/venture/${venture.id}/edit`}
-                className="shrink-0 font-mono text-[13px] tracking-wider text-white/40 uppercase transition hover:text-white"
+                className="shrink-0 font-mono text-[13px] tracking-wider text-white/60 uppercase transition hover:text-white"
               >
                 Edit
               </Link>
@@ -194,7 +194,7 @@ export default function MyVentures() {
                   type="button"
                   onClick={() => setConfirmDelete(venture)}
                   aria-label={`Delete ${venture.name}`}
-                  className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/40 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                  className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
                 >
                   <Trash2 size={13} aria-hidden="true" />
                 </button>

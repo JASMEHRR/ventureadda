@@ -167,7 +167,7 @@ export default function Browse() {
             <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
               Items matching &ldquo;{query.trim()}&rdquo;
             </h2>
-            <span className="font-mono text-[13px] font-bold text-white/30">
+            <span className="font-mono text-[13px] font-bold text-white/55">
               {productMatches.data!.length} {productMatches.data!.length === 1 ? 'item' : 'items'}
             </span>
           </header>
@@ -201,7 +201,7 @@ export default function Browse() {
             </h2>
 
             <div className="flex items-center gap-3">
-              <span className="font-mono text-[13px] font-bold text-white/30">
+              <span className="font-mono text-[13px] font-bold text-white/55">
                 {ordered.length} {ordered.length === 1 ? 'venture' : 'ventures'}
               </span>
               {/* Hidden until there is more than one card to order. A sort

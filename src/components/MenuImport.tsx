@@ -227,7 +227,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
           <p className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Add items faster
           </p>
-          <p className="mt-1 text-[15px] text-white/45">
+          <p className="mt-1 text-[15px] text-white/60">
             Photograph your menu, paste a list, or say the items out loud. You can always type
             them instead.
           </p>
@@ -282,7 +282,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
         <div className="mt-3.5">
           <label
             htmlFor="menu-paste"
-            className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+            className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase"
           >
             One item per line
           </label>
@@ -294,7 +294,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
             placeholder={'Chocolate Fudge Cake, 450, Dark chocolate, serves four\nWalnut Brownie Box, 280, Six pieces\nMasala Chai, 20'}
             className="liquid-glass-input w-full resize-y rounded-xl px-4 py-2.5 font-mono text-[15.5px] text-white placeholder-white/25"
           />
-          <p className="mt-1.5 text-[15px] text-white/35">
+          <p className="mt-1.5 text-[15px] text-white/55">
             Name, price, description. Pasting straight from a spreadsheet works — the header row
             is ignored. Sections work too: put a heading on its own line ending with a colon.
           </p>
@@ -353,7 +353,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
 
       {mode === 'voice' && (
         <div className="mt-3.5">
-          <p className="text-[15px] leading-relaxed text-white/45">
+          <p className="text-[15px] leading-relaxed text-white/60">
             Say the item then its price — “chocolate cake two hundred rupees, brownie eighty”.
             Pause between items or say “next”.
           </p>
@@ -363,7 +363,7 @@ export default function MenuImport({ onAdd }: { onAdd: (rows: ParsedRow[]) => vo
             className="liquid-glass-input mt-2.5 min-h-[4.5rem] rounded-xl px-4 py-2.5 text-[16px] text-white/80"
           >
             {heard || (
-              <span className="text-white/30">
+              <span className="text-white/55">
                 {listening ? 'Listening…' : 'Nothing heard yet.'}
               </span>
             )}

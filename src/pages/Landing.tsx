@@ -318,7 +318,7 @@ export default function Landing() {
         <div className="mx-auto max-w-3xl">
           <div className="mb-4 text-center">
             <Eyebrow>Exclusive</Eyebrow>
-            <p className="mt-2 text-[16px] text-white/45">
+            <p className="mt-2 text-[16px] text-white/60">
               Live on VentureAdda right now. Tap one to see the whole menu.
             </p>
           </div>
@@ -364,7 +364,7 @@ export default function Landing() {
         <Section width="max-w-6xl" className="py-10 sm:py-14">
           <div className="mb-6 text-center">
             <Eyebrow>On sale now</Eyebrow>
-            <p className="mt-2 text-[16px] text-white/45">
+            <p className="mt-2 text-[16px] text-white/60">
               Everything students are selling on campus, in one place. Tap to add, or open the
               shop.
             </p>
@@ -432,7 +432,7 @@ export default function Landing() {
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/15 text-brand-300">
                     <step.icon size={17} aria-hidden="true" />
                   </span>
-                  <span className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-white/30 uppercase">
+                  <span className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-white/55 uppercase">
                     Step {index + 1}
                   </span>
                 </div>
@@ -469,7 +469,7 @@ export default function Landing() {
             {OWNER_POINTS.map((point, index) => (
               <Reveal as="li" key={point.title} delay={index * 0.08}>
                 <div className="liquid-glass-panel flex gap-4 rounded-2xl p-5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/45">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/60">
                     <point.icon size={16} aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
@@ -492,7 +492,7 @@ export default function Landing() {
         <Reveal>
           <div className="liquid-glass-highlight rounded-[2rem] p-7 sm:p-10">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/45">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/60">
                 <Wallet size={17} aria-hidden="true" />
               </span>
               <Eyebrow>Payment</Eyebrow>
@@ -541,7 +541,7 @@ export default function Landing() {
       </Section>
 
       <footer className="px-6 pb-10">
-        <p className="text-center font-mono text-[12.5px] tracking-[0.22em] text-white/25 uppercase">
+        <p className="text-center font-mono text-[12.5px] tracking-[0.22em] text-white/50 uppercase">
           VentureAdda · Thapar Institute · No payments on site
         </p>
       </footer>

@@ -143,7 +143,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
           </p>
         )}
 
-        <p className="mt-5 text-[14px] text-white/35">
+        <p className="mt-5 text-[14px] text-white/55">
           This page comes back on its own — no need to keep reloading.
         </p>
       </div>

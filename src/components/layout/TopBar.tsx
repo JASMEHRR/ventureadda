@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { Moon, Plus, Search, ShoppingCart, Sun, UserRound, X } from 'lucide-react'
+import { Moon, Plus, Search, ShoppingCart, SlidersHorizontal, Sun, UserRound, X } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
@@ -178,13 +178,17 @@ export default function TopBar() {
         value={category}
         options={CATEGORY_OPTIONS}
         onChange={setCategory}
+        // On a phone this is the icon and a dot; from `sm` it is the words.
+        // See the note on Select's `icon`.
+        icon={SlidersHorizontal}
+        iconActive={category !== 'all'}
         // w-24 below `sm` is not a round number picked for looks: with the
         // wordmark, the search opener, the theme toggle, the cart and the
         // account tile beside it, anything wider is the 4px that pushes the
         // account group onto a second line of a 375px header. The trigger
         // truncates, and the full name of every category is in the menu.
-        className="w-24 shrink-0 sm:w-48"
-        triggerClassName="liquid-glass-input flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-left font-mono text-[14px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99]"
+        className="shrink-0 sm:w-48"
+        triggerClassName="liquid-glass-input flex w-full items-center justify-center gap-2 rounded-full px-3.5 py-2.5 text-left font-mono text-[14px] font-bold tracking-wider uppercase transition duration-150 active:scale-[0.99] sm:justify-between sm:px-4 sm:py-2"
       />
 
       {/* The opener, below `sm` only. Above that the field itself is on the
@@ -219,7 +223,7 @@ export default function TopBar() {
         <Search
           size={14}
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-white/30"
+          className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-white/55"
         />
         <input
           ref={searchRef}

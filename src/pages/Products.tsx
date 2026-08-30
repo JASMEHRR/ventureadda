@@ -83,7 +83,7 @@ function AskRow({ match: { item, venture } }: { match: ItemMatch }) {
       className="flex items-baseline justify-between gap-4 rounded-xl px-3 py-2.5 transition duration-150 hover:bg-white/[0.05]"
     >
       <span className="min-w-0 flex-1 truncate text-[16px] text-white/85">{item.name}</span>
-      <span className="shrink-0 font-mono text-[12.5px] tracking-wider text-white/30 uppercase">
+      <span className="shrink-0 font-mono text-[12.5px] tracking-wider text-white/55 uppercase">
         {venture.name}
       </span>
     </Link>
@@ -274,7 +274,7 @@ export default function Products() {
                     className={rowClass(!kind && !section)}
                   >
                     <span className="truncate text-[15.5px] font-bold md:flex-1">Everything</span>
-                    <span className="font-mono text-[12.5px] text-white/30">{all.length}</span>
+                    <span className="font-mono text-[12.5px] text-white/55">{all.length}</span>
                   </button>
 
                   {tree.map((group) => {
@@ -303,7 +303,7 @@ export default function Products() {
                             <ChevronRight
                               size={13}
                               aria-hidden="true"
-                              className={`shrink-0 text-white/30 transition-transform duration-150 ${
+                              className={`shrink-0 text-white/55 transition-transform duration-150 ${
                                 open ? 'rotate-90' : ''
                               }`}
                             />
@@ -311,7 +311,7 @@ export default function Products() {
                           <span className="truncate text-[15.5px] font-bold md:flex-1">
                             {group.name}
                           </span>
-                          <span className="font-mono text-[12.5px] text-white/30">
+                          <span className="font-mono text-[12.5px] text-white/55">
                             {group.count}
                           </span>
                         </button>
@@ -329,7 +329,7 @@ export default function Products() {
                               className={`${rowClass(section === entry.name)} hidden md:flex md:pl-8`}
                             >
                               <span className="flex-1 truncate text-[15px]">{entry.name}</span>
-                              <span className="font-mono text-[12.5px] text-white/25">
+                              <span className="font-mono text-[12.5px] text-white/50">
                                 {entry.count}
                               </span>
                             </button>
@@ -354,7 +354,7 @@ export default function Products() {
                   <h2 className="truncate text-[20px] font-extrabold tracking-tight text-white">
                     {heading}
                   </h2>
-                  <p className="mt-0.5 font-mono text-[13px] font-bold text-white/30">
+                  <p className="mt-0.5 font-mono text-[13px] font-bold text-white/55">
                     {buyable.length} to buy
                     {askOnly.length > 0 && ` · ${askOnly.length} on request`}
                   </p>
@@ -411,7 +411,7 @@ export default function Products() {
                     : 'No approved venture has listed an item yet. Once one does, it shows up here.'}
                 </EmptyState>
               ) : (
-                <p className="px-1 text-[16px] text-white/45">
+                <p className="px-1 text-[16px] text-white/60">
                   Nothing here has a fixed price. Everything in this section is quoted in the
                   conversation — the list below is all of it.
                 </p>
@@ -425,7 +425,7 @@ export default function Products() {
                   <h2 className="text-[20px] font-extrabold tracking-tight text-white">
                     Ask the seller
                   </h2>
-                  <p className="mt-0.5 text-[15.5px] text-white/40">
+                  <p className="mt-0.5 text-[15.5px] text-white/60">
                     {askOnly.length} {askOnly.length === 1 ? 'item is' : 'items are'} priced in the
                     conversation. Tap one to open the shop and message them.
                   </p>

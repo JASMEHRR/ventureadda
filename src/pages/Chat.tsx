@@ -115,11 +115,11 @@ export default function Chat() {
 
         {messages?.length === 0 && (
           <div className="flex flex-col items-center py-12 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/35">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/55">
               <MessagesSquare size={22} aria-hidden="true" />
             </span>
             <p className="mt-5 text-[19px] font-extrabold text-white">Nothing here yet</p>
-            <p className="mt-2 max-w-sm text-[16px] text-white/45">
+            <p className="mt-2 max-w-sm text-[16px] text-white/60">
               Be the first. Found a bug, or something that annoyed you? Say so.
             </p>
           </div>
@@ -133,12 +133,12 @@ export default function Chat() {
                 <span className="truncate text-[16px] font-bold text-white">
                   {message.username}
                 </span>
-                <time className="shrink-0 font-mono text-[13px] tracking-wider text-white/30">
+                <time className="shrink-0 font-mono text-[13px] tracking-wider text-white/55">
                   {timeLabel(message.createdAt)}
                 </time>
               </div>
               {message.deleted ? (
-                <p className="mt-0.5 text-[16px] text-white/25 italic">
+                <p className="mt-0.5 text-[16px] text-white/50 italic">
                   Message removed by a moderator
                 </p>
               ) : (
@@ -153,7 +153,7 @@ export default function Chat() {
                 type="button"
                 onClick={() => setConfirmDelete(message)}
                 aria-label={`Remove message from ${message.username}`}
-                className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/30 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
+                className="shrink-0 rounded-full border border-white/10 bg-white/5 p-1.5 text-white/55 transition duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-[0.94]"
               >
                 <Trash2 size={13} aria-hidden="true" />
               </button>
@@ -204,7 +204,7 @@ export default function Chat() {
           {(sendError || remaining < 100) && (
             <p
               role={sendError ? 'alert' : undefined}
-              className={`px-2 pt-1.5 text-[15px] ${sendError ? 'text-red-400' : 'text-white/35'}`}
+              className={`px-2 pt-1.5 text-[15px] ${sendError ? 'text-red-400' : 'text-white/55'}`}
             >
               {sendError ?? `${remaining} characters left`}
             </p>

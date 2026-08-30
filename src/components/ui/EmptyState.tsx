@@ -13,7 +13,7 @@ import type { LucideIcon } from 'lucide-react'
  */
 const glyphTones = {
   /** Nothing here, and that is not an achievement. */
-  neutral: 'border-white/10 bg-white/[0.06] text-white/35',
+  neutral: 'border-white/10 bg-white/[0.06] text-white/55',
   /** Something went right — a submission accepted, a form completed. */
   brand: 'border-brand-500/30 bg-brand-500/15 text-brand-300',
 }
@@ -60,7 +60,7 @@ export default function EmptyState({
         </p>
       )}
       <p className={`${eyebrow ? 'mt-2' : 'mt-5'} text-[21px] font-extrabold text-white`}>{title}</p>
-      <p className="mt-2 max-w-sm text-[16px] leading-relaxed text-white/45">{children}</p>
+      <p className="mt-2 max-w-sm text-[16px] leading-relaxed text-white/60">{children}</p>
       {extra && <div className="flex w-full justify-center">{extra}</div>}
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2.5">{action}</div>}
     </div>

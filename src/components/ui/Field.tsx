@@ -34,7 +34,7 @@ export default function Field({
     <div className={className}>
       <label
         htmlFor={id}
-        className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase"
+        className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase"
       >
         {label}
       </label>
@@ -46,7 +46,7 @@ export default function Field({
           {error}
         </p>
       ) : (
-        hint && <p className="mt-1.5 text-[15px] text-white/35">{hint}</p>
+        hint && <p className="mt-1.5 text-[15px] text-white/55">{hint}</p>
       )}
     </div>
   )

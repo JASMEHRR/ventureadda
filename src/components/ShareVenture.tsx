@@ -176,7 +176,7 @@ export default function ShareVenture({
       </span>
 
       {failed && (
-        <p className="mt-2 max-w-56 text-[13px] leading-relaxed break-all text-white/45">
+        <p className="mt-2 max-w-56 text-[13px] leading-relaxed break-all text-white/60">
           Copy it by hand: <span className="text-white/70">{url}</span>
         </p>
       )}

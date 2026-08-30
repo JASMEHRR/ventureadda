@@ -33,7 +33,7 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <div className="liquid-glass-panel rounded-2xl px-3.5 py-3 sm:px-4 sm:py-3.5">
-      <div className="flex items-center gap-1.5 text-white/40">
+      <div className="flex items-center gap-1.5 text-white/60">
         <Icon size={11} aria-hidden="true" className="shrink-0" />
         <span className="truncate font-mono text-[12.5px] font-extrabold tracking-[0.18em] uppercase">
           {label}
@@ -43,7 +43,7 @@ export default function StatCard({
         <span className={`font-mono text-2xl leading-none font-extrabold ${accents[accent]}`}>
           {value}
         </span>
-        {unit && <span className="text-[14px] text-white/40">{unit}</span>}
+        {unit && <span className="text-[14px] text-white/60">{unit}</span>}
       </div>
     </div>
   )

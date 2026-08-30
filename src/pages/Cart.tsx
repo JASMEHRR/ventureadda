@@ -70,7 +70,7 @@ function CartLine({ entry }: { entry: CartEntry }) {
 
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[16px] font-bold text-white">{entry.name}</span>
-        <span className="block font-mono text-[14.5px] text-white/40">
+        <span className="block font-mono text-[14.5px] text-white/60">
           ₹{entry.price} each
           {entry.stock !== undefined && entry.stock <= 5 ? ` · ${entry.stock} left` : ''}
         </span>
@@ -254,7 +254,7 @@ export default function Cart() {
             </ul>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
-              <span className="font-mono text-[15.5px] text-white/45">
+              <span className="font-mono text-[15.5px] text-white/60">
                 Subtotal{' '}
                 <span className="text-[17px] font-extrabold text-white/85">₹{subtotal}</span>
               </span>
@@ -262,7 +262,7 @@ export default function Cart() {
                 <button
                   type="button"
                   onClick={() => clearVentureCart(group.ventureId)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition duration-150 hover:bg-red-500/15 hover:text-red-300 active:scale-[0.96]"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[13px] font-bold tracking-wider text-white/60 uppercase transition duration-150 hover:bg-red-500/15 hover:text-red-300 active:scale-[0.96]"
                 >
                   Clear
                 </button>

@@ -127,7 +127,7 @@ export default function PhotoUploader({
 
   return (
     <div onPaste={handlePaste}>
-      <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+      <span className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
         {label}
       </span>
 
@@ -189,7 +189,7 @@ export default function PhotoUploader({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="liquid-glass-input flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl text-white/40 transition duration-150 hover:text-white/80 active:scale-[0.96] disabled:opacity-50"
+            className="liquid-glass-input flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl text-white/60 transition duration-150 hover:text-white/80 active:scale-[0.96] disabled:opacity-50"
           >
             {busy ? (
               <Loader2 size={18} aria-hidden="true" className="animate-spin" />
@@ -207,7 +207,7 @@ export default function PhotoUploader({
             type="button"
             onClick={() => void pasteFromClipboard()}
             disabled={busy}
-            className="liquid-glass-input flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl text-white/40 transition duration-150 hover:text-white/80 active:scale-[0.96] disabled:opacity-50"
+            className="liquid-glass-input flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl text-white/60 transition duration-150 hover:text-white/80 active:scale-[0.96] disabled:opacity-50"
           >
             <ClipboardPaste size={18} aria-hidden="true" />
             <span className="font-mono text-[12.5px] tracking-wider uppercase">Paste</span>
@@ -224,7 +224,7 @@ export default function PhotoUploader({
         onChange={(event) => void handleFiles(event.target.files)}
       />
 
-      {hint && !error && <p className="mt-1.5 text-[15px] text-white/35">{hint}</p>}
+      {hint && !error && <p className="mt-1.5 text-[15px] text-white/55">{hint}</p>}
       {error && (
         <p role="alert" className="mt-1.5 text-[15px] text-red-400">
           {error}

@@ -47,7 +47,7 @@ export default function MobileNav({
             end={item.to === '/'}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 transition duration-150 active:scale-[0.94] ${
-                isActive ? 'bg-white/15 text-white' : 'text-white/40'
+                isActive ? 'bg-white/15 text-white' : 'text-white/60'
               }`
             }
           >

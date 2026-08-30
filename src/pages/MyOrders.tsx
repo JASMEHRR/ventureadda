@@ -74,7 +74,7 @@ function OrderCard({ order }: { order: Order }) {
           >
             {order.ventureName}
           </Link>
-          <p className="font-mono text-[13px] tracking-wider text-white/35 uppercase">
+          <p className="font-mono text-[13px] tracking-wider text-white/55 uppercase">
             {when(order.createdAt)}
           </p>
         </div>
@@ -90,7 +90,7 @@ function OrderCard({ order }: { order: Order }) {
           <li key={line.itemId + line.name} className="flex items-baseline gap-2 text-[16px]">
             <span className="font-mono font-bold text-brand-400">{line.quantity}×</span>
             <span className="min-w-0 flex-1 truncate text-white/80">{line.name}</span>
-            <span className="shrink-0 font-mono text-[15px] text-white/45">
+            <span className="shrink-0 font-mono text-[15px] text-white/60">
               ₹{line.price * line.quantity}
             </span>
           </li>
@@ -98,7 +98,7 @@ function OrderCard({ order }: { order: Order }) {
       </ul>
 
       <div className="flex items-center justify-between border-t border-white/8 pt-2.5">
-        <span className="font-mono text-[12.5px] font-bold tracking-[0.18em] text-white/35 uppercase">
+        <span className="font-mono text-[12.5px] font-bold tracking-[0.18em] text-white/55 uppercase">
           {PAYMENT_LABEL[order.payment]}
         </span>
         <span className="font-mono text-[17px] font-extrabold text-brand-400">₹{order.total}</span>
@@ -107,24 +107,24 @@ function OrderCard({ order }: { order: Order }) {
       <dl className="space-y-1.5 border-t border-white/8 pt-2.5 text-[15.5px]">
         <div className="flex items-start gap-2">
           <dt className="sr-only">Going to</dt>
-          <MapPin size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+          <MapPin size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
           <dd className="min-w-0 flex-1 text-white/70">{order.deliveryAddress}</dd>
         </div>
         {order.deliverySlot && (
           <div className="flex items-start gap-2">
             <dt className="sr-only">Time</dt>
-            <Clock size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+            <Clock size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
             <dd className="min-w-0 flex-1 text-white/70">{order.deliverySlot}</dd>
           </div>
         )}
         <div className="flex items-start gap-2">
           <dt className="sr-only">They will reach you on</dt>
-          <Phone size={13} className="mt-0.5 shrink-0 text-white/30" aria-hidden="true" />
+          <Phone size={13} className="mt-0.5 shrink-0 text-white/55" aria-hidden="true" />
           <dd className="min-w-0 flex-1 font-mono text-white/70">+{order.buyerPhone}</dd>
         </div>
       </dl>
 
-      <p className="text-[15px] leading-relaxed text-white/45">{state.detail}</p>
+      <p className="text-[15px] leading-relaxed text-white/60">{state.detail}</p>
 
       {order.status !== 'completed' && (
         <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-3">
@@ -189,7 +189,7 @@ export default function MyOrders() {
 
       {open.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
             In progress · {open.length}
           </h3>
           {open.map((order) => (
@@ -200,7 +200,7 @@ export default function MyOrders() {
 
       {done.length > 0 && (
         <section className="space-y-3">
-          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/40 uppercase">
+          <h3 className="px-1 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/60 uppercase">
             Done · {done.length}
           </h3>
           {done.map((order) => (
