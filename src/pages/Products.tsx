@@ -204,9 +204,19 @@ export default function Products() {
     return tree.find((group) => group.sections.some((entry) => entry.name === section))?.name ?? null
   }, [kind, section, tree])
 
-  const [openKind, setOpenKind] = useState<string | null>(null)
+  /**
+   * THREE STATES, not two, and the third is the whole fix: `undefined` means
+   * nobody has touched the rail yet, so it follows whatever the URL selected;
+   * `null` means a person deliberately closed the group.
+   *
+   * With a plain `string | null` this could not close at all. Tapping an open
+   * heading set it to null, and null fell straight back to the selection —
+   * which the very same tap had just set to that heading. It reopened itself
+   * every time.
+   */
+  const [openKind, setOpenKind] = useState<string | null | undefined>(undefined)
   const [pointed, setPointed] = useState(false)
-  const shownOpen = openKind ?? activeKind
+  const shownOpen = openKind === undefined ? activeKind : openKind
 
   const select = (nextKind: string | null, nextSection: string | null) => {
     const params = new URLSearchParams(searchParams)
@@ -274,7 +284,16 @@ export default function Products() {
                         <button
                           type="button"
                           onClick={() => {
-                            setOpenKind(open ? null : group.name)
+                            // Tapping the heading you are already inside is
+                            // the way back out: it closes the group and drops
+                            // the filter, rather than leaving the page
+                            // narrowed to a heading whose list is now shut.
+                            if (open && kind === group.name && !section) {
+                              setOpenKind(null)
+                              select(null, null)
+                              return
+                            }
+                            setOpenKind(group.name)
                             select(group.name, null)
                           }}
                           aria-expanded={group.sections.length > 0 ? open : undefined}
