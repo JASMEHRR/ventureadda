@@ -37,7 +37,10 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
   // two-thirds of a 375px screen, so the row read as one enormous card rather
   // than as a row you can push. 176px shows two and a half.
   return (
-    <div className="liquid-glass-panel flex w-44 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-56">
+    <div
+      className="liquid-glass-panel deferred-surface flex w-44 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-56"
+      style={{ '--surface-height': '300px' } as React.CSSProperties}
+    >
       <Link to={venturePath(venture)} className="block">
         <span className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
           {item.photo ? (

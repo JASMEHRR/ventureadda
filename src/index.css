@@ -295,3 +295,33 @@
     transform: translate(50%, 50%) rotate(45deg);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Cards the browser is allowed to skip.
+
+   THE PRODUCTS PAGE HAD 181 ELEMENTS CARRYING backdrop-filter AT ONCE, one per
+   card, each a separate sampling and blurring pass over whatever sits behind
+   it. That is affordable while nothing moves. It is not affordable while
+   something does: opening the sidebar shifts the page, and a shift means all
+   181 re-sample and re-blur on every frame of the animation. The result was a
+   200ms transition delivered in about four frames — the "gimmicky" stutter,
+   which no amount of easing or duration was ever going to fix, because the
+   easing was not the problem.
+
+   `content-visibility: auto` lets the browser skip rendering — layout, paint,
+   and the blur with them — for anything outside the viewport. Roughly a dozen
+   cards are on screen at a time, so the per-frame cost drops by an order of
+   magnitude and the page looks identical.
+
+   `contain-intrinsic-size: auto <height>` is what keeps the scrollbar honest:
+   a skipped card still has to occupy its space or the page would collapse and
+   jump as you scroll. `auto` means the browser remembers each card's real
+   height once it has rendered it, so the number below only has to be close
+   enough for the first pass.
+   --------------------------------------------------------------------------- */
+@layer components {
+  .deferred-surface {
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--surface-height, 140px);
+  }
+}

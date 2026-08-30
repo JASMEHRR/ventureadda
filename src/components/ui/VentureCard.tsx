@@ -83,7 +83,8 @@ export default function VentureCard({
     return (
       <article
         data-tour={dataTour}
-        className="liquid-glass-panel rounded-2xl p-2.5 transition duration-150 active:scale-[0.99]"
+        className="liquid-glass-panel deferred-surface rounded-2xl p-2.5 transition duration-150 active:scale-[0.99]"
+        style={{ '--surface-height': '104px' } as React.CSSProperties}
       >
         <Link to={venturePath(venture)} className="flex items-center gap-3">
           {cover ? (
@@ -141,7 +142,8 @@ export default function VentureCard({
   return (
     <article
       data-tour={dataTour}
-      className="liquid-glass-panel group rounded-3xl p-3 transition duration-150 hover:bg-white/[0.06]"
+      className="liquid-glass-panel deferred-surface group rounded-3xl p-3 transition duration-150 hover:bg-white/[0.06]"
+      style={{ '--surface-height': '420px' } as React.CSSProperties}
     >
       <PhotoCarousel
         photos={venture.photos}

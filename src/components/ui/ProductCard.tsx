@@ -50,7 +50,10 @@ export default function ProductCard({
     : venturePath(venture)
 
   return (
-    <div className="liquid-glass-panel flex items-center gap-4 rounded-2xl p-4 transition duration-150 hover:bg-white/[0.06]">
+    <div
+      className="liquid-glass-panel deferred-surface flex items-center gap-4 rounded-2xl p-4 transition duration-150 hover:bg-white/[0.06]"
+      style={{ '--surface-height': '112px' } as React.CSSProperties}
+    >
       <Link to={to} className="flex min-w-0 flex-1 items-center gap-4">
         {item.photo ? (
           <img

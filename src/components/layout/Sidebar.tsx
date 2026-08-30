@@ -102,7 +102,7 @@ function SidebarLink({
       aria-label={badge > 0 ? name : undefined}
       title={collapsed ? name : undefined}
       className={({ isActive }) =>
-        `group flex items-center gap-3 rounded-2xl border px-3.5 py-2.5 transition duration-150 active:scale-[0.98] ${
+        `group flex items-center gap-2.5 rounded-2xl border px-2.5 py-2.5 transition duration-150 active:scale-[0.98] ${
           isActive
             ? 'border-white/20 bg-white/15 shadow-sm backdrop-blur-md'
             : 'border-transparent bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.07]'
@@ -111,7 +111,12 @@ function SidebarLink({
     >
       {({ isActive }) => (
         <>
-          <span className="relative shrink-0">
+          {/* A fixed 24px column, shared by every glyph in the panel — the
+              nav icons, the mark above them and the plus below. They are
+              different widths, so without one column they each centred on
+              their own box and the rail read as a wobbling line rather than a
+              column. See the header. */}
+          <span className="relative flex w-6 shrink-0 justify-center">
             <Icon
               size={16}
               aria-hidden="true"
@@ -216,6 +221,10 @@ export default function Sidebar({
     */
     <div
       className={`hidden shrink-0 self-start transition-[width] duration-200 ease-out md:sticky md:top-6 md:block ${
+        // 4.25rem is not a round number picked by eye: it is the panel's own
+        // padding twice (2 x 0.75rem), the row's twice (2 x 0.625rem) and the
+        // 1.5rem glyph column between them. Any other width puts every icon
+        // off the panel's centre line.
         expanded ? 'md:w-64' : 'md:w-[4.25rem]'
       }`}
     >
@@ -229,11 +238,11 @@ export default function Sidebar({
       {/* The mark holds the same spot at both widths and the wordmark grows
           out of it, rather than the header changing shape entirely — that
           swap was the largest single jump in the old panel. */}
-      <div className="mb-3 flex items-center gap-3 px-1.5 pt-1">
+      <div className="mb-3 flex items-center gap-2.5 px-2.5 pt-1">
         <Link
           to="/browse"
           aria-label="VentureAdda, browse ventures"
-          className="shrink-0"
+          className="flex w-6 shrink-0 justify-center"
           title={collapsed ? 'VentureAdda' : undefined}
         >
           <LogoMark size={22} className="text-brand-400" />
@@ -298,9 +307,11 @@ export default function Sidebar({
         data-tour="add-venture"
         aria-label={!expanded ? 'Add venture' : undefined}
         title={!expanded ? 'Add venture' : undefined}
-        className="mt-3 flex items-center gap-3 rounded-2xl border border-brand-500/30 bg-brand-500/15 px-3.5 py-2.5 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
+        className="mt-3 flex items-center gap-2.5 rounded-2xl border border-brand-500/30 bg-brand-500/15 px-2.5 py-2.5 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
       >
-        <Plus size={15} aria-hidden="true" className="shrink-0" />
+        <span className="flex w-6 shrink-0 justify-center">
+          <Plus size={15} aria-hidden="true" />
+        </span>
         <span
           className={`font-mono text-[14px] font-extrabold tracking-wider whitespace-nowrap uppercase transition-opacity duration-150 ${
             collapsed ? 'opacity-0' : 'opacity-100'
