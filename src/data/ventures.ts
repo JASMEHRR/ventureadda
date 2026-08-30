@@ -659,9 +659,24 @@ export async function updateVenture(
   for (const item of items) {
     const payload = menuItemPayload(ventureId, item)
     if (item.id) {
-      // null, not an omitted key: clearing a stock count has to actually clear
-      // it, and an update that leaves the field out keeps yesterday's number.
-      batch.update(doc(menuItemsRef, item.id), { ...payload, stock: item.stock ?? null })
+      /**
+       * null, not an omitted key, for every field a seller can clear.
+       *
+       * An update that leaves a field out keeps whatever was there before, so
+       * omission cannot express "remove this". Stock has been written this way
+       * from the start; photo, price and category were not, which meant taking
+       * a photograph off an item, clearing its price back to "ask", or moving
+       * it out of a section all looked like they worked in the form and
+       * changed nothing in the database. Found while removing photographs from
+       * a real listing and watching them come back.
+       */
+      batch.update(doc(menuItemsRef, item.id), {
+        ...payload,
+        stock: item.stock ?? null,
+        photo: item.photo ?? null,
+        price: typeof item.price === 'number' ? item.price : null,
+        category: item.category ?? null,
+      })
     } else {
       batch.set(doc(menuItemsRef), {
         ...payload,
