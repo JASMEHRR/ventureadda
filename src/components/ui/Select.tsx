@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useMotionAllowed } from '../../lib/appearance'
 import { Check, ChevronDown } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -102,7 +103,7 @@ export default function Select<T extends string>({
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [rect, setRect] = useState<TriggerRect | null>(null)
-  const reduce = useReducedMotion()
+  const reduce = !useMotionAllowed()
 
   const wrapperRef = useRef<HTMLDivElement>(null)
   const popupRef = useRef<HTMLUListElement>(null)

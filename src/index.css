@@ -105,15 +105,33 @@
     outline-offset: 2px;
   }
 
+  /* Reduced motion, in two halves — the OS asking, and the reader asking.
+
+     The `:not([data-motion='on'])` guard is the whole point. Windows turns
+     `prefers-reduced-motion` on as part of "Animation effects: off", which
+     people set for speed, and cutting every transition to nothing does not
+     produce a calmer interface: a sidebar that grew over 200ms now snaps to
+     full width and shoves the page in one frame. Someone who has explicitly
+     asked for motion in Settings gets it back. See lib/appearance.ts. */
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    :root:not([data-motion='on']) *,
+    :root:not([data-motion='on']) *::before,
+    :root:not([data-motion='on']) *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+
+  /* And off means off, whatever the device says. */
+  :root[data-motion='off'] *,
+  :root[data-motion='off'] *::before,
+  :root[data-motion='off'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

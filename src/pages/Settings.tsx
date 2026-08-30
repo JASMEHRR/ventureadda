@@ -149,6 +149,33 @@ export default function Settings() {
 
         <div className="border-t border-white/8 pt-4">
           <ChoiceGroup
+            label="Interface motion"
+            value={appearance.interfaceMotion}
+            onChange={(interfaceMotion) => update({ interfaceMotion })}
+            choices={[
+              {
+                value: 'on',
+                label: 'Move smoothly',
+                detail:
+                  'Menus and panels slide between their sizes instead of jumping. Nothing moves unless you make it.',
+              },
+              {
+                value: 'auto',
+                label: 'Follow my system',
+                detail:
+                  'Cut the movement if your device asks apps to reduce motion — which Windows also does when animation effects are off.',
+              },
+              {
+                value: 'off',
+                label: 'No movement',
+                detail: 'Everything changes instantly. Nothing slides, grows or fades.',
+              },
+            ]}
+          />
+        </div>
+
+        <div className="border-t border-white/8 pt-4">
+          <ChoiceGroup
             label="Photo slideshows"
             value={appearance.autoPlayPhotos}
             onChange={(autoPlayPhotos) => update({ autoPlayPhotos })}

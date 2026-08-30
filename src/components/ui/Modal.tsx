@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useMotionAllowed } from '../../lib/appearance'
 import { X } from 'lucide-react'
 
 const FOCUSABLE =
@@ -30,7 +31,7 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
   const panelRef = useRef<HTMLDivElement>(null)
   const restoreFocusTo = useRef<HTMLElement | null>(null)
   const titleId = useId()
-  const reduce = useReducedMotion()
+  const reduce = !useMotionAllowed()
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {

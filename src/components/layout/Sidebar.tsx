@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-react'
 import Logo, { LogoMark } from '../ui/Logo'
+import { useHoverIntent } from '../../hooks/useHoverIntent'
 import type { NavItem } from '../../navigation'
 import {
   BUYER_NAV,
@@ -59,9 +60,16 @@ function useCollapsed(): [boolean, (next: boolean) => void] {
 /**
  * Nav item states are Ascend's, verbatim from spec §5.
  *
- * Collapsed, the label leaves the page but never the accessible tree — it moves
- * into aria-label, and `title` supplies the hover tooltip. An icon rail whose
- * buttons announce as nothing is not a smaller sidebar, it is a broken one.
+ * ONE LAYOUT AT BOTH WIDTHS, which is what stopped the panel twitching. The
+ * row used to be centred with its own padding when collapsed and left-aligned
+ * with different padding when open, so every icon jumped sideways at the
+ * moment the panel changed size — eight small movements fighting the one big
+ * one. Now the padding never changes and the icon never moves: the label sits
+ * beside it always and is simply clipped by the panel's edge, so opening the
+ * sidebar reveals text rather than rearranging the furniture.
+ *
+ * The label stays in the accessible tree at both widths, which also retires
+ * the aria-label swap this used to need.
  *
  * DEPARTURE, deliberate: these items no longer carry a sentence of description.
  * That pairing is right for a dashboard one person opens daily and learns once;
@@ -91,12 +99,10 @@ function SidebarLink({
       // destination cannot be added without one.
       data-tour={item.to.replace(/^\//, '') || 'browse'}
       end={item.to === '/'}
-      aria-label={collapsed || badge > 0 ? name : undefined}
+      aria-label={badge > 0 ? name : undefined}
       title={collapsed ? name : undefined}
       className={({ isActive }) =>
-        `group flex items-center rounded-2xl border transition duration-150 active:scale-[0.98] ${
-          collapsed ? 'justify-center p-2.5' : 'gap-3 px-4 py-2.5'
-        } ${
+        `group flex items-center gap-3 rounded-2xl border px-3.5 py-2.5 transition duration-150 active:scale-[0.98] ${
           isActive
             ? 'border-white/20 bg-white/15 shadow-sm backdrop-blur-md'
             : 'border-transparent bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.07]'
@@ -113,8 +119,9 @@ function SidebarLink({
                 isActive ? 'text-brand-400' : 'text-white/60 group-hover:text-white/85'
               }`}
             />
-            {/* Collapsed, the rail has no room for the count, so it becomes a
-                dot on the icon. The number is still in the accessible name. */}
+            {/* Collapsed, the rail has no room for the pill, so the count
+                becomes a dot on the icon. The number is still in the
+                accessible name either way. */}
             {badge > 0 && collapsed && (
               <span
                 aria-hidden="true"
@@ -122,27 +129,32 @@ function SidebarLink({
               />
             )}
           </span>
-          {!collapsed && (
-            <>
+          {/* Always rendered, never remounted: the panel's own edge hides it.
+              Fading it as well as clipping it keeps the last letters from
+              looking chopped off mid-slide. */}
+          <span
+            className={`flex min-w-0 flex-1 items-center gap-2 transition-opacity duration-150 ${
+              collapsed ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
+            <span
+              className={`min-w-0 flex-1 truncate font-mono text-[14px] tracking-wider whitespace-nowrap uppercase transition-colors ${
+                isActive
+                  ? 'font-extrabold text-white'
+                  : 'font-bold text-white/60 group-hover:text-white/85'
+              }`}
+            >
+              {item.label}
+            </span>
+            {badge > 0 && (
               <span
-                className={`min-w-0 flex-1 truncate font-mono text-[14px] tracking-wider uppercase transition-colors ${
-                  isActive
-                    ? 'font-extrabold text-white'
-                    : 'font-bold text-white/60 group-hover:text-white/85'
-                }`}
+                aria-hidden="true"
+                className="shrink-0 rounded-full bg-brand-500/25 px-2 py-0.5 font-mono text-[12.5px] font-extrabold text-brand-300"
               >
-                {item.label}
+                {badge > 99 ? '99+' : badge}
               </span>
-              {badge > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 rounded-full bg-brand-500/25 px-2 py-0.5 font-mono text-[12.5px] font-extrabold text-brand-300"
-                >
-                  {badge > 99 ? '99+' : badge}
-                </span>
-              )}
-            </>
-          )}
+            )}
+          </span>
         </>
       )}
     </NavLink>
@@ -179,19 +191,8 @@ export default function Sidebar({
    * Focus counts as hover so the keyboard is not left with a rail it can tab
    * through but not read.
    */
-  const [pointed, setPointed] = useState(false)
+  const { active: pointed, handlers } = useHoverIntent()
   const expanded = !collapsed || pointed
-
-  /**
-   * Focus leaving the sidebar entirely, not merely moving between its rows.
-   *
-   * A blur fires on every arrow-key move down the list, and collapsing on each
-   * of those would close the sidebar under the reader's own cursor.
-   */
-  const asideRef = useRef<HTMLElement>(null)
-  const handleBlur = (event: React.FocusEvent) => {
-    if (!asideRef.current?.contains(event.relatedTarget as Node | null)) setPointed(false)
-  }
 
   const items = [
     ...PRIMARY_NAV,
@@ -214,41 +215,42 @@ export default function Sidebar({
       bar is the navigation and this renders nothing.
     */
     <div
-      className={`hidden shrink-0 self-start transition-[width] duration-200 md:sticky md:top-6 md:block ${
+      className={`hidden shrink-0 self-start transition-[width] duration-200 ease-out md:sticky md:top-6 md:block ${
         expanded ? 'md:w-64' : 'md:w-[4.25rem]'
       }`}
     >
+      {/* p-3 at both widths, and overflow-hidden so the panel edge is what
+          hides the labels. Padding that changed with the width moved every
+          icon by 8px on the way past. */}
       <aside
-        ref={asideRef}
-        onMouseEnter={() => setPointed(true)}
-        onMouseLeave={() => setPointed(false)}
-        onFocusCapture={() => setPointed(true)}
-        onBlurCapture={handleBlur}
-        className={`liquid-glass-panel flex w-full flex-col rounded-[2rem] transition-[padding] duration-200 ${
-          expanded ? 'p-4' : 'p-2'
-        }`}
+        {...handlers}
+        className="liquid-glass-panel flex w-full flex-col overflow-hidden rounded-[2rem] p-3"
       >
-      <div
-        className={`flex items-center ${!expanded ? 'flex-col gap-2' : 'justify-between gap-2 px-2 pt-1 pb-3'}`}
-      >
-        {!expanded ? (
-          // The mark alone, above the collapse control rather than beside it:
-          // at rail width there is only room for one thing per row. Into the
-          // directory, not out to the marketing page — the same destination
-          // the mobile top bar's mark has.
-          <Link to="/browse" aria-label="VentureAdda, browse ventures" className="pt-1">
-            <LogoMark size={22} className="text-brand-400" />
+      {/* The mark holds the same spot at both widths and the wordmark grows
+          out of it, rather than the header changing shape entirely — that
+          swap was the largest single jump in the old panel. */}
+      <div className="mb-3 flex items-center gap-3 px-1.5 pt-1">
+        <Link
+          to="/browse"
+          aria-label="VentureAdda, browse ventures"
+          className="shrink-0"
+          title={collapsed ? 'VentureAdda' : undefined}
+        >
+          <LogoMark size={22} className="text-brand-400" />
+        </Link>
+
+        <span
+          className={`min-w-0 flex-1 transition-opacity duration-150 ${
+            collapsed ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <span className="block font-mono text-[12px] font-extrabold tracking-[0.28em] whitespace-nowrap text-white/60 uppercase">
+            Thapar
+          </span>
+          <Link to="/browse" className="mt-0.5 block">
+            <Logo />
           </Link>
-        ) : (
-          <div className="min-w-0">
-            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.28em] text-white/60 uppercase">
-              Thapar
-            </p>
-            <Link to="/browse" className="mt-1 block">
-              <Logo />
-            </Link>
-          </div>
-        )}
+        </span>
 
         <button
           type="button"
@@ -256,7 +258,9 @@ export default function Sidebar({
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-expanded={!collapsed}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94] ${
+            collapsed ? 'opacity-0' : 'opacity-100'
+          }`}
         >
           {collapsed ? (
             <PanelLeftOpen size={15} aria-hidden="true" />
@@ -266,7 +270,7 @@ export default function Sidebar({
         </button>
       </div>
 
-      <nav aria-label="Primary" className={`space-y-1.5 ${!expanded ? 'mt-1' : ''}`}>
+      <nav aria-label="Primary" className="space-y-1.5">
         {items.map((item) => (
           <SidebarLink
             key={item.to}
@@ -294,23 +298,25 @@ export default function Sidebar({
         data-tour="add-venture"
         aria-label={!expanded ? 'Add venture' : undefined}
         title={!expanded ? 'Add venture' : undefined}
-        className={`mt-3 flex items-center justify-center gap-2 rounded-2xl border border-brand-500/30 bg-brand-500/15 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97] ${
-          collapsed ? 'p-2.5' : 'px-4 py-2.5'
-        }`}
+        className="mt-3 flex items-center gap-3 rounded-2xl border border-brand-500/30 bg-brand-500/15 px-3.5 py-2.5 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
       >
         <Plus size={15} aria-hidden="true" className="shrink-0" />
-        {expanded && (
-          <span className="font-mono text-[14px] font-extrabold tracking-wider uppercase">
-            Add venture
-          </span>
-        )}
+        <span
+          className={`font-mono text-[14px] font-extrabold tracking-wider whitespace-nowrap uppercase transition-opacity duration-150 ${
+            collapsed ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          Add venture
+        </span>
       </Link>
 
-      {expanded && (
-        <p className="mt-6 px-4 pb-1 font-mono text-[12.5px] tracking-[0.18em] text-white/50 uppercase">
-          No payments on site
-        </p>
-      )}
+      <p
+        className={`mt-6 px-2 pb-1 font-mono text-[12.5px] tracking-[0.18em] whitespace-nowrap text-white/50 uppercase transition-opacity duration-150 ${
+          collapsed ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        No payments on site
+      </p>
       </aside>
     </div>
   )

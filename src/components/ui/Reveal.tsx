@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useMotionAllowed } from '../../lib/appearance'
 import type { ReactNode } from 'react'
 
 /**
@@ -22,7 +23,7 @@ export default function Reveal({
   delay?: number
   as?: 'div' | 'section' | 'li'
 }) {
-  const reduce = useReducedMotion()
+  const reduce = !useMotionAllowed()
   const Component = motion[as]
 
   return (

@@ -41,6 +41,27 @@ const STORAGE_KEY = 'ventureadda:appearance'
 export type AutoPlay = 'auto' | 'on' | 'off'
 
 /**
+ * Whether the interface moves between its states.
+ *
+ * SAME ARGUMENT AS autoPlayPhotos ABOVE, and the same default, for the same
+ * reason: 'auto' alone was wrong in practice. Windows sets
+ * `prefers-reduced-motion` as part of "Animation effects: off", which people
+ * turn on for speed, and index.css honoured that by cutting every transition
+ * in the app to nothing. The result is not a calmer interface — it is a
+ * twitchy one. A sidebar that grows over 200ms reads as a drawer opening; the
+ * same sidebar with the transition removed snaps four inches wide and shoves
+ * the page sideways in a single frame, which is what "fidgety" means here.
+ *
+ * What makes 'on' defensible rather than careless is what it covers. These are
+ * small, local, self-initiated changes — a panel widening under the pointer, a
+ * fade — not parallax, not autoplaying video, not anything that moves while
+ * the reader is still. Nothing here scrolls the page on its own. 'auto' and
+ * 'off' are both one tap away in Settings, and 'off' is genuinely off: it
+ * kills the transitions rather than shortening them.
+ */
+export type InterfaceMotion = 'auto' | 'on' | 'off'
+
+/**
  * Night, day, or whatever the device is set to.
  *
  * 'auto' is the default because a phone that is already in light mode at noon
@@ -71,6 +92,7 @@ export type Appearance = {
   /** Dims the backdrop photograph behind everything. 0 leaves it as shot. */
   backdropDim: number
   autoPlayPhotos: AutoPlay
+  interfaceMotion: InterfaceMotion
   theme: Theme
   menuDensity: MenuDensityChoice
 }
@@ -96,11 +118,13 @@ export const DEFAULTS: Appearance = {
   glassBlur: 20,
   backdropDim: 0,
   autoPlayPhotos: 'on',
+  interfaceMotion: 'on',
   theme: 'auto',
   menuDensity: 'store',
 }
 
 const AUTO_PLAY: AutoPlay[] = ['auto', 'on', 'off']
+const MOTION: InterfaceMotion[] = ['auto', 'on', 'off']
 const THEMES: Theme[] = ['auto', 'dark', 'light']
 const DENSITY_CHOICES: MenuDensityChoice[] = ['store', ...MENU_DENSITIES]
 
@@ -148,6 +172,9 @@ function read(): Appearance {
       autoPlayPhotos: AUTO_PLAY.includes(value.autoPlayPhotos as AutoPlay)
         ? (value.autoPlayPhotos as AutoPlay)
         : DEFAULTS.autoPlayPhotos,
+      interfaceMotion: MOTION.includes(value.interfaceMotion as InterfaceMotion)
+        ? (value.interfaceMotion as InterfaceMotion)
+        : DEFAULTS.interfaceMotion,
       theme: THEMES.includes(value.theme as Theme) ? (value.theme as Theme) : DEFAULTS.theme,
       menuDensity: DENSITY_CHOICES.includes(value.menuDensity as MenuDensityChoice)
         ? (value.menuDensity as MenuDensityChoice)
@@ -174,6 +201,11 @@ export function applyAppearance(next: Appearance = getAppearance()): void {
   // for night, so the selector is never matching a stale value from a theme
   // the reader has since switched away from.
   root.dataset.theme = resolveTheme(next.theme)
+  // Read by the reduced-motion block in index.css. 'auto' writes nothing, so
+  // the media query decides on its own — an attribute of "auto" would have to
+  // be spelled out in that selector twice.
+  if (next.interfaceMotion === 'auto') delete root.dataset.motion
+  else root.dataset.motion = next.interfaceMotion
 }
 
 // Following the system means following it while the page is open, not only at
@@ -201,6 +233,7 @@ export function setAppearance(patch: Partial<Appearance>): void {
     glassBlur: clamp('glassBlur', patch.glassBlur ?? getAppearance().glassBlur),
     backdropDim: clamp('backdropDim', patch.backdropDim ?? getAppearance().backdropDim),
     autoPlayPhotos: patch.autoPlayPhotos ?? getAppearance().autoPlayPhotos,
+    interfaceMotion: patch.interfaceMotion ?? getAppearance().interfaceMotion,
     theme: patch.theme ?? getAppearance().theme,
     menuDensity: patch.menuDensity ?? getAppearance().menuDensity,
   }
@@ -239,4 +272,31 @@ export function resolveMenuDensity(
   storeDefault: MenuDensity,
 ): MenuDensity {
   return choice === 'store' ? storeDefault : choice
+}
+
+/**
+ * Whether this reader wants the interface to move.
+ *
+ * The one place anything should ask. `useReducedMotion` from motion/react
+ * reads the operating system and nothing else, which meant a reader who chose
+ * "Move smoothly" in Settings still got a dropdown that snapped open — the
+ * setting said menus and panels slide, and the menus did not. This consults
+ * the choice first and falls back to the system for 'auto'.
+ */
+export function useMotionAllowed(): boolean {
+  const [appearance] = useAppearance()
+  const system = useSyncExternalStore(subscribeReducedMotion, reducedMotionNow, () => false)
+  if (appearance.interfaceMotion === 'on') return true
+  if (appearance.interfaceMotion === 'off') return false
+  return !system
+}
+
+function reducedMotionNow(): boolean {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+}
+
+function subscribeReducedMotion(callback: () => void): () => void {
+  const query = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+  query?.addEventListener('change', callback)
+  return () => query?.removeEventListener('change', callback)
 }

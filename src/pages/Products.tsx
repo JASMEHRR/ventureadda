@@ -10,6 +10,7 @@ import type { SelectOption } from '../components/ui/Select'
 import type { ItemMatch } from '../data/ventures'
 import { venturePath } from '../data/ventures'
 import { useAsyncData } from '../hooks/useAsyncData'
+import { useHoverIntent } from '../hooks/useHoverIntent'
 import { listProducts } from '../data/ventures'
 import { kindOf, productTree, sectionOf, topPicks } from '../data/products'
 import { cartQuantity, useCart } from '../data/cart'
@@ -215,7 +216,11 @@ export default function Products() {
    * every time.
    */
   const [openKind, setOpenKind] = useState<string | null | undefined>(undefined)
-  const [pointed, setPointed] = useState(false)
+  /**
+   * Hover with intent, so crossing the rail on the way to a card does not
+   * widen it and shove the grid across. See useHoverIntent.
+   */
+  const { active: pointed, handlers: railHandlers } = useHoverIntent()
   const shownOpen = openKind === undefined ? activeKind : openKind
 
   const select = (nextKind: string | null, nextSection: string | null) => {
@@ -256,16 +261,14 @@ export default function Products() {
               hides the answer while you look for it. */}
           {tree.length > 0 && (
             <div
-              className={`shrink-0 transition-[width] duration-200 md:sticky md:top-24 md:self-start ${
+              className={`shrink-0 transition-[width] duration-200 ease-out md:sticky md:top-24 md:self-start ${
                 pointed ? 'md:w-64' : 'md:w-48'
               }`}
             >
               <nav
                 aria-label="Sections"
-                onMouseEnter={() => setPointed(true)}
-                onMouseLeave={() => setPointed(false)}
-                onFocusCapture={() => setPointed(true)}
-                className="liquid-glass-panel sticky top-20 z-20 rounded-2xl p-2 md:static md:w-full"
+                {...railHandlers}
+                className="liquid-glass-panel sticky top-20 z-20 overflow-hidden rounded-2xl p-2 md:static md:w-full"
               >
                 <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] md:max-h-[70vh] md:flex-col md:overflow-x-visible md:overflow-y-auto [&::-webkit-scrollbar]:hidden">
                   <button
@@ -320,20 +323,34 @@ export default function Products() {
                             that grew new chips in its middle would reorder
                             itself under the thumb that tapped it. On a phone
                             the headings are the rail. */}
-                        {open &&
-                          group.sections.map((entry) => (
-                            <button
-                              key={entry.name}
-                              type="button"
-                              onClick={() => select(group.name, entry.name)}
-                              className={`${rowClass(section === entry.name)} hidden md:flex md:pl-8`}
-                            >
-                              <span className="flex-1 truncate text-[15px]">{entry.name}</span>
-                              <span className="font-mono text-[12.5px] text-white/50">
-                                {entry.count}
-                              </span>
-                            </button>
-                          ))}
+                        {/* Opening a heading grows its list rather than
+                            inserting it whole. `grid-template-rows` from 0fr
+                            to 1fr is the one way to animate to a height
+                            nobody has measured — and with motion off it is
+                            simply the same list, appearing. */}
+                        <div
+                          className={`hidden overflow-hidden transition-[grid-template-rows] duration-200 ease-out md:grid ${
+                            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                          }`}
+                        >
+                          <div className="min-h-0 space-y-1.5 overflow-hidden">
+                            {group.sections.map((entry) => (
+                              <button
+                                key={entry.name}
+                                type="button"
+                                onClick={() => select(group.name, entry.name)}
+                                tabIndex={open ? undefined : -1}
+                                aria-hidden={open ? undefined : true}
+                                className={`${rowClass(section === entry.name)} md:pl-8`}
+                              >
+                                <span className="flex-1 truncate text-[15px]">{entry.name}</span>
+                                <span className="font-mono text-[12.5px] text-white/50">
+                                  {entry.count}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )
                   })}

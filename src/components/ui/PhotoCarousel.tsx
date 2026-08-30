@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
 import { displayUrl } from '../../lib/cloudinary'
-import { useAppearance } from '../../lib/appearance'
+import { useAppearance, useMotionAllowed } from '../../lib/appearance'
 import type { StoredImage } from '../../data/types'
 
 /**
@@ -54,7 +53,7 @@ export default function PhotoCarousel({
   /** Set by any manual interaction, cleared fifteen seconds later. */
   const [userTook, setUserTook] = useState(false)
   const [paused, setPaused] = useState(false)
-  const reduce = useReducedMotion()
+  const reduce = !useMotionAllowed()
 
   const count = photos.length
 
