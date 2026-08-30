@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { PackageSearch, SearchX } from 'lucide-react'
+import { ChevronRight, PackageSearch, SearchX } from 'lucide-react'
 import EmptyState from '../components/ui/EmptyState'
 import LoadingLine from '../components/ui/LoadingLine'
 import ProductCard from '../components/ui/ProductCard'
@@ -11,7 +11,7 @@ import type { ItemMatch } from '../data/ventures'
 import { venturePath } from '../data/ventures'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { listProducts } from '../data/ventures'
-import { sectionOf, topPicks } from '../data/products'
+import { kindOf, productTree, sectionOf, topPicks } from '../data/products'
 import { cartQuantity, useCart } from '../data/cart'
 import { categoryName } from '../data/types'
 
@@ -30,9 +30,18 @@ import { categoryName } from '../data/types'
  *
  * SO THE PAGE IS SEGMENTS NOW, and each one does something different:
  *
- *   1. A section rail — the left column on a desktop, a scrolling row of chips
- *      on a phone. Three hundred items belong to a dozen sections, and picking
- *      the section you want beats scrolling past the eleven you do not.
+ *   1. A rail of what is on the site — the left column on a desktop, a
+ *      scrolling row of chips on a phone.
+ *
+ *      TWO LEVELS, because one was unreadable: "F1, Cars & Car Logos" is a
+ *      section only the seller who wrote it can place, and under a heading
+ *      that says Stickers it needs no explaining at all. See productTree, and
+ *      Venture.kind for where the headings come from.
+ *
+ *      It is narrow until you point at it, then it widens over the grid. The
+ *      headings are enough to aim by, and the full section names only matter
+ *      once you are already reading them — so they do not need to cost the
+ *      grid a column all day.
  *   2. A quick-buy rail across the top, only on the unfiltered view: a few
  *      priced things from different shops, in the wider tiles the home page
  *      uses. It is a shop window, not a search result.
@@ -62,9 +71,6 @@ const SORT_OPTIONS: SelectOption<SortKey>[] = [
 
 const SORTS: SortKey[] = ['name', 'cheap', 'dear', 'asked', 'venture']
 
-/** The rail's first row: everything, with no section chosen. */
-const ALL = '__all__'
-
 function priceOf(value: number | undefined): number {
   return typeof value === 'number' ? value : Infinity
 }
@@ -89,6 +95,7 @@ export default function Products() {
   const query = searchParams.get('q') ?? ''
   const categoryId = searchParams.get('category')
   const section = searchParams.get('section')
+  const kind = searchParams.get('kind')
   const sortParam = searchParams.get('sort')
   const sort: SortKey = SORTS.includes(sortParam as SortKey) ? (sortParam as SortKey) : 'name'
   const hideSoldOut = searchParams.get('stock') === 'in'
@@ -114,29 +121,22 @@ export default function Products() {
   const all = products.data ?? []
 
   /**
-   * The rail's contents: every section in what was read, biggest first.
+   * What the rail's selection leaves on the page.
    *
-   * Counted before the section filter is applied, or choosing a section would
-   * empty the rail that chose it.
+   * A section narrows to that section; a kind with no section narrows to the
+   * whole heading, which is what tapping "Stickers" should give you rather
+   * than making you pick one of its sections first.
    */
-  const sections = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const match of all) {
-      const name = sectionOf(match)
-      counts.set(name, (counts.get(name) ?? 0) + 1)
-    }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-  }, [all])
-
   const inSection = useMemo(
     () =>
       all.filter(
         (match) =>
           (!section || sectionOf(match) === section) &&
+          (!kind || kindOf(match) === kind) &&
           (!hideSoldOut ||
             (match.item.inStock && (match.item.stock === undefined || match.item.stock > 0))),
       ),
-    [all, section, hideSoldOut],
+    [all, section, kind, hideSoldOut],
   )
 
   /** Buyable and ask-only, split — the two halves are drawn differently. */
@@ -173,34 +173,59 @@ export default function Products() {
   // The window across the top, and only when nothing is narrowed down: once
   // somebody has picked a section or typed a word, a strip of unrelated
   // suggestions above their answer is in the way.
-  const showWindow = !section && query.trim() === '' && !categoryId
+  const showWindow = !section && !kind && query.trim() === '' && !categoryId
   const picks = useMemo(() => (showWindow ? topPicks(all, 10) : []), [all, showWindow])
 
-  const isFiltered = query.trim() !== '' || categoryId !== null || section !== null || hideSoldOut
+  const isFiltered =
+    query.trim() !== '' || categoryId !== null || section !== null || kind !== null || hideSoldOut
   const heading =
     query.trim() !== ''
       ? `Matching “${query.trim()}”`
-      : (section ?? (categoryId ? categoryName(categoryId) : 'Everything on sale'))
+      : (section ?? kind ?? (categoryId ? categoryName(categoryId) : 'Everything on sale'))
 
-  const railRow = (name: string, label: string, count: number) => {
-    const active = name === ALL ? section === null : section === name
-    return (
-      <button
-        key={name}
-        type="button"
-        onClick={() => setParam('section', name === ALL ? null : name)}
-        aria-current={active ? 'true' : undefined}
-        className={`flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left transition duration-150 active:scale-[0.98] md:w-full ${
-          active
-            ? 'bg-brand-500/20 text-brand-200'
-            : 'text-white/55 hover:bg-white/[0.06] hover:text-white'
-        }`}
-      >
-        <span className="truncate text-[15.5px] font-bold whitespace-nowrap">{label}</span>
-        <span className="shrink-0 font-mono text-[12.5px] text-white/30">{count}</span>
-      </button>
-    )
+  /**
+   * The kinds, and the sections inside them.
+   *
+   * Built from everything that was read rather than from what is on screen, so
+   * choosing a section does not empty the rail that chose it.
+   */
+  const tree = useMemo(() => productTree(all), [all])
+
+  /**
+   * Which group is open, and whether the rail is being pointed at.
+   *
+   * The open group follows the selection when there is one — arriving on a
+   * shared link to a section must not show that section under a closed
+   * heading — and is otherwise whatever was last clicked.
+   */
+  const activeKind = useMemo(() => {
+    if (kind) return kind
+    if (!section) return null
+    return tree.find((group) => group.sections.some((entry) => entry.name === section))?.name ?? null
+  }, [kind, section, tree])
+
+  const [openKind, setOpenKind] = useState<string | null>(null)
+  const [pointed, setPointed] = useState(false)
+  const shownOpen = openKind ?? activeKind
+
+  const select = (nextKind: string | null, nextSection: string | null) => {
+    const params = new URLSearchParams(searchParams)
+    if (nextKind) params.set('kind', nextKind)
+    else params.delete('kind')
+    if (nextSection) params.set('section', nextSection)
+    else params.delete('section')
+    setSearchParams(params, { replace: true })
   }
+
+  const rowClass = (active: boolean) =>
+    // w-auto below `md`, where these are chips in a scrolling row: full width
+    // there made the first one the entire row and pushed every other heading
+    // off the side of the screen.
+    `flex w-auto shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-left whitespace-nowrap transition duration-150 md:w-full active:scale-[0.98] ${
+      active
+        ? 'bg-brand-500/20 text-brand-200'
+        : 'text-white/55 hover:bg-white/[0.06] hover:text-white'
+    }`
 
   return (
     <div className="space-y-4">
@@ -214,21 +239,88 @@ export default function Products() {
 
       {products.data && (
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
-          {/* SEGMENT ONE: the sections.
-              A column on a desktop, where there is room for a dozen names to
-              be readable at once, and a scrolling row of the same rows on a
-              phone, where there is not. Sticky in both, because the point of
-              it is switching sections without scrolling back to the top. */}
-          {sections.length > 1 && (
-            <nav
-              aria-label="Sections"
-              className="liquid-glass-panel sticky top-20 z-20 shrink-0 rounded-2xl p-2 md:top-24 md:w-56"
-            >
-              <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] md:max-h-[70vh] md:flex-col md:overflow-x-visible md:overflow-y-auto [&::-webkit-scrollbar]:hidden">
-                {railRow(ALL, 'Everything', all.length)}
-                {sections.map(([name, count]) => railRow(name, name, count))}
-              </div>
-            </nav>
+          {/* SEGMENT ONE: what is on the site, in two levels. */}
+          {tree.length > 0 && (
+            <div className="shrink-0 md:sticky md:top-24 md:w-48 md:self-start">
+              <nav
+                aria-label="Sections"
+                onMouseEnter={() => setPointed(true)}
+                onMouseLeave={() => setPointed(false)}
+                onFocusCapture={() => setPointed(true)}
+                className={`liquid-glass-panel sticky top-20 z-20 rounded-2xl p-2 transition-[width] duration-200 md:absolute md:top-0 md:left-0 ${
+                  // Opaque while it is over the grid. Glass takes its
+                  // contrast from what is behind it, and what is behind it
+                  // here is a wall of product photographs — the section names
+                  // were legible until a white sticker slid under them.
+                  pointed
+                    ? 'md:w-64 md:bg-app/95 md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)] md:backdrop-blur-2xl'
+                    : 'md:w-48'
+                }`}
+              >
+                <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] md:max-h-[70vh] md:flex-col md:overflow-x-visible md:overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                  <button
+                    type="button"
+                    onClick={() => select(null, null)}
+                    className={rowClass(!kind && !section)}
+                  >
+                    <span className="truncate text-[15.5px] font-bold md:flex-1">Everything</span>
+                    <span className="font-mono text-[12.5px] text-white/30">{all.length}</span>
+                  </button>
+
+                  {tree.map((group) => {
+                    const open = shownOpen === group.name
+                    return (
+                      <div key={group.name} className="shrink-0 md:contents">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenKind(open ? null : group.name)
+                            select(group.name, null)
+                          }}
+                          aria-expanded={group.sections.length > 0 ? open : undefined}
+                          className={rowClass(kind === group.name && !section)}
+                        >
+                          {group.sections.length > 0 && (
+                            <ChevronRight
+                              size={13}
+                              aria-hidden="true"
+                              className={`shrink-0 text-white/30 transition-transform duration-150 ${
+                                open ? 'rotate-90' : ''
+                              }`}
+                            />
+                          )}
+                          <span className="truncate text-[15.5px] font-bold md:flex-1">
+                            {group.name}
+                          </span>
+                          <span className="font-mono text-[12.5px] text-white/30">
+                            {group.count}
+                          </span>
+                        </button>
+
+                        {/* The sections inside, on a desktop only: a chip row
+                            that grew new chips in its middle would reorder
+                            itself under the thumb that tapped it. On a phone
+                            the headings are the rail. */}
+                        {open &&
+                          group.sections.map((entry) => (
+                            <button
+                              key={entry.name}
+                              type="button"
+                              onClick={() => select(group.name, entry.name)}
+                              className={`${rowClass(section === entry.name)} hidden md:flex md:pl-8`}
+                            >
+                              <span className="flex-1 truncate text-[15px]">{entry.name}</span>
+                              <span className="font-mono text-[12.5px] text-white/25">
+                                {entry.count}
+                              </span>
+                            </button>
+                          ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              </nav>
+            </div>
           )}
 
           <div className="min-w-0 flex-1 space-y-8">

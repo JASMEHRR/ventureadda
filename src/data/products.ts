@@ -150,3 +150,58 @@ export function topPicks(matches: ItemMatch[], limit = 12): ItemMatch[] {
   }
   return [...first, ...rest].slice(0, limit)
 }
+
+/**
+ * The heading a section sits under: what the shop sells, in a word.
+ *
+ * The seller's own word when they have given one, their category otherwise.
+ * See Venture.kind for why the category alone is not enough — "F1, Cars & Car
+ * Logos" under "Art & Craft" is still a section nobody can place.
+ */
+export function kindOf({ venture }: ItemMatch): string {
+  const own = venture.kind?.trim()
+  return own && own !== '' ? own : categoryName(venture.categoryId)
+}
+
+export type KindGroup = {
+  /** "Stickers", "Crochet", "Subscriptions". */
+  name: string
+  count: number
+  /** The seller's own sections inside it, biggest first. */
+  sections: { name: string; count: number }[]
+}
+
+/**
+ * The products page's rail: two levels, kinds outside and sections inside.
+ *
+ * ONE LEVEL WAS UNREADABLE. A flat list of a dozen section names — "F1, Cars &
+ * Car Logos", "TOP SELLING & MOST DEMANDED", "Storage • Security • VPN" — is a
+ * list of things only the sellers who wrote them can place. Grouped under
+ * Stickers and Subscriptions the same names need no explanation at all.
+ *
+ * A kind holding exactly one section keeps the kind and drops the section:
+ * "Cakes › Cakes" is a row of the same word twice.
+ */
+export function productTree(matches: ItemMatch[]): KindGroup[] {
+  const kinds = new Map<string, Map<string, number>>()
+  for (const match of matches) {
+    const kind = kindOf(match)
+    const section = sectionOf(match)
+    const sections = kinds.get(kind) ?? new Map<string, number>()
+    sections.set(section, (sections.get(section) ?? 0) + 1)
+    kinds.set(kind, sections)
+  }
+
+  return [...kinds.entries()]
+    .map(([name, sections]) => {
+      const inside = [...sections.entries()]
+        .map(([section, count]) => ({ name: section, count }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      return {
+        name,
+        count: inside.reduce((total, section) => total + section.count, 0),
+        sections: inside.length > 1 ? inside : [],
+      }
+    })
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+}

@@ -556,6 +556,7 @@ export default function VentureForm({
   const [managerEmails, setManagerEmails] = useState<string[]>(initial?.managerEmails ?? [])
   const [menuDensity, setMenuDensity] = useState<MenuDensity>(initial?.menuDensity ?? 'default')
   const [brandLogos, setBrandLogos] = useState(initial?.brandLogos ?? false)
+  const [kind, setKind] = useState(initial?.kind ?? '')
   const [items, setItems] = useState<MenuItemDraft[]>(
     initial?.items?.length ? initial.items : [newDraft()],
   )
@@ -677,6 +678,7 @@ export default function VentureForm({
           managerEmails,
           menuDensity,
           brandLogos,
+          kind: kind.trim(),
           logo,
         },
         items: filled.map((item) => ({
@@ -744,6 +746,16 @@ export default function VentureForm({
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="What you make, and how people collect it."
+          />
+
+          <TextField
+            id="venture-kind"
+            label="What you sell, in a word"
+            hint="Stickers, Crochet, Cakes, Subscriptions. It becomes the heading your menu sections are grouped under on the products page — “F1, Cars & Car Logos” means nothing on its own, and everything under Stickers."
+            maxLength={24}
+            value={kind}
+            onChange={(event) => setKind(event.target.value)}
+            placeholder="Stickers"
           />
 
           <TextField

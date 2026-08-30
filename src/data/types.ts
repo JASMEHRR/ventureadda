@@ -66,6 +66,25 @@ export type Venture = {
    */
   managerEmails: string[]
   /**
+   * What this shop sells, in one word: "Stickers", "Crochet",
+   * "Subscriptions", "Cakes".
+   *
+   * THE PRODUCTS PAGE NEEDS A PARENT for a seller's own sections, and nothing
+   * in the data was one. A rail listing "F1, Cars & Car Logos" tells a visitor
+   * nothing — F1 what? Stickers, posters, phone cases? Under a heading that
+   * says Stickers it is obvious, and it stays obvious for the twenty other
+   * sections that shop will add.
+   *
+   * The six launch categories cannot do this job. They are deliberately broad
+   * — "Art & Craft" covers stickers, crochet and painting alike — and they are
+   * filled in once at signup and rarely revisited, so half of them are wrong
+   * anyway: the subscriptions shop on this site is filed under Food & Snacks.
+   *
+   * Empty is normal and means "use the category", which is what every venture
+   * written before this field existed gets.
+   */
+  kind: string
+  /**
    * Draw items with no photograph as the logo of the brand they name.
    *
    * OFF UNLESS THE SELLER SAYS OTHERWISE, and that is the whole point of it

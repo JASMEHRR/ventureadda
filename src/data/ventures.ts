@@ -79,6 +79,7 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
           (email): email is string => typeof email === 'string' && email.trim() !== '',
         )
       : [],
+    kind: typeof data.kind === 'string' ? data.kind.trim() : '',
     // Absent on every venture written before this setting existed, and off is
     // the behaviour those had.
     brandLogos: data.brandLogos === true,
@@ -453,6 +454,7 @@ export type VentureInput = {
   photos: StoredImage[]
   deliverySlots: string[]
   managerEmails: string[]
+  kind: string
   brandLogos: boolean
   menuDensity: MenuDensity
   logo?: StoredImage

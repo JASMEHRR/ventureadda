@@ -8,7 +8,7 @@
  * Run with: node --experimental-strip-types --test src/data/products.test.ts
  */
 import assert from 'node:assert/strict'
-import { sectionOf, shelfOrder, shelves, topPicks } from './products.ts'
+import { kindOf, productTree, sectionOf, shelfOrder, shelves, topPicks } from './products.ts'
 import type { ItemMatch } from './ventures.ts'
 
 let counter = 0
@@ -21,6 +21,7 @@ function match(
     ventureId = 'v1',
     ventureName = 'Glood',
     ventureCategory = 'food',
+    kind = '',
     asked = 0,
   }: {
     price?: number
@@ -28,6 +29,7 @@ function match(
     ventureId?: string
     ventureName?: string
     ventureCategory?: string
+    kind?: string
     asked?: number
   } = {},
 ): ItemMatch {
@@ -54,6 +56,7 @@ function match(
       photos: [],
       deliverySlots: [],
       managerEmails: [],
+      kind,
       brandLogos: false,
       menuDensity: 'default',
       status: 'live',
@@ -163,6 +166,37 @@ assert.equal(sectionOf(match('Brownie', { category: '   ' })), 'Food & Snacks')
   // Unpriced never reaches this rail, however popular it is.
   assert.ok(picks.every((entry) => typeof entry.item.price === 'number'))
   assert.equal(topPicks(list, 2).length, 2)
+}
+
+// --- the two-level rail -----------------------------------------------------
+{
+  // The seller's own word wins; the category is the fallback for the many who
+  // have not set one.
+  assert.equal(kindOf(match('x', { kind: 'Stickers' })), 'Stickers')
+  assert.equal(kindOf(match('x', { ventureCategory: 'food' })), 'Food & Snacks')
+  assert.equal(kindOf(match('x', { kind: '  ' })), 'Food & Snacks')
+
+  const tree = productTree([
+    match('F1 one', { kind: 'Stickers', category: 'F1', ventureId: 'g' }),
+    match('F1 two', { kind: 'Stickers', category: 'F1', ventureId: 'g' }),
+    match('Meme one', { kind: 'Stickers', category: 'Memes', ventureId: 'g' }),
+    match('Cake one', { kind: 'Cakes', category: 'Cakes', ventureId: 'b' }),
+  ])
+
+  assert.deepEqual(
+    tree.map((group) => [group.name, group.count]),
+    [
+      ['Stickers', 3],
+      ['Cakes', 1],
+    ],
+  )
+  // Sections inside the kind, biggest first.
+  assert.deepEqual(
+    tree[0].sections.map((section) => section.name),
+    ['F1', 'Memes'],
+  )
+  // "Cakes > Cakes" is the same word twice, so the child is dropped.
+  assert.deepEqual(tree[1].sections, [])
 }
 
 console.log('products: ok')

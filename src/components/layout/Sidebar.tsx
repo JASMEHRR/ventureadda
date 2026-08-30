@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-react'
 import Logo, { LogoMark } from '../ui/Logo'
@@ -15,9 +15,17 @@ import {
 const STORAGE_KEY = 'ventureadda:sidebar-collapsed'
 
 /**
- * Collapsed by default below `lg`, expanded above, unless the reader has said
- * otherwise — at which point their choice wins on every screen and survives
- * reloads.
+ * COLLAPSED BY DEFAULT, at every width, and it opens when you point at it.
+ *
+ * It used to open itself on anything wider than a laptop, which spent 16rem of
+ * every screen on a list of eight words that never change. The rail is enough
+ * to navigate by — the icons are the same eight, in the same order, every time
+ * — and the words come back the moment the pointer arrives, so nothing is
+ * actually hidden from anyone using a mouse.
+ *
+ * The button still pins it open, and that choice wins on every screen and
+ * survives reloads: somebody who wants the labels permanently should not have
+ * to keep hovering to read them.
  *
  * Read once, lazily, rather than in an effect: initialising to a guess and
  * correcting after mount makes the sidebar visibly snap open on every load for
@@ -33,7 +41,7 @@ function useCollapsed(): [boolean, (next: boolean) => void] {
       // viewport default — a preference that cannot be saved is not an error
       // worth showing anyone.
     }
-    return !window.matchMedia('(min-width: 1024px)').matches
+    return true
   })
 
   const update = (next: boolean) => {
@@ -159,6 +167,32 @@ export default function Sidebar({
 }) {
   const [collapsed, setCollapsed] = useCollapsed()
 
+  /**
+   * Pointing at the rail, or having tabbed into it.
+   *
+   * State rather than a `group-hover:` variant on a dozen classes, because
+   * expanding is not only a width: the labels come back, the header changes
+   * shape, and the buttons stop announcing themselves through `aria-label`
+   * because the text is on screen again. One boolean drives all of that
+   * through the same code path the pinned-open sidebar already uses.
+   *
+   * Focus counts as hover so the keyboard is not left with a rail it can tab
+   * through but not read.
+   */
+  const [pointed, setPointed] = useState(false)
+  const expanded = !collapsed || pointed
+
+  /**
+   * Focus leaving the sidebar entirely, not merely moving between its rows.
+   *
+   * A blur fires on every arrow-key move down the list, and collapsing on each
+   * of those would close the sidebar under the reader's own cursor.
+   */
+  const asideRef = useRef<HTMLElement>(null)
+  const handleBlur = (event: React.FocusEvent) => {
+    if (!asideRef.current?.contains(event.relatedTarget as Node | null)) setPointed(false)
+  }
+
   const items = [
     ...PRIMARY_NAV,
     ...(isSignedIn ? BUYER_NAV : []),
@@ -169,15 +203,41 @@ export default function Sidebar({
   ]
 
   return (
-    <aside
-      className={`liquid-glass-panel hidden shrink-0 flex-col self-start rounded-[2rem] transition-[width,padding] duration-200 md:sticky md:top-6 md:flex ${
-        collapsed ? 'w-auto p-2' : 'w-64 p-4'
+    /*
+      TWO BOXES, and the outer one is the reason this feels right rather than
+      jumpy: it holds the collapsed width in the layout and never changes, so
+      opening the sidebar draws over the page instead of shoving every card on
+      it four inches sideways. The panel itself is the one that grows.
+
+      Only from `md`, where the sidebar exists at all — below that the bottom
+      bar is the navigation and this renders nothing.
+    */
+    <div
+      className={`hidden shrink-0 self-start md:sticky md:top-6 md:block ${
+        collapsed ? 'md:w-[4.25rem]' : 'md:w-64'
       }`}
     >
-      <div
-        className={`flex items-center ${collapsed ? 'flex-col gap-2' : 'justify-between gap-2 px-2 pt-1 pb-3'}`}
+      <aside
+        ref={asideRef}
+        onMouseEnter={() => setPointed(true)}
+        onMouseLeave={() => setPointed(false)}
+        onFocusCapture={() => setPointed(true)}
+        onBlurCapture={handleBlur}
+        className={`liquid-glass-panel absolute top-0 left-0 z-30 flex flex-col rounded-[2rem] transition-[width,padding] duration-200 ${
+          expanded ? 'w-64 p-4' : 'w-[4.25rem] p-2'
+        } ${
+          // Opaque only while it is drawn over the page: glass over a grid of
+          // product photographs is not readable, and the rail at rest has
+          // nothing behind it to fight with.
+          collapsed && pointed
+            ? 'bg-app/95 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)] backdrop-blur-2xl'
+            : ''
+        }`}
       >
-        {collapsed ? (
+      <div
+        className={`flex items-center ${!expanded ? 'flex-col gap-2' : 'justify-between gap-2 px-2 pt-1 pb-3'}`}
+      >
+        {!expanded ? (
           // The mark alone, above the collapse control rather than beside it:
           // at rail width there is only room for one thing per row. Into the
           // directory, not out to the marketing page — the same destination
@@ -212,12 +272,12 @@ export default function Sidebar({
         </button>
       </div>
 
-      <nav aria-label="Primary" className={`space-y-1.5 ${collapsed ? 'mt-1' : ''}`}>
+      <nav aria-label="Primary" className={`space-y-1.5 ${!expanded ? 'mt-1' : ''}`}>
         {items.map((item) => (
           <SidebarLink
             key={item.to}
             item={item}
-            collapsed={collapsed}
+            collapsed={!expanded}
             badge={item.to === '/orders' ? unseenOrders : 0}
           />
         ))}
@@ -238,25 +298,26 @@ export default function Sidebar({
       <Link
         to="/add"
         data-tour="add-venture"
-        aria-label={collapsed ? 'Add venture' : undefined}
-        title={collapsed ? 'Add venture' : undefined}
+        aria-label={!expanded ? 'Add venture' : undefined}
+        title={!expanded ? 'Add venture' : undefined}
         className={`mt-3 flex items-center justify-center gap-2 rounded-2xl border border-brand-500/30 bg-brand-500/15 text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97] ${
           collapsed ? 'p-2.5' : 'px-4 py-2.5'
         }`}
       >
         <Plus size={15} aria-hidden="true" className="shrink-0" />
-        {!collapsed && (
+        {expanded && (
           <span className="font-mono text-[14px] font-extrabold tracking-wider uppercase">
             Add venture
           </span>
         )}
       </Link>
 
-      {!collapsed && (
+      {expanded && (
         <p className="mt-6 px-4 pb-1 font-mono text-[12.5px] tracking-[0.18em] text-white/20 uppercase">
           No payments on site
         </p>
       )}
-    </aside>
+      </aside>
+    </div>
   )
 }
