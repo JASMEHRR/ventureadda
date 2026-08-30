@@ -453,6 +453,33 @@ export default function VentureDetail() {
     void recordInquiry(item.id)
   }, [])
 
+  /**
+   * Every distinct credit on this page, item photographs and venture ones
+   * alike. Deduplicated by creator and source, because a seller who found six
+   * photographs from the same photographer owes one credit, not six.
+   *
+   * ABOVE THE EARLY RETURNS, and that placement is the whole of a bug this
+   * page shipped with for an hour. It was written next to the code that uses
+   * it, which is below `if (venture.loading) return …` — so the first render
+   * of every venture page skipped the hook and the second one called it.
+   * React counts hooks per render and tears the tree down when the number
+   * changes, which on a site with no error boundary is a black screen.
+   *
+   * It reads `venture.data` rather than `v` for the same reason: `v` does not
+   * exist yet this far up.
+   */
+  const credits = useMemo(() => {
+    const seen = new Map<string, ImageCredit>()
+    const collect = (image?: StoredImage) => {
+      if (!image?.credit) return
+      seen.set(`${image.credit.creator}|${image.credit.source}`, image.credit)
+    }
+    for (const photo of venture.data?.photos ?? []) collect(photo)
+    collect(venture.data?.logo)
+    for (const item of menu.data ?? []) collect(item.photo)
+    return [...seen.values()]
+  }, [venture.data, menu.data])
+
   if (venture.error || menu.error) {
     return (
       <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[16px] text-red-400">
@@ -506,23 +533,6 @@ export default function VentureDetail() {
    * worse than a rule everybody already understands.
    */
   const needle = menuQuery.trim().toLowerCase()
-  /**
-   * Every distinct credit on this page, item photographs and venture ones
-   * alike. Deduplicated by creator and source, because a seller who found six
-   * photographs from the same photographer owes one credit, not six.
-   */
-  const credits = useMemo(() => {
-    const seen = new Map<string, ImageCredit>()
-    const collect = (image?: StoredImage) => {
-      if (!image?.credit) return
-      seen.set(`${image.credit.creator}|${image.credit.source}`, image.credit)
-    }
-    for (const photo of v.photos) collect(photo)
-    collect(v.logo)
-    for (const item of menu.data ?? []) collect(item.photo)
-    return [...seen.values()]
-  }, [v.photos, v.logo, menu.data])
-
   const matching = (menu.data ?? []).filter((item) => {
     if (needle === '') return true
     return (

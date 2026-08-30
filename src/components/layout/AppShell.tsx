@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import MobileNav from './MobileNav'
 import Walkthrough from '../Walkthrough'
+import ErrorBoundary from '../ErrorBoundary'
 import { useAuth } from '../../auth/AuthProvider'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { countUnseenOrders } from '../../data/orders'
@@ -90,7 +91,13 @@ export default function AppShell() {
                 before the site will render let a passer-by burn a name on the
                 way to reading a page. It is asked for at the first action that
                 puts a name on content instead. */}
-            <Outlet />
+            {/* Around the page only: a crash in one route leaves the
+                sidebar, the top bar and the bottom bar working, so it is one
+                broken page rather than a broken site. Keyed on the path so
+                navigating away clears it. */}
+            <ErrorBoundary resetKey={pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </main>
         </div>
       </div>
