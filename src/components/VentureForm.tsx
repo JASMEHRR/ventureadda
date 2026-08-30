@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Check, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import Button from './ui/Button'
 import MenuImport from './MenuImport'
 import Field from './ui/Field'
@@ -13,6 +13,7 @@ import { CATEGORIES } from '../data/types'
 import type { MenuDensity, MenuItemDraft, StoredImage } from '../data/types'
 import type { MenuItemInput, VentureInput } from '../data/ventures'
 import { validateMenuDrafts } from '../data/menuDrafts'
+import { findPhotoFor } from '../lib/fillPhotos'
 import { useAuth } from '../auth/AuthProvider'
 import type { ParsedRow } from '../data/menuParse'
 
@@ -609,6 +610,60 @@ export default function VentureForm({
   const patchItem = (key: string, patch: Partial<MenuItemDraft>) =>
     setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
 
+  /**
+   * FILLING A WHOLE MENU AT ONCE, which is the unit of work this actually has.
+   *
+   * The Find button next to each item was right for one item and useless for
+   * twenty-one, let alone a hundred and forty-seven — nobody opens a dialog
+   * that many times, which is why a shop with twenty-one items still had
+   * twenty-one blank tiles after the feature shipped.
+   *
+   * Runs one item at a time on purpose. Both photo libraries rate-limit, and
+   * Open Food Facts answers 503 under load for anyone who does not wait, so
+   * forty parallel searches would return fewer pictures than forty sequential
+   * ones. A pause between them for the same reason.
+   *
+   * Bounded per run, and the button says how many are left, because a hundred
+   * and forty-seven searches is several minutes and a page that looks frozen
+   * for several minutes is a page somebody closes.
+   *
+   * Nothing is saved here. Every picture lands in the form where it can be
+   * looked at and removed one by one, and the seller still presses Save — an
+   * automatic match is a suggestion, and suggestions do not get to write to a
+   * live listing on their own.
+   */
+  const [filling, setFilling] = useState<{ done: number; total: number } | null>(null)
+  const [filled, setFilled] = useState<{ added: number; missed: number } | null>(null)
+  const stopFilling = useRef(false)
+
+  const PER_RUN = 25
+
+  const missingPhotos = items.filter((item) => !item.photo && item.name.trim().length >= 3)
+
+  const fillPhotos = async () => {
+    const queue = missingPhotos.slice(0, PER_RUN)
+    if (queue.length === 0) return
+    stopFilling.current = false
+    setFilled(null)
+    setFilling({ done: 0, total: queue.length })
+
+    let added = 0
+    for (const [index, item] of queue.entries()) {
+      if (stopFilling.current) break
+      const image = await findPhotoFor(item.name)
+      if (image) {
+        added += 1
+        patchItem(item.key, { photo: image })
+      }
+      setFilling({ done: index + 1, total: queue.length })
+      // A breath between requests. See the note above.
+      await new Promise((resolve) => window.setTimeout(resolve, 350))
+    }
+
+    setFilling(null)
+    setFilled({ added, missed: queue.length - added })
+  }
+
   /** Every section on this menu — in use or just created — for the per-item
    *  chips and for the manager panel. */
   const knownSections = [
@@ -871,6 +926,58 @@ export default function VentureForm({
               {items.length} {items.length === 1 ? 'item' : 'items'}
             </span>
           </div>
+
+          {/* Only when there is something to fill. A button that would do
+              nothing is a button that makes somebody wonder what they did
+              wrong. */}
+          {missingPhotos.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[15.5px] font-bold text-white">
+                  {missingPhotos.length} {missingPhotos.length === 1 ? 'item has' : 'items have'} no
+                  photo
+                </p>
+                <p className="mt-0.5 text-[15px] leading-relaxed text-white/55">
+                  Search for all of them at once. Packaged things come back as the packet;
+                  anything it is unsure about is left alone. Check them before you save.
+                </p>
+              </div>
+
+              {filling ? (
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="font-mono text-[13px] text-white/60">
+                    {filling.done} of {filling.total}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      stopFilling.current = true
+                    }}
+                  >
+                    Stop
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" onClick={() => void fillPhotos()} className="shrink-0">
+                  <Sparkles size={13} aria-hidden="true" />
+                  Find {missingPhotos.length > PER_RUN ? `${PER_RUN} photos` : 'photos'}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {filled && (
+            <p role="status" className="text-[15.5px] text-white/60">
+              {filled.added === 0
+                ? 'Nothing matched closely enough to attach on its own — use Find on an item to look yourself.'
+                : `Added ${filled.added} ${filled.added === 1 ? 'photo' : 'photos'}.`}
+              {filled.missed > 0 && filled.added > 0
+                ? ` ${filled.missed} had no confident match and were left alone.`
+                : ''}{' '}
+              Check them, then save.
+            </p>
+          )}
 
           {items.map((item, index) => (
             <div key={item.key} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
