@@ -13,6 +13,25 @@ export type VentureStatus = 'pending' | 'live' | 'rejected'
 export type StoredImage = {
   url: string
   publicId: string
+  /**
+   * Who took it and under what licence, when it came from the photo finder
+   * rather than the seller's camera.
+   *
+   * Absent on every photograph a seller uploaded themselves, which is the
+   * common case and needs no credit. Present ones are used under a Creative
+   * Commons licence that requires the creator to be named — so this is not
+   * metadata, it is the condition the picture is on the page under, and
+   * VentureDetail prints it.
+   */
+  credit?: ImageCredit
+}
+
+export type ImageCredit = {
+  creator: string
+  /** "CC BY 2.0", "CC0 1.0" — already formatted for display. */
+  license: string
+  /** The page the photograph came from, for anyone checking. */
+  source: string
 }
 
 export type Venture = {

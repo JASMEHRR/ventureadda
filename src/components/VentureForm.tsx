@@ -947,6 +947,10 @@ export default function VentureForm({
                   photos={item.photo ? [item.photo] : []}
                   onChange={(next) => patchItem(item.key, { photo: next[0] })}
                   max={1}
+                  // The item's own name seeds the search. Only items get this:
+                  // a stock photograph of somebody else's shop standing in for
+                  // your venture is a claim rather than an illustration.
+                  findFor={item.name}
                 />
               </div>
             </div>

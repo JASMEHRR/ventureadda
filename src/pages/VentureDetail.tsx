@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -29,7 +29,7 @@ import {
   recordVentureView,
   venturePath,
 } from '../data/ventures'
-import type { MenuItem, StoredImage } from '../data/ventures'
+import type { ImageCredit, MenuItem, StoredImage } from '../data/types'
 import { MENU_GRID_CLASS } from '../data/types'
 import type { MenuDensity } from '../data/types'
 import { resolveMenuDensity, useAppearance } from '../lib/appearance'
@@ -506,6 +506,23 @@ export default function VentureDetail() {
    * worse than a rule everybody already understands.
    */
   const needle = menuQuery.trim().toLowerCase()
+  /**
+   * Every distinct credit on this page, item photographs and venture ones
+   * alike. Deduplicated by creator and source, because a seller who found six
+   * photographs from the same photographer owes one credit, not six.
+   */
+  const credits = useMemo(() => {
+    const seen = new Map<string, ImageCredit>()
+    const collect = (image?: StoredImage) => {
+      if (!image?.credit) return
+      seen.set(`${image.credit.creator}|${image.credit.source}`, image.credit)
+    }
+    for (const photo of v.photos) collect(photo)
+    collect(v.logo)
+    for (const item of menu.data ?? []) collect(item.photo)
+    return [...seen.values()]
+  }, [v.photos, v.logo, menu.data])
+
   const matching = (menu.data ?? []).filter((item) => {
     if (needle === '') return true
     return (
@@ -747,6 +764,38 @@ export default function VentureDetail() {
           })}
         </div>
       </section>
+
+      {/* THE CONDITION THE PICTURES ARE HERE UNDER, not a footnote.
+          Photographs found through the photo finder are used under Creative
+          Commons licences that require the creator to be named. One list at
+          the foot of the page rather than a caption under every tile: the
+          obligation is to credit them, not to interrupt a menu forty times. */}
+      {credits.length > 0 && (
+        <section className="liquid-glass-panel rounded-3xl px-5 py-4">
+          <h2 className="font-mono text-[12.5px] font-extrabold tracking-[0.22em] text-white/60 uppercase">
+            Photo credits
+          </h2>
+          <ul className="mt-2 space-y-1">
+            {credits.map((credit) => (
+              <li key={credit.source + credit.creator} className="text-[15px] text-white/60">
+                {credit.source ? (
+                  <a
+                    href={credit.source}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="underline decoration-white/25 underline-offset-2 hover:text-white"
+                  >
+                    {credit.creator}
+                  </a>
+                ) : (
+                  credit.creator
+                )}
+                <span className="text-white/50"> · {credit.license}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <ReviewSection ventureId={v.id} ownerId={v.ownerId} />
 

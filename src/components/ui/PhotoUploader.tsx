@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Loader2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
+import PhotoFinder from '../PhotoFinder'
 import { ACCEPT_ATTRIBUTE, displayUrl, uploadImage } from '../../lib/cloudinary'
 import type { StoredImage } from '../../data/types'
 
@@ -22,6 +23,15 @@ type PhotoUploaderProps = {
   photos: StoredImage[]
   onChange: (photos: StoredImage[]) => void
   max?: number
+  /**
+   * Seeds the photo finder's search box — the item's name, when there is one.
+   *
+   * Absent hides the Find button entirely. A venture's cover photograph and
+   * its logo are pictures of that specific shop, and a stock photograph of
+   * somebody else's bakery standing in for yours is worse than no photograph:
+   * it is a claim about premises that do not exist.
+   */
+  findFor?: string
 }
 
 /**
@@ -56,10 +66,12 @@ export default function PhotoUploader({
   photos,
   onChange,
   max = 4,
+  findFor,
 }: PhotoUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [finding, setFinding] = useState(false)
 
   const atLimit = photos.length >= max
 
@@ -202,6 +214,20 @@ export default function PhotoUploader({
           </button>
         )}
 
+        {/* Only where a stock photograph can honestly stand in for the thing
+            being sold — see findFor. */}
+        {!atLimit && findFor !== undefined && (
+          <button
+            type="button"
+            onClick={() => setFinding(true)}
+            disabled={busy}
+            className="liquid-glass-input flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl text-white/60 transition duration-150 hover:text-white/80 active:scale-[0.96] disabled:opacity-50"
+          >
+            <Sparkles size={18} aria-hidden="true" />
+            <span className="font-mono text-[12.5px] tracking-wider uppercase">Find</span>
+          </button>
+        )}
+
         {!atLimit && (
           <button
             type="button"
@@ -223,6 +249,15 @@ export default function PhotoUploader({
         className="sr-only"
         onChange={(event) => void handleFiles(event.target.files)}
       />
+
+      {findFor !== undefined && (
+        <PhotoFinder
+          open={finding}
+          onClose={() => setFinding(false)}
+          onPick={(image) => onChange([...photos, image].slice(0, max))}
+          initialQuery={findFor}
+        />
+      )}
 
       {hint && !error && <p className="mt-1.5 text-[15px] text-white/55">{hint}</p>}
       {error && (

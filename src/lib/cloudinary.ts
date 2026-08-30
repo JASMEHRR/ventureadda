@@ -109,3 +109,48 @@ export function imageUrl(publicId: string, width: 400 | 800 | 1200): string {
 export function displayUrl(image: UploadedImage, width: 400 | 800 | 1200): string {
   return image.publicId ? imageUrl(image.publicId, width) : image.url
 }
+
+/**
+ * Uploads a photograph that lives somewhere else, by handing Cloudinary the
+ * address rather than the bytes.
+ *
+ * The browser never fetches the file. It could not, in most cases — the
+ * libraries these come from send no CORS headers, so a `fetch` for the image
+ * would be refused before a byte arrived. Cloudinary fetching it server-side
+ * sidesteps that entirely, and has the better outcome anyway: the photograph
+ * ends up on our own account, so a listing does not go blank the day the
+ * original moves.
+ *
+ * `validateImage` cannot run here — there is no File to measure. The preset's
+ * own allowed_formats and max_file_size are the enforcement, which is where
+ * they always were; see the note at the top of this file.
+ */
+export async function uploadImageFromUrl(url: string): Promise<UploadedImage> {
+  const body = new FormData()
+  body.append('file', url)
+  body.append('upload_preset', UPLOAD_PRESET)
+
+  let response: Response
+  try {
+    response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body,
+    })
+  } catch {
+    throw new Error('Could not reach Cloudinary. Check your connection and try again.')
+  }
+
+  if (!response.ok) {
+    let detail = `Could not save that photo (${response.status}).`
+    try {
+      const payload = await response.json()
+      if (payload?.error?.message) detail = payload.error.message
+    } catch {
+      // Leave the status-code message.
+    }
+    throw new Error(detail)
+  }
+
+  const payload = await response.json()
+  return { url: payload.secure_url as string, publicId: payload.public_id as string }
+}
