@@ -204,26 +204,18 @@ export default function Sidebar({
 
   return (
     /*
-      TWO BOXES, and the outer one is the reason this feels right rather than
-      jumpy: it holds the collapsed width in the layout and never changes, so
-      opening the sidebar draws over the page instead of shoving every card on
-      it four inches sideways. The panel itself is the one that grows.
+      IT PUSHES THE PAGE ACROSS rather than opening over it, which is the
+      behaviour that was asked for and is the honest one: nothing is ever
+      hidden behind the menu, so there is no moment where a card you were
+      reading is underneath something. The width lives on this box, in normal
+      flow, and everything to the right of it moves.
 
       Only from `md`, where the sidebar exists at all — below that the bottom
       bar is the navigation and this renders nothing.
     */
     <div
-      /*
-        THE z-40 IS LOAD-BEARING and not obvious. This wrapper is sticky, and a
-        sticky element makes its own stacking context — which means the panel's
-        own z-index is sealed inside this box and cannot be compared with
-        anything outside it. The products page has a sticky rail of its own,
-        later in the document, so with both boxes at the default depth that one
-        simply painted on top and the sidebar opened UNDERNEATH it. The depth
-        has to be set here, on the box, not on the panel inside it.
-      */
-      className={`z-40 hidden shrink-0 self-start md:sticky md:top-6 md:block ${
-        collapsed ? 'md:w-[4.25rem]' : 'md:w-64'
+      className={`hidden shrink-0 self-start transition-[width] duration-200 md:sticky md:top-6 md:block ${
+        expanded ? 'md:w-64' : 'md:w-[4.25rem]'
       }`}
     >
       <aside
@@ -232,15 +224,8 @@ export default function Sidebar({
         onMouseLeave={() => setPointed(false)}
         onFocusCapture={() => setPointed(true)}
         onBlurCapture={handleBlur}
-        className={`liquid-glass-panel absolute top-0 left-0 flex flex-col rounded-[2rem] transition-[width,padding] duration-200 ${
-          expanded ? 'w-64 p-4' : 'w-[4.25rem] p-2'
-        } ${
-          // Opaque only while it is drawn over the page: glass over a grid of
-          // product photographs is not readable, and the rail at rest has
-          // nothing behind it to fight with.
-          collapsed && pointed
-            ? 'bg-app/95 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)] backdrop-blur-2xl'
-            : ''
+        className={`liquid-glass-panel flex w-full flex-col rounded-[2rem] transition-[padding] duration-200 ${
+          expanded ? 'p-4' : 'p-2'
         }`}
       >
       <div

@@ -38,10 +38,10 @@ import { categoryName } from '../data/types'
  *      that says Stickers it needs no explaining at all. See productTree, and
  *      Venture.kind for where the headings come from.
  *
- *      It is narrow until you point at it, then it widens over the grid. The
- *      headings are enough to aim by, and the full section names only matter
- *      once you are already reading them — so they do not need to cost the
- *      grid a column all day.
+ *      It is narrow until you point at it, then it widens and pushes the grid
+ *      across. The headings are enough to aim by, and the full section names
+ *      only matter once you are already reading them — so they do not need to
+ *      cost the grid a column all day.
  *   2. A quick-buy rail across the top, only on the unfiltered view: a few
  *      priced things from different shops, in the wider tiles the home page
  *      uses. It is a shop window, not a search result.
@@ -241,25 +241,21 @@ export default function Products() {
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
           {/* SEGMENT ONE: what is on the site, in two levels.
 
-              z-20 against the sidebar's z-40: both are sticky boxes, and the
-              sidebar opening over this one is right — it is the thing the
-              reader just pointed at. See the note in Sidebar. */}
+              Widening pushes the grid across rather than covering it, same as
+              the sidebar — a menu that opens over the thing you are reading
+              hides the answer while you look for it. */}
           {tree.length > 0 && (
-            <div className="z-20 shrink-0 md:sticky md:top-24 md:w-48 md:self-start">
+            <div
+              className={`shrink-0 transition-[width] duration-200 md:sticky md:top-24 md:self-start ${
+                pointed ? 'md:w-64' : 'md:w-48'
+              }`}
+            >
               <nav
                 aria-label="Sections"
                 onMouseEnter={() => setPointed(true)}
                 onMouseLeave={() => setPointed(false)}
                 onFocusCapture={() => setPointed(true)}
-                className={`liquid-glass-panel sticky top-20 z-20 rounded-2xl p-2 transition-[width] duration-200 md:absolute md:top-0 md:left-0 ${
-                  // Opaque while it is over the grid. Glass takes its
-                  // contrast from what is behind it, and what is behind it
-                  // here is a wall of product photographs — the section names
-                  // were legible until a white sticker slid under them.
-                  pointed
-                    ? 'md:w-64 md:bg-app/95 md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)] md:backdrop-blur-2xl'
-                    : 'md:w-48'
-                }`}
+                className="liquid-glass-panel sticky top-20 z-20 rounded-2xl p-2 md:static md:w-full"
               >
                 <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] md:max-h-[70vh] md:flex-col md:overflow-x-visible md:overflow-y-auto [&::-webkit-scrollbar]:hidden">
                   <button
