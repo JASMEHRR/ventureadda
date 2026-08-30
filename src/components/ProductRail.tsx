@@ -33,8 +33,11 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
   const priced = typeof item.price === 'number'
 
+  // Narrower on a phone than on a desktop: at 208px a single tile was
+  // two-thirds of a 375px screen, so the row read as one enormous card rather
+  // than as a row you can push. 176px shows two and a half.
   return (
-    <div className="liquid-glass-panel flex w-52 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-56">
+    <div className="liquid-glass-panel flex w-44 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-56">
       <Link to={venturePath(venture)} className="block">
         <span className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
           {item.photo ? (
