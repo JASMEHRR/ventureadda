@@ -24,6 +24,19 @@ export type StoredImage = {
    * VentureDetail prints it.
    */
   credit?: ImageCredit
+  /**
+   * Show the whole picture on white rather than cropping it to fill.
+   *
+   * For product shots — a packet of Kurkure photographed front-on against a
+   * plain ground. Cropping one of those to a square takes the ends off the
+   * packet, which is the part with the name on it. Padding shows all of it and
+   * puts the leftover space on white, which is also what makes a grid of
+   * mixed-shape packets look like a shelf rather than a collage.
+   *
+   * Absent on a seller's own photographs, which are framed the way they framed
+   * them and should fill the tile.
+   */
+  padWhite?: boolean
 }
 
 export type ImageCredit = {

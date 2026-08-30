@@ -34,6 +34,8 @@ export type UploadedImage = {
   url: string
   /** Required to delete the asset later; the URL alone is not enough. */
   publicId: string
+  /** See StoredImage.padWhite. Carried here so displayUrl can honour it. */
+  padWhite?: boolean
 }
 
 export function validateImage(file: File): string | null {
@@ -107,7 +109,13 @@ export function imageUrl(publicId: string, width: 400 | 800 | 1200): string {
  * one and gets the transformation treatment.
  */
 export function displayUrl(image: UploadedImage, width: 400 | 800 | 1200): string {
-  return image.publicId ? imageUrl(image.publicId, width) : image.url
+  if (!image.publicId) return image.url
+  // Product shots are padded onto white instead of cropped — see
+  // StoredImage.padWhite for why. Square, because every tile that shows one is.
+  if (image.padWhite) {
+    return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto,w_${width},h_${width},c_pad,b_white/${image.publicId}`
+  }
+  return imageUrl(image.publicId, width)
 }
 
 /**

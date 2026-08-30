@@ -13,12 +13,30 @@
  * something. That is the whole of copyright infringement, and it does not stop
  * being that because a search engine was in the middle.
  *
- * So this searches Wikimedia Commons, which is the largest library of openly
- * licensed photographs there is and is built to be queried by software. Every
- * file there carries its licence and its author in metadata, both of which
- * come back with the result, get stored on the image, and are printed at the
- * foot of the venture page. The credit is not decoration — it is the condition
- * the photograph is being used under.
+ * TWO LIBRARIES, and the first one is the reason this is useful for the shops
+ * on this site at all.
+ *
+ * Open Food Facts is a co-operative product database: packaged food and drink,
+ * photographed front-on against a plain background, by barcode. That is
+ * exactly what a hostel snack shop sells — Kurkure, Lay's, Maggi, Dairy Milk,
+ * Monster Ultra White — and it is the one source where searching a brand name
+ * returns that brand's actual product rather than something adjacent. Its
+ * photographs are contributed under CC BY-SA, so they can be used here with a
+ * credit, which is what the credit line is for.
+ *
+ * Wikimedia Commons is the fallback and covers everything that is not a
+ * packaged product: brownies, cold coffee, earrings, crochet.
+ *
+ * Every result from either carries its licence and its author, both of which
+ * get stored on the image and printed at the foot of the venture page. The
+ * credit is not decoration — it is the condition the photograph is being used
+ * under.
+ *
+ * WHAT THIS IS NOT, and was asked for: Amazon's product images. Reselling a
+ * thing you bought is lawful and has nothing to do with it — the photograph is
+ * a separate work with its own copyright, held by whoever shot it, and
+ * Amazon's terms forbid reuse besides. Open Food Facts is the version of that
+ * idea which does not depend on nobody minding.
  *
  * OPENVERSE WAS THE FIRST CHOICE and is not reachable from here: its API
  * accepted the same query from a laptop and never answered it from Vercel's
@@ -35,7 +53,14 @@
  */
 export const config = { runtime: 'edge' }
 
-const ENDPOINT = 'https://commons.wikimedia.org/w/api.php'
+const COMMONS = 'https://commons.wikimedia.org/w/api.php'
+const OFF = 'https://world.openfoodfacts.org/cgi/search.pl'
+
+/**
+ * Both libraries ask callers to identify themselves and rate-limit the ones
+ * that do not. Open Food Facts asks for a contact address specifically.
+ */
+const AGENT = 'VentureAdda/1.0 (https://ventureadda.vercel.app; jasmehr2005@gmail.com)'
 
 /** Enough to choose from, few enough to look at. */
 const RESULTS = 12
@@ -108,11 +133,79 @@ function usable(licence: string): boolean {
   )
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  const query = (new URL(request.url).searchParams.get('q') ?? '').trim().slice(0, MAX_QUERY)
-  if (query.length < 2) return json({ results: [] }, 200)
+type Found = {
+  id: string
+  url: string
+  thumbnail: string
+  title: string
+  creator: string
+  license: string
+  source: string
+  /** A front-on product shot on a plain ground, rather than a photograph of a
+   *  thing in a place. The client pads these onto white. */
+  product: boolean
+}
 
-  const search = new URL(ENDPOINT)
+/**
+ * Packaged products, by brand or name.
+ *
+ * Photographs on Open Food Facts are contributed under CC BY-SA, credited to
+ * the project rather than to individual photographers — which is how the
+ * project itself asks to be credited.
+ */
+async function searchProducts(query: string): Promise<Found[]> {
+  const search = new URL(OFF)
+  search.searchParams.set('search_terms', query)
+  search.searchParams.set('search_simple', '1')
+  search.searchParams.set('action', 'process')
+  search.searchParams.set('json', '1')
+  search.searchParams.set('page_size', '8')
+  search.searchParams.set('fields', 'product_name,brands,image_front_url,image_front_small_url,code')
+
+  let response: Response
+  try {
+    response = await fetch(search, {
+      headers: { 'user-agent': AGENT, accept: 'application/json' },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    })
+  } catch {
+    return []
+  }
+  // 503 here means their search is busy, which it often is. The Commons half
+  // still answers, so this is a thinner result rather than a failed one.
+  if (!response.ok) return []
+
+  const payload = (await response.json().catch(() => null)) as {
+    products?: {
+      product_name?: string
+      brands?: string
+      image_front_url?: string
+      image_front_small_url?: string
+      code?: string
+    }[]
+  } | null
+
+  return (payload?.products ?? []).flatMap((item) => {
+    if (!item.image_front_url) return []
+    const name = [item.brands?.split(',')[0], item.product_name].filter(Boolean).join(' ').trim()
+    return [
+      {
+        id: item.code ? `off-${item.code}` : item.image_front_url,
+        url: item.image_front_url,
+        thumbnail: item.image_front_small_url ?? item.image_front_url,
+        title: (name || 'Product').slice(0, 120),
+        creator: 'Open Food Facts contributors',
+        license: 'CC BY-SA 3.0',
+        source: item.code ? `https://world.openfoodfacts.org/product/${item.code}` : '',
+        product: true,
+      },
+    ]
+  })
+}
+
+/** Everything that is not a packaged product. */
+async function searchCommons(query: string): Promise<Found[]> {
+  const search = new URL(COMMONS)
   search.searchParams.set('action', 'query')
   search.searchParams.set('generator', 'search')
   // Bitmaps only, in the File namespace: no SVG diagrams, no PDFs, no audio.
@@ -131,24 +224,14 @@ export default async function handler(request: Request): Promise<Response> {
   let response: Response
   try {
     response = await fetch(search, {
-      headers: {
-        // Wikimedia asks every client to identify itself and rate-limits the
-        // ones that do not.
-        'user-agent': 'VentureAdda/1.0 (https://ventureadda.vercel.app; campus marketplace)',
-        accept: 'application/json',
-      },
+      headers: { 'user-agent': AGENT, accept: 'application/json' },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })
   } catch {
-    return json(
-      { error: 'The photo library did not answer. Try again in a moment.', code: 'unreachable' },
-      502,
-    )
+    return []
   }
 
-  if (!response.ok) {
-    return json({ error: 'The photo library refused that search.', code: 'upstream' }, 502)
-  }
+  if (!response.ok) return []
 
   const payload = (await response.json().catch(() => null)) as {
     query?: { pages?: Record<string, CommonsPage> }
@@ -156,7 +239,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   const pages = Object.values(payload?.query?.pages ?? {})
 
-  const results = pages
+  return pages
     .flatMap((page) => {
       const info = page.imageinfo?.[0]
       const meta = info?.extmetadata ?? {}
@@ -164,6 +247,7 @@ export default async function handler(request: Request): Promise<Response> {
       if (!info?.url || !info.thumburl || !usable(license)) return []
       return [
         {
+          product: false,
           id: info.descriptionurl ?? info.url,
           // The rendition, never the original: see iiurlwidth above.
           url: info.thumburl,
@@ -179,7 +263,19 @@ export default async function handler(request: Request): Promise<Response> {
         },
       ]
     })
-    .slice(0, RESULTS)
+}
+
+export default async function handler(request: Request): Promise<Response> {
+  const query = (new URL(request.url).searchParams.get('q') ?? '').trim().slice(0, MAX_QUERY)
+  if (query.length < 2) return json({ results: [] }, 200)
+
+  // Both at once: one slow library should not hold up the other, and either
+  // failing on its own leaves a shorter list rather than an error.
+  const [products, photos] = await Promise.all([searchProducts(query), searchCommons(query)])
+
+  // Product shots first. Somebody typing "kurkure" wants the packet, and a
+  // photograph of a bowl of snacks is the second-best answer, not the first.
+  const results = [...products, ...photos].slice(0, RESULTS)
 
   return json({ results }, 200)
 }

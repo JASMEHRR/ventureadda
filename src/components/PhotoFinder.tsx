@@ -35,6 +35,8 @@ type Candidate = {
   creator: string
   license: string
   source: string
+  /** A front-on product shot. Padded onto white rather than cropped. */
+  product?: boolean
 }
 
 export default function PhotoFinder({
@@ -98,6 +100,7 @@ export default function PhotoFinder({
       )
       onPick({
         ...stored,
+        padWhite: candidate.product === true,
         credit: {
           creator: candidate.creator,
           license: candidate.license,
@@ -116,10 +119,10 @@ export default function PhotoFinder({
     <Modal open={open} onClose={onClose} title="Find a photo">
       <div className="space-y-4">
         <p className="text-[15.5px] leading-relaxed text-white/60">
-          Describe the item and pick a picture. These come from a library of openly licensed
-          photographs, so everyday things — brownies, cold coffee, earrings, stickers — turn up
-          plenty. A particular brand of drink or a specific product will not: photograph those
-          yourself.
+          Describe the item and pick a picture. Packaged things you resell — Kurkure, Lay's,
+          Maggi, a Monster — come back as the actual packet on a plain background. Everything
+          else, like a brownie or a beanie, comes from a photo library. Anything you make
+          yourself is still better photographed.
         </p>
 
         <div className="flex gap-2">
