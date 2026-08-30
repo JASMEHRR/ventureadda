@@ -261,7 +261,7 @@ export default function Products() {
               hides the answer while you look for it. */}
           {tree.length > 0 && (
             <div
-              className={`shrink-0 transition-[width] duration-200 ease-out md:sticky md:top-24 md:self-start ${
+              className={`shrink-0 transition-[width] duration-300 ease-out md:sticky md:top-24 md:self-start ${
                 pointed ? 'md:w-64' : 'md:w-48'
               }`}
             >
@@ -306,7 +306,7 @@ export default function Products() {
                             <ChevronRight
                               size={13}
                               aria-hidden="true"
-                              className={`shrink-0 text-white/55 transition-transform duration-150 ${
+                              className={`shrink-0 text-white/55 transition-transform duration-300 ${
                                 open ? 'rotate-90' : ''
                               }`}
                             />
@@ -329,7 +329,7 @@ export default function Products() {
                             nobody has measured — and with motion off it is
                             simply the same list, appearing. */}
                         <div
-                          className={`hidden overflow-hidden transition-[grid-template-rows] duration-200 ease-out md:grid ${
+                          className={`hidden overflow-hidden transition-[grid-template-rows] duration-300 ease-out md:grid ${
                             open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
                           }`}
                         >

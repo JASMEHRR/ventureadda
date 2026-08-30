@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-react'
-import Logo, { LogoMark } from '../ui/Logo'
+import { LogoMark } from '../ui/Logo'
 import { useHoverIntent } from '../../hooks/useHoverIntent'
 import type { NavItem } from '../../navigation'
 import {
@@ -138,8 +138,10 @@ function SidebarLink({
               Fading it as well as clipping it keeps the last letters from
               looking chopped off mid-slide. */}
           <span
-            className={`flex min-w-0 flex-1 items-center gap-2 transition-opacity duration-150 ${
-              collapsed ? 'opacity-0' : 'opacity-100'
+            // Delayed on the way in so the text arrives in a panel that is
+            // already most of the way open, rather than sliding along with it.
+            className={`flex min-w-0 flex-1 items-center gap-2 transition-opacity duration-200 ${
+              collapsed ? 'opacity-0' : 'opacity-100 delay-100'
             }`}
           >
             <span
@@ -220,7 +222,7 @@ export default function Sidebar({
       bar is the navigation and this renders nothing.
     */
     <div
-      className={`hidden shrink-0 self-start transition-[width] duration-200 ease-out md:sticky md:top-6 md:block ${
+      className={`hidden shrink-0 self-start transition-[width] duration-300 ease-out md:sticky md:top-6 md:block ${
         // 4.25rem is not a round number picked by eye: it is the panel's own
         // padding twice (2 x 0.75rem), the row's twice (2 x 0.625rem) and the
         // 1.5rem glyph column between them. Any other width puts every icon
@@ -248,16 +250,26 @@ export default function Sidebar({
           <LogoMark size={22} className="text-brand-400" />
         </Link>
 
+        {/* `expanded`, not `collapsed`. These read the pinned preference,
+            which stays "collapsed" all the way through a hover — so opening
+            the sidebar by pointing at it revealed the nav labels and left the
+            wordmark and the Add venture button blank. */}
         <span
-          className={`min-w-0 flex-1 transition-opacity duration-150 ${
-            collapsed ? 'opacity-0' : 'opacity-100'
+          className={`min-w-0 flex-1 transition-opacity duration-200 ${
+            expanded ? 'opacity-100 delay-100' : 'opacity-0'
           }`}
         >
           <span className="block font-mono text-[12px] font-extrabold tracking-[0.28em] whitespace-nowrap text-white/60 uppercase">
             Thapar
           </span>
-          <Link to="/browse" className="mt-0.5 block">
-            <Logo />
+          {/* The wordmark only. Logo draws the mark as well, and the mark is
+              already sitting in the column to the left of this — expanding the
+              sidebar showed the V twice. */}
+          <Link
+            to="/browse"
+            className="mt-0.5 block text-[21px] font-extrabold tracking-tight whitespace-nowrap text-white"
+          >
+            VentureAdda
           </Link>
         </span>
 
@@ -267,8 +279,8 @@ export default function Sidebar({
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-expanded={!collapsed}
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 transition duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94] ${
-            collapsed ? 'opacity-0' : 'opacity-100'
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 transition duration-200 hover:bg-white/10 hover:text-white active:scale-[0.94] ${
+            expanded ? 'opacity-100 delay-100' : 'opacity-0'
           }`}
         >
           {collapsed ? (
@@ -313,8 +325,8 @@ export default function Sidebar({
           <Plus size={15} aria-hidden="true" />
         </span>
         <span
-          className={`font-mono text-[14px] font-extrabold tracking-wider whitespace-nowrap uppercase transition-opacity duration-150 ${
-            collapsed ? 'opacity-0' : 'opacity-100'
+          className={`font-mono text-[14px] font-extrabold tracking-wider whitespace-nowrap uppercase transition-opacity duration-200 ${
+            expanded ? 'opacity-100 delay-100' : 'opacity-0'
           }`}
         >
           Add venture
@@ -322,8 +334,8 @@ export default function Sidebar({
       </Link>
 
       <p
-        className={`mt-6 px-2 pb-1 font-mono text-[12.5px] tracking-[0.18em] whitespace-nowrap text-white/50 uppercase transition-opacity duration-150 ${
-          collapsed ? 'opacity-0' : 'opacity-100'
+        className={`mt-6 px-2 pb-1 font-mono text-[12.5px] tracking-[0.18em] whitespace-nowrap text-white/50 uppercase transition-opacity duration-200 ${
+          expanded ? 'opacity-100 delay-100' : 'opacity-0'
         }`}
       >
         No payments on site
