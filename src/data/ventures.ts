@@ -80,6 +80,9 @@ function toVenture(snapshot: QueryDocumentSnapshot<DocumentData>): Venture {
         )
       : [],
     kind: typeof data.kind === 'string' ? data.kind.trim() : '',
+    // Firestore hands back a Timestamp, and null in the instant before a
+    // server timestamp resolves on the writer's own screen.
+    updatedAt: data.updatedAt?.toDate?.() ?? null,
     // Absent on every venture written before this setting existed, and off is
     // the behaviour those had.
     brandLogos: data.brandLogos === true,
@@ -417,6 +420,17 @@ export async function backfillSlugs(): Promise<number> {
   return named
 }
 
+/**
+ * "Yes, this is still right" — the whole of it.
+ *
+ * One field, so a seller can answer the staleness question in a tap instead of
+ * opening a form of thirty items to change nothing and press Save. The rules
+ * treat it as an ordinary owner edit, which it is.
+ */
+export async function touchVenture(ventureId: string): Promise<void> {
+  await updateDoc(doc(venturesRef, ventureId), { updatedAt: serverTimestamp() })
+}
+
 export async function listVenturesByOwner(ownerId: string): Promise<Venture[]> {
   const snapshot = await getDocs(query(venturesRef, where('ownerId', '==', ownerId)))
   return snapshot.docs.map(toVenture)
@@ -549,6 +563,7 @@ export async function createVenture(
     ...(logo ? { logo } : {}),
     status: 'pending',
     clickCount: 0,
+    updatedAt: serverTimestamp(),
     // Only written when true, so real submissions carry no such field at all.
     ...(options.isDemo ? { isDemo: true } : {}),
     createdAt: serverTimestamp(),
@@ -635,6 +650,10 @@ export async function updateVenture(
     // Only when a claim succeeded. Writing null would strip a slug the
     // venture already has because today's claim happened to fail.
     ...(slug ? { slug } : {}),
+    // See Venture.updatedAt. Stamped on every save rather than only on the
+    // ones that changed something, because "I looked at it and it is still
+    // right" is exactly the confirmation this field exists to record.
+    updatedAt: serverTimestamp(),
   })
 
   for (const item of items) {

@@ -85,6 +85,20 @@ export type Venture = {
    */
   kind: string
   /**
+   * When the seller last touched this listing, by their own hand.
+   *
+   * NOT A DISPLAY DETAIL — it is the only way anyone can tell a shop that is
+   * still trading from one that closed in April. Sold-out is a switch somebody
+   * has to remember to flip, and the ones who stop selling are exactly the ones
+   * who stop coming back to flip it, so the menu goes on offering things that
+   * are not there.
+   *
+   * Absent on every venture written before this existed, and absent is not
+   * "stale": nothing can be said about a listing whose last edit was never
+   * recorded, so the reader shows nothing at all rather than guessing.
+   */
+  updatedAt?: Date | null
+  /**
    * Draw items with no photograph as the logo of the brand they name.
    *
    * OFF UNLESS THE SELLER SAYS OTHERWISE, and that is the whole point of it

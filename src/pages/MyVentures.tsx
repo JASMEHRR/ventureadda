@@ -8,7 +8,9 @@ import Modal from '../components/ui/Modal'
 import ChooseUsername from './ChooseUsername'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { deleteVenture, listMenuItems, listVenturesForUser } from '../data/ventures'
+import { deleteVenture, listMenuItems, listVenturesForUser, touchVenture } from '../data/ventures'
+import PushToggle from '../components/PushToggle'
+import { STALE_DAYS, ago, daysSince } from '../data/freshness'
 import type { Venture } from '../data/ventures'
 import { categoryName } from '../data/types'
 
@@ -42,6 +44,9 @@ export default function MyVentures() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  /** Confirmed in this session, so the row stops asking before the refetch. */
+  const [confirmed, setConfirmed] = useState<string[]>([])
+  const [confirming, setConfirming] = useState<string | null>(null)
   /** Deleted this session, so the list can drop them before the refetch lands. */
   const [removed, setRemoved] = useState<string[]>([])
 
@@ -93,6 +98,28 @@ export default function MyVentures() {
     }
   }
 
+  /**
+   * "Still right" — one tap, one field.
+   *
+   * Optimistic: the row stops asking the moment it is pressed, because the
+   * only thing worse than a nudge is a nudge that stays on screen after you
+   * have answered it. A failure puts it back with the reason.
+   */
+  const confirmFresh = async (id: string) => {
+    setConfirming(id)
+    setDeleteError(null)
+    try {
+      await touchVenture(id)
+      setConfirmed((prev) => [...prev, id])
+    } catch (cause) {
+      setDeleteError(
+        cause instanceof Error ? cause.message : 'Could not save that. Try again in a moment.',
+      )
+    } finally {
+      setConfirming(null)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <header className="liquid-glass-panel flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-4">
@@ -119,6 +146,15 @@ export default function MyVentures() {
       )}
 
       {!mine.data && !mine.error && <LoadingLine label="Loading your ventures…" />}
+
+      {/* THE PROMPT LIVES WHERE THE SELLER IS. Push has worked for a while and
+          almost nobody has it on, because the only two places offering it were
+          Settings and the orders page — one that sellers open once, and one
+          they only open after they already know an order exists. This is the
+          page they come back to. It renders nothing at all on a deployment
+          with no push key and on a browser that cannot receive push, and it
+          never asks for permission on its own — see PushToggle. */}
+      {mine.data && listed.length > 0 && <PushToggle uid={profile.uid} />}
 
       {mine.data && listed.length === 0 && (
         <EmptyState
@@ -166,6 +202,39 @@ export default function MyVentures() {
                     No items yet — add them so buyers have something to tap.
                   </p>
                 )}
+
+                {/* THE STALENESS QUESTION, asked once and answerable in a tap.
+                    A seller who has stopped selling is the one who never comes
+                    back to mark anything sold out, so the menu keeps offering
+                    what is not there. Only on live listings: a pending one is
+                    waiting on a moderator, not on its owner. */}
+                {(() => {
+                  const at = venture.updatedAt
+                  if (!at || venture.status !== 'live') return null
+                  const days = daysSince(at)
+                  if (confirmed.includes(venture.id)) {
+                    return (
+                      <p className="mt-1 text-[15px] text-white/55">Updated just now. Thanks.</p>
+                    )
+                  }
+                  if (days < STALE_DAYS) {
+                    return <p className="mt-1 text-[15px] text-white/55">Updated {ago(days)}</p>
+                  }
+                  return (
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-amber-400">
+                      <AlertTriangle size={11} aria-hidden="true" className="shrink-0" />
+                      Not touched since {ago(days)}. Is the menu still right?
+                      <button
+                        type="button"
+                        onClick={() => void confirmFresh(venture.id)}
+                        disabled={confirming === venture.id}
+                        className="rounded-lg border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 font-mono text-[12.5px] font-bold tracking-wider text-amber-300 uppercase transition duration-150 hover:bg-amber-500/25 active:scale-[0.96] disabled:opacity-50"
+                      >
+                        {confirming === venture.id ? 'Saving' : 'Still right'}
+                      </button>
+                    </p>
+                  )
+                })()}
               </div>
               <span
                 className={`shrink-0 rounded-full border px-2.5 py-1 font-mono text-[12.5px] font-bold tracking-wider uppercase ${
