@@ -239,9 +239,13 @@ export default function Products() {
 
       {products.data && (
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
-          {/* SEGMENT ONE: what is on the site, in two levels. */}
+          {/* SEGMENT ONE: what is on the site, in two levels.
+
+              z-20 against the sidebar's z-40: both are sticky boxes, and the
+              sidebar opening over this one is right — it is the thing the
+              reader just pointed at. See the note in Sidebar. */}
           {tree.length > 0 && (
-            <div className="shrink-0 md:sticky md:top-24 md:w-48 md:self-start">
+            <div className="z-20 shrink-0 md:sticky md:top-24 md:w-48 md:self-start">
               <nav
                 aria-label="Sections"
                 onMouseEnter={() => setPointed(true)}
