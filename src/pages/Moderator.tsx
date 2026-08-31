@@ -45,9 +45,12 @@ import {
   setBackdrop,
   setBackdropLight,
   setEmailSignIn,
+  setLandingCopy,
+  LANDING_DEFAULTS,
   setMaintenance,
   setSellerContact,
 } from '../data/settings'
+import type { LandingCopy } from '../data/settings'
 import type { MaintenanceWindow } from '../data/settings'
 import {
   approveEmail,
@@ -310,6 +313,107 @@ function TrafficPanel({ days }: { days: TrafficDay[] }) {
   )
 }
 
+/**
+ * The words on the front page, editable without a deploy.
+ *
+ * WHY THIS IS A SETTING. The hook is a guess. Nobody knows whether "Hungry?"
+ * or "Don't order out" or naming the goods is what makes a student stop
+ * scrolling, and the only way to find out is to change it on a Tuesday and
+ * watch. Needing a developer for that is what stops it ever being tried.
+ *
+ * Empty means the wording shipped in the code, and the placeholder shows what
+ * that is — so clearing a field is the reset, and there is no separate button
+ * that has to explain itself.
+ */
+function LandingCopyPanel({
+  current,
+  busy,
+  onSave,
+}: {
+  current: LandingCopy
+  busy: boolean
+  onSave: (copy: LandingCopy) => void
+}) {
+  const [draft, setDraft] = useState<LandingCopy>(current)
+  // The saved values arrive a moment after the first render, and a form that
+  // ignores them shows empty boxes over words that are on the live site.
+  const [seeded, setSeeded] = useState(false)
+  if (!seeded && Object.keys(current).length > 0) {
+    setDraft(current)
+    setSeeded(true)
+  }
+
+  const set = (key: keyof LandingCopy) => (event: { target: { value: string } }) =>
+    setDraft((prev) => ({ ...prev, [key]: event.target.value }))
+
+  return (
+    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+        Front page words
+      </h2>
+      <p className="text-[15px] leading-relaxed text-white/60">
+        What a first-time visitor reads. Leave a box empty to go back to the wording the site
+        ships with, which is what the grey text in each box shows.
+      </p>
+
+      <TextField
+        id="landing-hook"
+        label="Hook"
+        hint="The first word or two, largest on the page."
+        maxLength={40}
+        value={draft.hook ?? ''}
+        onChange={set('hook')}
+        placeholder={LANDING_DEFAULTS.hook}
+      />
+      <TextField
+        id="landing-line"
+        label="The line under it"
+        maxLength={90}
+        value={draft.line ?? ''}
+        onChange={set('line')}
+        placeholder={LANDING_DEFAULTS.line}
+      />
+      <TextField
+        id="landing-sub"
+        label="The sentence under both"
+        hint="Name what is actually for sale here."
+        maxLength={200}
+        value={draft.sub ?? ''}
+        onChange={set('sub')}
+        placeholder={LANDING_DEFAULTS.sub}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextField
+          id="landing-buy"
+          label="Buyer's button"
+          maxLength={40}
+          value={draft.buyLabel ?? ''}
+          onChange={set('buyLabel')}
+          placeholder={LANDING_DEFAULTS.buyLabel}
+        />
+        <TextField
+          id="landing-sell"
+          label="Seller's button"
+          maxLength={40}
+          value={draft.sellLabel ?? ''}
+          onChange={set('sellLabel')}
+          placeholder={LANDING_DEFAULTS.sellLabel}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Button onClick={() => onSave(draft)} loading={busy}>
+          Save the words
+        </Button>
+        <Button variant="secondary" to="/welcome">
+          See the page
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function Moderator() {
   const { profile, status } = useAuth()
   const [tab, setTab] = useState<Tab>('pending')
@@ -515,6 +619,12 @@ export default function Moderator() {
       </div>
 
       <TrafficPanel days={traffic.data ?? []} />
+
+      <LandingCopyPanel
+        current={settings.data?.landing ?? {}}
+        busy={busy}
+        onSave={(copy) => void act(() => setLandingCopy(copy), 'The front page now says that.')}
+      />
 
       <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">

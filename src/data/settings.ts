@@ -1,4 +1,4 @@
-import { deleteField, doc, getDoc, setDoc } from 'firebase/firestore'
+import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import type { StoredImage } from './types'
 import type { MaintenanceWindow } from './maintenance'
@@ -57,6 +57,47 @@ export type SiteSettings = {
    * whole load until there is a mail budget to spend.
    */
   emailSignIn?: boolean
+  /**
+   * The words on the front page.
+   *
+   * EDITABLE BECAUSE THEY ARE A GUESS. Nobody knows which line makes a
+   * student stop scrolling — "Hungry?" is a hypothesis, and the only way to
+   * find out is to change it on a Tuesday and see. That is a bad reason to
+   * need a developer and a deploy, so it lives here with the backdrop and the
+   * maintenance window: a moderator types it and the site says it.
+   *
+   * Absent means the wording shipped in the code, which is what every visitor
+   * saw before this existed and what a reset goes back to.
+   */
+  landing?: LandingCopy
+}
+
+export type LandingCopy = {
+  /** The hook, on its own line and largest. "Hungry?" */
+  hook?: string
+  /** The answer under it. "Someone on campus is already selling it." */
+  line?: string
+  /** The sentence under both, naming what is actually for sale. */
+  sub?: string
+  /** The buyer's door. "See what's on sale" */
+  buyLabel?: string
+  /** The seller's door. "Sell something" */
+  sellLabel?: string
+}
+
+/**
+ * The wording the site ships with.
+ *
+ * Here rather than inside the page so the moderator's form can show each one
+ * as its placeholder: an empty box that displays what will be used is a reset
+ * button that needs no explaining.
+ */
+export const LANDING_DEFAULTS: Required<LandingCopy> = {
+  hook: 'Hungry?',
+  line: 'Someone on campus is already selling it.',
+  sub: 'Brownies at midnight, stickers, crochet, subscriptions, a cold drink two floors down. Run by students, a walk away, no delivery fee.',
+  buyLabel: "See what's on sale",
+  sellLabel: 'Sell something',
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -89,6 +130,24 @@ export async function setEmailSignIn(enabled: boolean): Promise<void> {
 /** Whether checkout offers "the seller contacts me". Off when unset. */
 export async function setSellerContact(enabled: boolean): Promise<void> {
   await setDoc(settingsRef, { sellerContact: enabled }, { merge: true })
+}
+
+/**
+ * The front page's words. null on a field resets that one to the shipped copy.
+ *
+ * Written field by field rather than as a whole object so clearing the hook
+ * does not take the sub-line with it, and so a future field added in code is
+ * not wiped by a moderator saving an older form.
+ */
+export async function setLandingCopy(copy: LandingCopy): Promise<void> {
+  const patch: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(copy)) {
+    patch[`landing.${key}`] = value.trim() === '' ? deleteField() : value.trim()
+  }
+  // The dotted paths above need the document to exist; on a fresh project it
+  // does not until something writes to it.
+  await setDoc(settingsRef, {}, { merge: true })
+  await updateDoc(settingsRef, patch)
 }
 
 /** null cancels a scheduled window. */

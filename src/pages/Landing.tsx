@@ -19,6 +19,7 @@ import VentureCard from '../components/ui/VentureCard'
 import { categoryName } from '../data/types'
 import type { Venture } from '../data/types'
 import { listProducts, listVentures } from '../data/ventures'
+import { LANDING_DEFAULTS, getSiteSettings } from '../data/settings'
 import { shelves, topPicks } from '../data/products'
 import ProductRail from '../components/ProductRail'
 import { useAsyncData } from '../hooks/useAsyncData'
@@ -262,6 +263,17 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
   const products = useAsyncData(() => listProducts(), [])
 
   /**
+   * The words, which a moderator can change without a deploy.
+   *
+   * One extra read on a page that already makes two, and it is the cheapest of
+   * the three — the settings document is a single doc that the backdrop and
+   * the maintenance gate already fetch. Falls back to the shipped copy while
+   * it is in flight, so the page never renders wordless.
+   */
+  const settings = useAsyncData(() => getSiteSettings(), [])
+  const words = { ...LANDING_DEFAULTS, ...(settings.data?.landing ?? {}) }
+
+  /**
    * What is actually for sale, on the buyer's door.
    *
    * Only once it is known — a door promising "0 things · 0 shops" for the
@@ -356,14 +368,11 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
                   site; this one asks the reader something they are probably
                   already feeling at 1am in a hostel. */}
               <h1 className="mt-4 text-[46px] leading-[0.94] font-extrabold tracking-tight text-white sm:text-6xl lg:text-[68px]">
-                Hungry?
-                <span className="mt-2 block text-balance">
-                  Someone on campus is already selling it.
-                </span>
+                {words.hook}
+                <span className="mt-2 block text-balance">{words.line}</span>
               </h1>
               <p className="mt-6 max-w-lg text-[17.5px] leading-relaxed text-white/70 sm:text-[19px]">
-                Brownies at midnight, stickers, crochet, subscriptions, a cold drink two floors
-                down. Run by students, a walk away, no delivery fee.
+                {words.sub}
               </p>
             </div>
 
@@ -378,7 +387,7 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
                 className="liquid-glass-highlight group flex flex-col justify-between gap-6 rounded-3xl border border-brand-500/40 bg-brand-500/15 px-6 py-6 transition duration-200 hover:bg-brand-500/25 active:scale-[0.99] sm:min-h-56"
               >
                 <span className="block text-[26px] leading-tight font-extrabold tracking-tight text-white sm:text-[30px]">
-                  See what&rsquo;s on sale
+                  {words.buyLabel}
                 </span>
                 <span className="flex items-end justify-between gap-3">
                   <span className="font-mono text-[13px] leading-snug tracking-wider text-brand-200 uppercase">
@@ -405,7 +414,7 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
                 className="liquid-glass-panel group flex flex-col justify-between gap-6 rounded-3xl px-6 py-6 transition duration-200 hover:bg-white/[0.08] active:scale-[0.99] sm:min-h-56"
               >
                 <span className="block text-[26px] leading-tight font-extrabold tracking-tight text-white sm:text-[30px]">
-                  Sell something
+                  {words.sellLabel}
                 </span>
                 <span className="flex items-end justify-between gap-3">
                   <span className="font-mono text-[13px] leading-snug tracking-wider text-white/60 uppercase">
