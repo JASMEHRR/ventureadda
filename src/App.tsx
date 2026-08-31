@@ -69,6 +69,11 @@ export default function App() {
               filters, account — and none of it means anything to someone who
               does not yet know what the site is. */}
           <Route index element={<Landing />} />
+          {/* The introduction, on demand. `/` sends anybody who has been
+              inside straight to the app, so this is the way back to the
+              explanation — and the link to send someone who asks what this
+              is. */}
+          <Route path="welcome" element={<Landing always />} />
 
           <Route element={<AppShell />}>
             <Route path="browse" element={<Browse />} />

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { rememberVisit } from '../../lib/firstVisit'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import MobileNav from './MobileNav'
@@ -34,6 +35,11 @@ import type { SearchScope } from './useShellSearch'
  */
 export default function AppShell() {
   const { pathname } = useLocation()
+
+  // Anybody rendering the shell is inside the app, which is the whole test:
+  // the front page stops introducing itself to people who have already been
+  // through it. See lib/firstVisit.
+  useEffect(() => rememberVisit(), [])
   const { profile, canPost, isOwner, status } = useAuth()
 
   /**

@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { hasBeenInside } from '../lib/firstVisit'
 import {
   ArrowRight,
   Clock,
@@ -187,8 +189,36 @@ function Eyebrow({ children }: { children: string }) {
   )
 }
 
-export default function Landing() {
+export default function Landing({ always = false }: { always?: boolean } = {}) {
   const { status } = useAuth()
+
+  /**
+   * THE FRONT DOOR IS FOR PEOPLE WHO HAVE NOT BEEN IN.
+   *
+   * Read once, at mount, rather than watched: this decides which page you are
+   * on, and a value that changes underneath would swap the page out while
+   * somebody is reading it.
+   *
+   * Signed in counts as having been inside even on a new device — an account
+   * here means the site has already been explained. `always` is the escape
+   * hatch for /welcome, which is how anybody who wants the introduction again
+   * can get it, and how this page stays testable.
+   */
+  /**
+   * Whether the doors have scrolled away, which is when the following bar
+   * earns its place. A scroll listener rather than an observer because it is
+   * one number against one number, and it is passive.
+   */
+  const [pastHero, setPastHero] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setPastHero(window.scrollY > 520)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const [returning] = useState(() => !always && hasBeenInside())
+  if (returning || (!always && status === 'ready')) return <Navigate to="/browse" replace />
 
   // One public read, and the landing page is worth it: this is the only thing
   // on the page that proves the site has anything on it. A failed or empty
@@ -215,6 +245,20 @@ export default function Landing() {
    * Products are the best thing on it, not the thing holding it up.
    */
   const products = useAsyncData(() => listProducts(), [])
+
+  /**
+   * What is actually for sale, on the buyer's door.
+   *
+   * Only once it is known — a door promising "0 things · 0 shops" for the
+   * second it takes to load is worse than a door that says what it is for.
+   */
+  const stock =
+    products.data && products.data.length > 0
+      ? {
+          items: products.data.length,
+          shops: new Set(products.data.map((match) => match.venture.id)).size,
+        }
+      : null
   // Fewer, shorter rows than the data could fill. Six shelves of twelve was a
   // wall of small cards, and a home page is meant to show a few things
   // clearly and send you to /products for the rest.
@@ -264,30 +308,102 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero */}
-      <Section width="max-w-5xl" className="pt-10 pb-10 sm:pt-16 sm:pb-14">
-        <Reveal className="text-center">
-          <Eyebrow>Thapar Institute</Eyebrow>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-balance text-white sm:text-5xl">
-            Every venture on campus, one adda.
-          </h1>
-          {/* white/70, not the white/45 used for body copy on glass. This sits
-              on the bare photographic backdrop, which supplies no dark fill of
-              its own. */}
-          <p className="mx-auto mt-5 max-w-2xl text-[18px] leading-relaxed text-white/70 sm:text-[19px]">
-            Students at Thapar are baking, thrifting, printing, repairing and selling — and
-            all of it lives in WhatsApp messages that scroll away by evening. VentureAdda puts
-            every one of them in a single place you can search.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button to="/browse">
-              Browse ventures
-              <ArrowRight size={13} aria-hidden="true" />
-            </Button>
-            <Button variant="secondary" to="/add">
-              <Plus size={13} aria-hidden="true" />
-              Add your venture
-            </Button>
+      {/*
+        TWO DOORS, AND ALMOST NOTHING ELSE ABOVE THE FOLD.
+
+        The problem this replaces: everybody treated this page as the website.
+        They arrived, read the pitch, learned what VentureAdda is, and left
+        satisfied — never suspecting there was a shop behind it. That is what a
+        page does when every word on it is *about* the thing and the way in is
+        two quiet buttons the same size as each other.
+
+        So the first screen is now a decision rather than a description. One
+        enormous target for the people who want to buy something, a smaller one
+        for the people who want to sell, and a number on each so it reads as a
+        running shop rather than an idea somebody had. Everything that used to
+        be here still exists — it is underneath, where an explanation belongs.
+      */}
+      <Section width="max-w-6xl" className="pt-8 pb-10 sm:pt-14 sm:pb-14">
+        <Reveal>
+          {/* TWO COLUMNS: the line on the left, the way in on the right.
+
+              Stacked below `lg`, because side by side on a phone gives the
+              headline about four words a line and turns the doors into
+              slivers. The order is the same either way — you read what this is
+              and then you are looking at the thing that takes you there. */}
+          <div className="grid gap-9 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12">
+            <div>
+              <Eyebrow>Thapar Institute</Eyebrow>
+              {/* The hook is a question because a question is addressed to
+                  somebody. "Every venture on campus, one adda" described the
+                  site; this one asks the reader something they are probably
+                  already feeling at 1am in a hostel. */}
+              <h1 className="mt-4 text-[46px] leading-[0.94] font-extrabold tracking-tight text-white sm:text-6xl lg:text-[68px]">
+                Hungry?
+                <span className="mt-2 block text-balance">
+                  Someone on campus is already selling it.
+                </span>
+              </h1>
+              <p className="mt-6 max-w-lg text-[17.5px] leading-relaxed text-white/70 sm:text-[19px]">
+                Brownies at midnight, stickers, crochet, subscriptions, a cold drink two floors
+                down. Run by students, a walk away, no delivery fee.
+              </p>
+            </div>
+
+            {/* The two doors, side by side rather than stacked — one row, one
+                decision. The buyer's is the filled one: most people arriving
+                here want to find something, and the shop is the half nobody
+                knew was there. Weight carries that, not size, so the row stays
+                a row. */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                to="/products"
+                className="liquid-glass-highlight group flex flex-col justify-between gap-6 rounded-3xl border border-brand-500/40 bg-brand-500/15 px-6 py-6 transition duration-200 hover:bg-brand-500/25 active:scale-[0.99] sm:min-h-56"
+              >
+                <span className="block text-[26px] leading-tight font-extrabold tracking-tight text-white sm:text-[30px]">
+                  See what&rsquo;s on sale
+                </span>
+                <span className="flex items-end justify-between gap-3">
+                  <span className="font-mono text-[13px] leading-snug tracking-wider text-brand-200 uppercase">
+                    {stock ? (
+                      <>
+                        {stock.items} things
+                        <br />
+                        {stock.shops} shops · open now
+                      </>
+                    ) : (
+                      'Every shop on campus'
+                    )}
+                  </span>
+                  <ArrowRight
+                    size={24}
+                    aria-hidden="true"
+                    className="shrink-0 text-brand-300 transition-transform duration-200 group-hover:translate-x-1"
+                  />
+                </span>
+              </Link>
+
+              <Link
+                to="/add"
+                className="liquid-glass-panel group flex flex-col justify-between gap-6 rounded-3xl px-6 py-6 transition duration-200 hover:bg-white/[0.08] active:scale-[0.99] sm:min-h-56"
+              >
+                <span className="block text-[26px] leading-tight font-extrabold tracking-tight text-white sm:text-[30px]">
+                  Sell something
+                </span>
+                <span className="flex items-end justify-between gap-3">
+                  <span className="font-mono text-[13px] leading-snug tracking-wider text-white/60 uppercase">
+                    Free
+                    <br />
+                    No commission
+                  </span>
+                  <Plus
+                    size={22}
+                    aria-hidden="true"
+                    className="shrink-0 text-white/60 transition-colors duration-200 group-hover:text-white"
+                  />
+                </span>
+              </Link>
+            </div>
           </div>
         </Reveal>
       </Section>
@@ -539,6 +655,35 @@ export default function Landing() {
           </div>
         </Reveal>
       </Section>
+
+      {/*
+        THE WAY IN, FOLLOWING YOU DOWN.
+
+        Everything below the doors is explanation, and somebody reading it has
+        left the two targets behind at the top of a long page. This is the
+        answer to "I have read enough, where is the actual thing" without a
+        scroll back — and it is the second half of the fix for people thinking
+        the page was the whole site.
+
+        Only once the hero is off screen: it would otherwise sit under the
+        doors repeating them.
+      */}
+      {pastHero && (
+        <div className="fixed inset-x-3 bottom-4 z-40 mx-auto max-w-md">
+          <Link
+            to="/products"
+            className="liquid-glass-highlight flex items-center gap-3 rounded-2xl border border-brand-500/40 bg-brand-500/20 px-5 py-3.5 shadow-[0_18px_45px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition duration-200 hover:bg-brand-500/30 active:scale-[0.99]"
+          >
+            <span className="min-w-0 flex-1 text-[16px] font-bold text-white">
+              Open VentureAdda
+            </span>
+            <span className="shrink-0 font-mono text-[12.5px] tracking-wider text-brand-200 uppercase">
+              {stock ? `${stock.items} things` : 'Browse'}
+            </span>
+            <ArrowRight size={16} aria-hidden="true" className="shrink-0 text-brand-300" />
+          </Link>
+        </div>
+      )}
 
       <footer className="px-6 pb-10">
         <p className="text-center font-mono text-[12.5px] tracking-[0.22em] text-white/50 uppercase">
