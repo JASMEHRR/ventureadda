@@ -218,7 +218,22 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
   }, [])
 
   const [returning] = useState(() => !always && hasBeenInside())
-  if (returning || (!always && status === 'ready')) return <Navigate to="/browse" replace />
+
+  /**
+   * Decided here, RETURNED AT THE BOTTOM, and the distance between those two
+   * lines is deliberate.
+   *
+   * Returning early from this spot is what put a black screen on the front
+   * page for every signed-in visitor. The reads below are hooks; `status`
+   * starts as 'loading' and becomes 'ready' a moment later, so the first
+   * render called them and the second one skipped them. React counts hooks
+   * per render and tears the tree down when the number changes — and Landing
+   * sits outside the shell, so there was no boundary to catch it.
+   *
+   * Every hook in this component runs on every render now, and the redirect
+   * happens after all of them.
+   */
+  const skipToApp = returning || (!always && status === 'ready')
 
   // One public read, and the landing page is worth it: this is the only thing
   // on the page that proves the site has anything on it. A failed or empty
@@ -264,6 +279,8 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
   // clearly and send you to /products for the rest.
   const picks = topPicks(products.data ?? [], 10)
   const rails = shelves(products.data ?? [], { maxShelves: 3, perShelf: 10 })
+
+  if (skipToApp) return <Navigate to="/browse" replace />
 
   return (
     <div className="min-h-screen">

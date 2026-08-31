@@ -10,6 +10,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import MaintenanceGate from './components/MaintenanceGate'
 import { recordVisit } from './data/traffic'
 import Landing from './pages/Landing'
+import ErrorBoundary from './components/ErrorBoundary'
 import Browse from './pages/Browse'
 
 /**
@@ -68,12 +69,30 @@ export default function App() {
           {/* Outside AppShell on purpose. The shell is the tool — sidebar,
               filters, account — and none of it means anything to someone who
               does not yet know what the site is. */}
-          <Route index element={<Landing />} />
+          {/* Its own boundary, because this one is outside the shell and
+              therefore outside the shell's. The front page crashing showed a
+              black screen to every arriving visitor with nothing to catch it —
+              which is the worst page on the site to have no net under. */}
+          <Route
+            index
+            element={
+              <ErrorBoundary resetKey="landing">
+                <Landing />
+              </ErrorBoundary>
+            }
+          />
           {/* The introduction, on demand. `/` sends anybody who has been
               inside straight to the app, so this is the way back to the
               explanation — and the link to send someone who asks what this
               is. */}
-          <Route path="welcome" element={<Landing always />} />
+          <Route
+            path="welcome"
+            element={
+              <ErrorBoundary resetKey="welcome">
+                <Landing always />
+              </ErrorBoundary>
+            }
+          />
 
           <Route element={<AppShell />}>
             <Route path="browse" element={<Browse />} />
