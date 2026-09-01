@@ -12,7 +12,6 @@ import {
   Plus,
   SearchX,
   ShoppingCart,
-  MessageCircle,
 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
@@ -39,6 +38,7 @@ import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
 import { formatRuns, tidyBreaks } from '../lib/richText'
 import ShareVenture from '../components/ShareVenture'
+import WhatsAppIcon from '../components/ui/WhatsAppIcon'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
 /**
@@ -195,12 +195,37 @@ function ItemCard({
       <VentureLogo name={venture.name} logo={venture.logo} size={size} />
     )
 
+  /**
+   * THE WHOLE ROW IS THE TARGET when there is no price, not a button on the end
+   * of it.
+   *
+   * A button at the right edge is a small thing to hit on a phone and, worse,
+   * it makes the other ninety percent of the row look inert — which on a menu
+   * of a hundred and forty-seven items reads as a list you cannot do anything
+   * with. Nothing else in an unpriced row is interactive, so the row can be one
+   * link with no nested controls.
+   *
+   * A priced row cannot do this: it holds a stepper, and buttons inside an
+   * anchor are invalid markup that browsers fix by discarding the buttons.
+   */
+  const wholeRowAsks = typeof item.price !== 'number' && sellable
+  const RowTag = wholeRowAsks ? 'a' : 'div'
+  const rowLinkProps = wholeRowAsks
+    ? {
+        href: askLink(venture, item.name),
+        target: '_blank',
+        rel: 'noreferrer noopener',
+        onClick: () => onAsk?.(),
+      }
+    : {}
+
   if (asRow) {
     return (
-      <div
+      <RowTag
+        {...rowLinkProps}
         className={`liquid-glass-panel flex items-center gap-3 rounded-2xl p-2.5 transition duration-150 ${
           sellable ? '' : 'opacity-60'
-        }`}
+        } ${wholeRowAsks ? 'hover:bg-white/[0.07] active:scale-[0.99]' : ''}`}
       >
         {item.photo ? (
           <img
@@ -228,17 +253,14 @@ function ItemCard({
         </div>
 
         {typeof item.price !== 'number' ? (
-          <a
-            href={askLink(venture, item.name)}
-            target="_blank"
-            rel="noreferrer noopener"
-            onClick={() => onAsk?.()}
-            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-500/15 px-3.5 py-2 font-mono text-[12.5px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.96]"
-          >
-            <MessageCircle size={12} aria-hidden="true" />
-            Ask
-            <span className="sr-only"> {item.name} on WhatsApp</span>
-          </a>
+          /* Not a button any more — the row is the link. This says where the
+             tap goes, in the words a buyer uses: nobody reads "Ask" as "opens
+             WhatsApp". */
+          <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#25D366]/15 px-3 py-2 text-[13px] font-bold text-[#4ade80]">
+            <WhatsAppIcon size={13} />
+            Negotiate
+            <span className="sr-only"> the price of {item.name} on WhatsApp</span>
+          </span>
         ) : !sellable ? null : quantity === 0 ? (
           <button
             type="button"
@@ -277,7 +299,7 @@ function ItemCard({
             </button>
           </div>
         )}
-      </div>
+      </RowTag>
     )
   }
 
@@ -330,11 +352,11 @@ function ItemCard({
             target="_blank"
             rel="noreferrer noopener"
             onClick={() => onAsk?.()}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-500/15 py-2 text-center text-[13.5px] leading-snug font-bold text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
+            className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366]/15 py-2 text-center text-[13.5px] leading-snug font-bold text-[#4ade80] transition duration-150 hover:bg-[#25D366]/25 active:scale-[0.97]"
           >
-            <MessageCircle size={13} aria-hidden="true" />
-            Ask the price
-            <span className="sr-only"> for {item.name} on WhatsApp</span>
+            <WhatsAppIcon size={14} />
+            Negotiate on WhatsApp
+            <span className="sr-only"> for {item.name}</span>
           </a>
         ) : !sellable ? (
           <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[13px] font-bold tracking-wide text-white/60 uppercase">
