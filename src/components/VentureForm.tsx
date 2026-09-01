@@ -44,6 +44,30 @@ const DENSITY_OPTIONS: SelectOption<MenuDensity>[] = [
 /** A venture may publish at most this many collection windows. Mirrors firestore.rules. */
 const MAX_SLOTS = 12
 
+/**
+ * The windows a campus shop actually keeps.
+ *
+ * TYPED FREELY BEFORE, and the results were what free text always gives: one
+ * seller wrote "6pm – 8pm", the next "6 to 8 PM", the next "evening". Three
+ * spellings of one window, none of them sortable, all of them shown to buyers
+ * as separate choices. These cover the shifts this campus runs on, and the
+ * shape is identical for everyone.
+ *
+ * "Anything else" is still there — a seller with a window nobody anticipated
+ * can type it — because a fixed list that cannot describe your shop is worse
+ * than an inconsistent one.
+ */
+const SLOT_CHOICES = [
+  'Any time, just message',
+  'Morning · 8am – 12pm',
+  'Afternoon · 12pm – 4pm',
+  'Evening · 4pm – 8pm',
+  'Night · 8pm – 11pm',
+  'Late night · 11pm – 2am',
+  'Between classes',
+  'Weekends only',
+]
+
 let draftKeySeed = 0
 const newDraft = (): MenuItemDraft => ({
   key: `draft-${(draftKeySeed += 1)}`,
@@ -324,8 +348,13 @@ function SectionsEditor({
 /**
  * The collection windows a buyer may choose from at checkout.
  *
- * Free text on purpose. "After 9pm" and "Between classes, Tuesday" are both
- * real answers on this campus, and a time picker would refuse them both.
+ * PICKED FROM A LIST NOW, with typing as the exception rather than the only
+ * option. Free text was deliberate — "After 9pm" and "Between classes,
+ * Tuesday" are real answers here — but the cost showed up as soon as more
+ * than one shop used it: three sellers spelled the same evening three ways,
+ * and a buyer at checkout saw three different-looking choices that meant one
+ * thing. The list is the shifts this campus actually runs on; the box
+ * underneath still takes anything, for the shop the list did not anticipate.
  */
 function SlotsEditor({
   slots,
@@ -381,6 +410,25 @@ function SlotsEditor({
         </div>
       )}
 
+      {/* One tap each. Already-chosen windows are not offered again — a list
+          that lets you add the same evening twice is a list that will. */}
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        {SLOT_CHOICES.filter((choice) => !slots.includes(choice)).map((choice) => (
+          <button
+            key={choice}
+            type="button"
+            onClick={() => {
+              if (slots.length >= MAX_SLOTS) return
+              onChange([...slots, choice])
+            }}
+            disabled={slots.length >= MAX_SLOTS}
+            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[14.5px] text-white/70 transition duration-150 hover:border-brand-500/40 hover:bg-brand-500/15 hover:text-brand-200 active:scale-[0.97] disabled:opacity-40"
+          >
+            + {choice}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-2">
         <input
           id="venture-slot-input"
@@ -395,7 +443,7 @@ function SlotsEditor({
           }}
           maxLength={60}
           disabled={slots.length >= MAX_SLOTS}
-          placeholder="6pm – 8pm"
+          placeholder="Or type your own window"
           className={`${inputClass} disabled:opacity-40`}
         />
         <Button

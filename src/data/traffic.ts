@@ -24,11 +24,17 @@ import { db } from '../lib/firebase'
  * throughout and the question being asked is small — is anybody coming, and is
  * it more than last week. That is a number in a database, not a product.
  *
- * ONE COUNT PER SESSION, NOT PER PAGE. A single-page app navigates without
- * reloading, so counting page views would count how much somebody clicked
- * around rather than whether they came. `sessionStorage` is exactly the right
- * scope for that: it lasts as long as the tab and dies with it, so a return
- * visit tomorrow counts again and a rummage through six ventures does not.
+ * ONE COUNT PER DEVICE PER DAY, which is a correction. It used to be one per
+ * tab, in `sessionStorage` — so a second tab counted again, and so did every
+ * reopened one. The person hit hardest by that is whoever is building the
+ * site: a morning of testing added a dozen visits that were all the same
+ * person, and the number stopped meaning anything. A day-stamp in
+ * localStorage is the smallest thing that fixes it.
+ *
+ * It cannot dedupe by IP, and should not try. The address is not visible from
+ * the browser, and doing it server-side would collapse an entire hostel behind
+ * one campus NAT into a single visitor — worse than the problem. Per device
+ * per day is the honest unit here.
  *
  * IT IS DELIBERATELY CRUDE. No identity, no fingerprint, no cookie that
  * outlives the tab, nothing about who anybody is — the whole record is a date
@@ -46,7 +52,35 @@ function dayKey(at = new Date()): string {
   return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`
 }
 
-const SESSION_KEY = 'ventureadda:counted'
+/** The last day this device was counted on. */
+const COUNTED_KEY = 'ventureadda:counted-day'
+
+/**
+ * Set on a device whose visits should never be counted.
+ *
+ * For the people building the site, who are otherwise its heaviest traffic and
+ * the least interesting. Toggled from the moderator page, stored per device
+ * because that is what it describes.
+ */
+const NO_COUNT_KEY = 'ventureadda:no-count'
+
+export function isCountingVisits(): boolean {
+  try {
+    return window.localStorage.getItem(NO_COUNT_KEY) === null
+  } catch {
+    return true
+  }
+}
+
+export function setCountingVisits(on: boolean): void {
+  try {
+    if (on) window.localStorage.removeItem(NO_COUNT_KEY)
+    else window.localStorage.setItem(NO_COUNT_KEY, '1')
+  } catch {
+    // Nothing to do: a device that cannot store the preference also cannot
+    // remember it was counted, and both failures are silent by design.
+  }
+}
 
 export type TrafficDay = { day: string; count: number }
 
@@ -59,8 +93,10 @@ export type TrafficDay = { day: string; count: number }
  */
 export async function recordVisit(): Promise<void> {
   try {
-    if (window.sessionStorage.getItem(SESSION_KEY)) return
-    window.sessionStorage.setItem(SESSION_KEY, '1')
+    if (window.localStorage.getItem(NO_COUNT_KEY) !== null) return
+    const today = dayKey()
+    if (window.localStorage.getItem(COUNTED_KEY) === today) return
+    window.localStorage.setItem(COUNTED_KEY, today)
   } catch {
     // Storage blocked. Counting every navigation is worse than counting none,
     // so this stops here rather than falling through.

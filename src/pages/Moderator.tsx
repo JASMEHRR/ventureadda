@@ -12,6 +12,7 @@ import {
   Trash2,
   UserPlus,
   X,
+  ChevronRight,
 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
@@ -414,6 +415,47 @@ function LandingCopyPanel({
   )
 }
 
+/**
+ * A group of settings that is closed until somebody wants it.
+ *
+ * THE PAGE HAD NINE PANELS STACKED IN A COLUMN, all open, all the same size,
+ * in the order they happened to be written: the queue you check every day sat
+ * below the backdrop picker you have touched twice. Sorting them by how often
+ * they are needed is most of the fix; folding the rare ones away is the rest.
+ *
+ * `<details>` rather than state, because the browser already does this
+ * correctly — keyboard, screen reader, and the open state surviving a
+ * re-render for free.
+ */
+function Drawer({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint: string
+  children: React.ReactNode
+}) {
+  return (
+    <details className="liquid-glass-panel group rounded-2xl">
+      <summary className="flex cursor-pointer items-center gap-3 rounded-2xl px-4 py-3.5 transition duration-150 hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          size={14}
+          aria-hidden="true"
+          className="shrink-0 text-white/55 transition-transform duration-200 group-open:rotate-90"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            {title}
+          </span>
+          <span className="mt-0.5 block text-[15px] text-white/55">{hint}</span>
+        </span>
+      </summary>
+      <div className="space-y-3 px-4 pt-1 pb-4">{children}</div>
+    </details>
+  )
+}
+
 export default function Moderator() {
   const { profile, status } = useAuth()
   const [tab, setTab] = useState<Tab>('pending')
@@ -563,7 +605,13 @@ export default function Moderator() {
         />
       </div>
 
-      <div className="liquid-glass-panel space-y-2 rounded-2xl p-4">
+      {/* Stays out in the open: it is the thing a moderator opens this page to
+          look at, and it changes every day. The drawers below hold the
+          settings that get touched twice a term. */}
+      <TrafficPanel days={traffic.data ?? []} />
+
+      <Drawer title="Look of the site" hint="Backdrop, and the words on the front page.">
+      <div className="space-y-2">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Site backdrop
         </h2>
@@ -618,15 +666,15 @@ export default function Moderator() {
         </Button>
       </div>
 
-      <TrafficPanel days={traffic.data ?? []} />
-
       <LandingCopyPanel
         current={settings.data?.landing ?? {}}
         busy={busy}
         onSave={(copy) => void act(() => setLandingCopy(copy), 'The front page now says that.')}
       />
+      </Drawer>
 
-      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <Drawer title="How the site behaves" hint="Sign-in, checkout, and taking the site down.">
+      <div className="space-y-3">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Ways in
         </h2>
@@ -661,7 +709,7 @@ export default function Moderator() {
         />
       </div>
 
-      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <div className="space-y-3">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           Checkout options
         </h2>
@@ -715,13 +763,13 @@ export default function Moderator() {
         }
       />
 
+      </Drawer>
+
       {/* Every account, for any moderator. Read-only here — granting access
           lives in the owner-only panel below, because only the owner can
           write isModerator per the rules. */}
-      <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
-        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          Users ({users.data?.length ?? 0})
-        </h2>
+      <Drawer title={`People (${users.data?.length ?? 0})`} hint="Every account, and who can moderate.">
+      <div className="space-y-3">
 
         <TextField
           id="user-filter"
@@ -835,7 +883,7 @@ export default function Moderator() {
           showing this to every moderator would suggest they can use it and
           fail — better to just not offer it. */}
       {isOwner && (
-        <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+        <div className="space-y-3 border-t border-white/8 pt-4">
           <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
             Moderators
           </h2>
@@ -968,6 +1016,8 @@ export default function Moderator() {
         </div>
       )}
 
+
+      </Drawer>
       <div className="liquid-glass-panel flex gap-1.5 rounded-2xl p-1.5">
         {(['pending', 'live'] as Tab[]).map((value) => (
           <button

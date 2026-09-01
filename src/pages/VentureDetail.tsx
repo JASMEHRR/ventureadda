@@ -12,6 +12,7 @@ import {
   Plus,
   SearchX,
   ShoppingCart,
+  MessageCircle,
 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
@@ -36,6 +37,7 @@ import { resolveMenuDensity, useAppearance } from '../lib/appearance'
 import { cartQuantity, cartTotal, setCartQuantity, useCart } from '../data/cart'
 import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
+import { formatRuns, tidyBreaks } from '../lib/richText'
 import ShareVenture from '../components/ShareVenture'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
@@ -121,6 +123,23 @@ function remaining(item: MenuItem, quantity: number): number {
  * the order. Adjusting quantity no longer means opening the checkout dialog to
  * find the only steppers in the app.
  */
+/**
+ * Where "ask the seller" actually goes.
+ *
+ * Half the catalogue on this site has no price, by the seller's own choice —
+ * a subscription, a custom cake, anything quoted in conversation. Those items
+ * said "Message the seller for a price" and then did nothing, which is the
+ * worst kind of dead end: it names the next step and refuses to take it.
+ *
+ * The message is written out so the seller does not have to ask which item
+ * this is about. Same shape as the cart's link, and the same reason: the
+ * whole product is a WhatsApp conversation with the boring part filled in.
+ */
+function askLink(venture: { name: string; phone: string }, itemName: string): string {
+  const text = `Hi ${venture.name}, how much is "${itemName}"? (from VentureAdda)`
+  return `https://wa.me/${venture.phone}?text=${encodeURIComponent(text)}`
+}
+
 function ItemCard({
   item,
   quantity,
@@ -129,6 +148,7 @@ function ItemCard({
   onSetQuantity,
   asRow,
   brandIcon,
+  onAsk,
   venture,
 }: {
   item: MenuItem
@@ -142,8 +162,12 @@ function ItemCard({
    *  See catalogueVentures — a bakery's unphotographed drink is not, and was
    *  being drawn with a jobs board's logo. */
   brandIcon?: boolean
-  /** For the fallback tile — see below. */
-  venture: { name: string; logo?: StoredImage }
+  /** Counted when somebody taps through to ask — see countInterest. Adding to
+   *  a cart already counts; asking a price is the same signal for an item that
+   *  has no cart to be added to. */
+  onAsk?: () => void
+  /** For the fallback tile, and for the number an unpriced item messages. */
+  venture: { name: string; phone: string; logo?: StoredImage }
 }) {
   const left = remaining(item, quantity)
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
@@ -204,7 +228,17 @@ function ItemCard({
         </div>
 
         {typeof item.price !== 'number' ? (
-          <span className="shrink-0 font-mono text-[13px] text-white/55">Message to ask</span>
+          <a
+            href={askLink(venture, item.name)}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={() => onAsk?.()}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-500/15 px-3.5 py-2 font-mono text-[12.5px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.96]"
+          >
+            <MessageCircle size={12} aria-hidden="true" />
+            Ask
+            <span className="sr-only"> {item.name} on WhatsApp</span>
+          </a>
         ) : !sellable ? null : quantity === 0 ? (
           <button
             type="button"
@@ -291,9 +325,17 @@ function ItemCard({
         )}
 
         {typeof item.price !== 'number' ? (
-          <p className="rounded-xl bg-white/[0.06] py-1.5 text-center text-[13.5px] leading-snug text-white/60">
-            Message the seller for a price
-          </p>
+          <a
+            href={askLink(venture, item.name)}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={() => onAsk?.()}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-500/15 py-2 text-center text-[13.5px] leading-snug font-bold text-brand-300 transition duration-150 hover:bg-brand-500/25 active:scale-[0.97]"
+          >
+            <MessageCircle size={13} aria-hidden="true" />
+            Ask the price
+            <span className="sr-only"> for {item.name} on WhatsApp</span>
+          </a>
         ) : !sellable ? (
           <p className="rounded-xl bg-white/[0.06] py-1.5 text-center font-mono text-[13px] font-bold tracking-wide text-white/60 uppercase">
             Unavailable
@@ -653,7 +695,24 @@ export default function VentureDetail() {
           </span>
         </div>
 
-        <p className="mt-3 text-[16.5px] leading-relaxed text-white/70">{v.description}</p>
+        {/* whitespace-pre-line, because HTML throws away the line breaks a
+            seller typed and they had no way to know that. Their paragraphs and
+            lists came out as one run-on block on the page they were writing
+            for. Runs of blank lines still collapse, so nothing can be pushed
+            off screen with fifty returns. */}
+        <p className="mt-3 text-[16.5px] leading-relaxed whitespace-pre-line text-white/70">
+          {formatRuns(tidyBreaks(v.description)).map((run, index) =>
+            run.bold ? (
+              <strong key={index} className="font-bold text-white">
+                {run.text}
+              </strong>
+            ) : run.italic ? (
+              <em key={index}>{run.text}</em>
+            ) : (
+              <span key={index}>{run.text}</span>
+            ),
+          )}
+        </p>
         <p className="mt-3 font-mono text-[13px] tracking-[0.18em] text-white/55 uppercase">
           Run by {v.ownerUsername}
         </p>
@@ -760,7 +819,8 @@ export default function VentureDetail() {
                         item={item}
                         asRow={density === 'list'}
                         brandIcon={v.brandLogos}
-                        venture={{ name: v.name, logo: v.logo }}
+                        onAsk={() => countInterest(item)}
+                        venture={{ name: v.name, phone: v.phone, logo: v.logo }}
                         quantity={cartQuantity(cart, item.id)}
                         askedCount={localCounts[item.id] ?? item.inquiryCount}
                         showAsked={showItemStats}
