@@ -201,8 +201,13 @@ export const MENU_GRID_CLASS: Record<MenuDensity, string> = {
    *
    * Same items, same data; the row simply puts the name first and drops the
    * space a picture would have taken.
+   *
+   * Two columns once there is room for them. A row is a name and a small chip,
+   * so a full-width one on a desktop is mostly empty middle — and it halves
+   * how many of a hundred and fifty items fit on a screen. Stays one column on
+   * a phone, where a split row would leave nothing but truncated names.
    */
-  list: 'grid-cols-1',
+  list: 'grid-cols-1 lg:grid-cols-2',
 }
 
 export type MenuItem = {
