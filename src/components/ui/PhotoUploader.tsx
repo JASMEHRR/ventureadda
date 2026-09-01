@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
 import PhotoFinder from '../PhotoFinder'
 import { ACCEPT_ATTRIBUTE, displayUrl, uploadImage } from '../../lib/cloudinary'
@@ -23,6 +24,23 @@ type PhotoUploaderProps = {
   photos: StoredImage[]
   onChange: (photos: StoredImage[]) => void
   max?: number
+  /**
+   * What the listing is showing while there is no photograph here.
+   *
+   * THE FORM WAS LYING BY OMISSION. An item with no uploaded picture draws the
+   * brand's logo on the public page — that is the whole point of the logo
+   * fallback — but the editor showed an empty box, so a seller looking at
+   * their own listing could not see what was on it, could not tell which items
+   * already looked fine, and had nothing to aim at when they wanted to swap
+   * one out. Showing the same thing the visitor sees is the difference between
+   * editing a listing and guessing at one.
+   *
+   * Not removable and not an upload: it is a preview of a fallback, and adding
+   * a real photograph is what replaces it.
+   */
+  placeholder?: ReactNode
+  /** One line under the row saying where that picture comes from. */
+  placeholderNote?: string
   /**
    * Seeds the photo finder's search box — the item's name, when there is one.
    *
@@ -67,6 +85,8 @@ export default function PhotoUploader({
   onChange,
   max = 4,
   findFor,
+  placeholder,
+  placeholderNote,
 }: PhotoUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -144,6 +164,17 @@ export default function PhotoUploader({
       </span>
 
       <div className="flex flex-wrap gap-2.5">
+        {/* Before the buttons, where a photograph would be, because that is
+            what it is standing in for. */}
+        {photos.length === 0 && placeholder && (
+          <span
+            aria-hidden="true"
+            className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-white/[0.04] ring-1 ring-white/10 ring-inset"
+          >
+            {placeholder}
+          </span>
+        )}
+
         {photos.map((image, index) => (
           <div key={image.url + index} className="relative">
             <img
@@ -257,6 +288,10 @@ export default function PhotoUploader({
           onPick={(image) => onChange([...photos, image].slice(0, max))}
           initialQuery={findFor}
         />
+      )}
+
+      {photos.length === 0 && placeholderNote && !error && (
+        <p className="mt-1.5 text-[15px] text-white/55">{placeholderNote}</p>
       )}
 
       {hint && !error && <p className="mt-1.5 text-[15px] text-white/55">{hint}</p>}

@@ -5,6 +5,8 @@ import MenuImport from './MenuImport'
 import Field from './ui/Field'
 import Select from './ui/Select'
 import PhotoUploader from './ui/PhotoUploader'
+import BrandIcon from './ui/BrandIcon'
+import VentureLogo from './ui/VentureLogo'
 import StockToggle from './ui/StockToggle'
 import TextField, { inputClass } from './ui/TextField'
 import Textarea from './ui/Textarea'
@@ -1102,6 +1104,25 @@ export default function VentureForm({
                   photos={item.photo ? [item.photo] : []}
                   onChange={(next) => patchItem(item.key, { photo: next[0] })}
                   max={1}
+                  // Exactly what a visitor sees on this item today: the
+                  // brand's logo when this shop uses them, the shop's own mark
+                  // otherwise. See PhotoUploader.placeholder.
+                  placeholder={
+                    brandLogos ? (
+                      <BrandIcon
+                        name={item.name}
+                        size={72}
+                        fallback={<VentureLogo name={name || 'Venture'} logo={logo} size={72} />}
+                      />
+                    ) : (
+                      <VentureLogo name={name || 'Venture'} logo={logo} size={72} />
+                    )
+                  }
+                  placeholderNote={
+                    brandLogos
+                      ? 'No photo yet, so the listing shows the brand logo above. Add one to replace it.'
+                      : 'No photo yet, so the listing shows your shop mark above. Add one to replace it.'
+                  }
                   // The item's own name seeds the search. Only items get this:
                   // a stock photograph of somebody else's shop standing in for
                   // your venture is a claim rather than an illustration.
