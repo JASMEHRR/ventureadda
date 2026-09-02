@@ -190,6 +190,29 @@ export async function hideOrderForBuyer(orderId: string): Promise<void> {
 }
 
 /**
+ * Every order on the site, newest first. Moderators only, per the rules.
+ *
+ * THE WHOLE COLLECTION, which is the thing to know before calling it. It is
+ * one billed read per order and it belongs on the moderator page and nowhere
+ * else — a visitor's page must never call this. That is enforced rather than
+ * trusted: the read rule's only unscoped clause is isModerator(), so anybody
+ * else gets nothing back however they reach it.
+ *
+ * Buyer-hidden orders are included. `hiddenForBuyer` scopes one person's list;
+ * the order still happened, and the whole point of this number is what the
+ * site has actually done.
+ *
+ * Sorted here rather than with orderBy, matching the two queries above: this
+ * codebase runs without composite indexes on purpose.
+ */
+export async function listAllOrders(): Promise<Order[]> {
+  const snapshot = await getDocs(ordersRef)
+  return snapshot.docs
+    .map(toOrder)
+    .sort((a, b) => (b.createdAt?.getTime() ?? Infinity) - (a.createdAt?.getTime() ?? Infinity))
+}
+
+/**
  * How many of this seller's orders they have not looked at yet.
  *
  * Its own query rather than a count off `listOrdersForOwner`, because the nav

@@ -40,6 +40,10 @@ import { displayUrl } from '../lib/cloudinary'
 import { OWNER_EMAIL, auth } from '../lib/firebase'
 import { listTraffic } from '../data/traffic'
 import type { TrafficDay } from '../data/traffic'
+import { listAllOrders } from '../data/orders'
+import { ordersByVenture, ordersSince, usageLadder } from '../data/orderStats'
+import type { VentureOrders } from '../data/orderStats'
+import type { Order } from '../data/types'
 import {
   getSiteSettings,
   isDown,
@@ -65,6 +69,12 @@ import {
 import type { ModeratorCandidate } from '../data/moderators'
 
 type Tab = 'pending' | 'live'
+
+/**
+ * How far back the counting panels look. One number, because the traffic chart
+ * and the usage ladder have to agree about it.
+ */
+const TRAFFIC_DAYS = 14
 
 function VentureRow({
   venture,
@@ -315,6 +325,213 @@ function TrafficPanel({ days }: { days: TrafficDay[] }) {
 }
 
 /**
+ * Every order the site has taken, and who took it.
+ *
+ * ORDERS ARE THE ONLY THING THIS SITE DOES that leaves a record. Everything
+ * else it counts is a tap: a visit, a venture opened, a WhatsApp button
+ * pressed. Those say somebody was interested. An order says somebody committed
+ * to paying a person on this campus, from an account that had to be verified
+ * to place it, which makes this the one table on the moderator page that
+ * cannot be padded by refreshing a phone.
+ *
+ * Sorted busiest first, because the question a moderator has is which ventures
+ * are actually trading, and a list in document order answers a different one.
+ * Revenue is the sum of what the orders say they came to; no money moves
+ * through this site, so it is the value of what was agreed rather than what
+ * was collected, and the panel says so.
+ */
+function OrdersPanel({ orders }: { orders: Order[] | null }) {
+  // Derived here, not handed in: the header count and the rows have to come
+  // from the same list or they can drift apart with nothing to catch it.
+  const rows: VentureOrders[] = orders ? ordersByVenture(orders) : []
+  const revenue = rows.reduce((sum, row) => sum + row.revenue, 0)
+  const busiest = Math.max(1, ...rows.map((row) => row.orders))
+
+  return (
+    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Orders
+        </h2>
+        <span className="font-mono text-[13px] text-white/55">
+          {orders === null
+            ? 'counting…'
+            : `${orders.length} total · ₹${revenue.toLocaleString('en-IN')} agreed`}
+        </span>
+      </div>
+
+      {/* NULL IS NOT EMPTY. Reading the whole orders collection is the slowest
+          thing this page does, and treating "not back yet" as "none" told a
+          moderator the site had taken no orders at all while the answer was
+          still in flight. */}
+      {orders === null ? (
+        <LoadingLine label="Reading orders…" inset={false} />
+      ) : rows.length === 0 ? (
+        <p className="text-[15px] text-white/60">
+          Nobody has placed an order yet. Every other number on this page counts taps; this one
+          only moves when somebody commits to paying a seller.
+        </p>
+      ) : (
+        <>
+          <ul className="space-y-1.5">
+            {rows.map((row) => (
+              <li key={row.ventureId} className="flex items-center gap-3">
+                <Link
+                  to={`/venture/${row.ventureId}`}
+                  className="min-w-0 flex-1 truncate text-[16px] font-bold text-white transition-colors hover:text-brand-300"
+                >
+                  {row.ventureName}
+                </Link>
+                {/* The bar is the comparison; the numbers beside it are the
+                    detail. Scaled against the busiest venture rather than a
+                    fixed width, so one shop with forty orders does not flatten
+                    the rest into nothing. */}
+                <span className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-white/8 sm:block">
+                  <span
+                    style={{ width: `${(row.orders / busiest) * 100}%` }}
+                    className="block h-full rounded-full bg-brand-400"
+                  />
+                </span>
+                <span className="shrink-0 font-mono text-[13px] text-white/55">
+                  {row.buyers} {row.buyers === 1 ? 'buyer' : 'buyers'}
+                </span>
+                <span className="w-16 shrink-0 text-right font-mono text-[13px] text-white/70">
+                  ₹{row.revenue.toLocaleString('en-IN')}
+                </span>
+                <span className="w-8 shrink-0 text-right font-mono text-[15px] font-extrabold text-brand-400">
+                  {row.orders}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <p className="text-[14.5px] leading-relaxed text-white/60">
+            Orders placed through the site, by venture. No money moves through this site, so the
+            rupee figures are what was agreed, not what was collected. Buyers counts accounts, so
+            one person ordering four times is four orders and one buyer.
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The same fortnight measured four ways, cheapest evidence first.
+ *
+ * THE QUESTION THIS ANSWERS is "how much of that traffic is real", and the
+ * honest answer is that the traffic counter cannot tell you. It holds a date
+ * and a number, no identity of any kind, deliberately — so there is nothing in
+ * it to separate a student from a refresh, a link preview fetch or somebody's
+ * own testing. Any heuristic invented here would be a guess wearing a
+ * percentage sign.
+ *
+ * So it does not guess. It puts the free signal next to the expensive one. A
+ * visit costs a browser nothing to claim; an order needs a verified account
+ * that the rules pin the order to, and obliges a real person to make
+ * something. Four hundred visits against nought orders is a set of noisy
+ * counters. Four hundred against fifteen orders from eleven accounts is a
+ * working marketplace.
+ */
+function RealUsagePanel({
+  visits,
+  ventureOpens,
+  asks,
+  orders,
+  days,
+}: {
+  visits: number
+  ventureOpens: number
+  asks: number
+  orders: Order[] | null
+  days: number
+}) {
+  const ladder = usageLadder({ visits, ventureOpens, asks, orders: orders ?? [] })
+
+  const rungs = [
+    {
+      label: 'Visits',
+      value: ladder.visits,
+      pending: false,
+      note: 'A browser said it arrived. Nothing about this can be checked.',
+      accent: 'text-white/70',
+    },
+    {
+      label: 'Venture opens',
+      value: ladder.ventureOpens,
+      pending: false,
+      note: 'A tap on a listing. No account needed, all time.',
+      accent: 'text-white/70',
+    },
+    {
+      label: 'Asks',
+      value: ladder.asks,
+      pending: false,
+      note: 'WhatsApp opened from a listing. Intent, but still anonymous. All time.',
+      accent: 'text-amber-400',
+    },
+    {
+      label: 'Orders',
+      value: ladder.orders,
+      pending: orders === null,
+      note: 'Placed from a verified account the rules pin the order to.',
+      accent: 'text-brand-400',
+    },
+    {
+      label: 'Buyers',
+      value: ladder.buyers,
+      pending: orders === null,
+      note: 'Separate accounts that ordered. The hardest number here to fake.',
+      accent: 'text-brand-400',
+    },
+  ]
+
+  return (
+    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Real usage
+        </h2>
+        <span className="font-mono text-[13px] text-white/55">
+          {orders === null
+            ? 'counting…'
+            : ladder.ordersPer100Visits === null
+              ? 'no visits yet'
+              : `${ladder.ordersPer100Visits} orders per 100 visits`}
+        </span>
+      </div>
+
+      <ul className="space-y-2">
+        {rungs.map((rung) => (
+          <li key={rung.label} className="flex items-baseline gap-3">
+            <span className={`w-14 shrink-0 text-right font-mono text-[17px] font-extrabold ${rung.accent}`}>
+              {/* An em dash rather than a nought until the orders are in.
+                  Traffic answers in fourteen documents and orders in the whole
+                  collection, so the two bottom rungs arrive late — and a zero
+                  sitting under four hundred visits is exactly the reading this
+                  panel exists to raise the alarm about. */}
+              {rung.pending ? '—' : rung.value}
+            </span>
+            <span className="min-w-0">
+              <span className="text-[15.5px] font-bold text-white">{rung.label}</span>
+              <span className="ml-2 text-[14.5px] leading-relaxed text-white/55">{rung.note}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="text-[14.5px] leading-relaxed text-white/60">
+        Visits and orders cover the last {days} days; opens and asks are running totals since each
+        listing went up, so do not read the drop between them as a conversion rate. Nothing here
+        guesses which visits were real &mdash; the counter holds a date and a number and no
+        identity at all, so there is nothing in it to judge. Compare the top row with the bottom
+        two instead: that gap is the answer.
+      </p>
+    </div>
+  )
+}
+
+/**
  * The words on the front page, editable without a deploy.
  *
  * WHY THIS IS A SETTING. The hook is a guess. Nobody knows whether "Hungry?"
@@ -479,7 +696,10 @@ export default function Moderator() {
   const pending = useAsyncData(() => listVenturesByStatus('pending'), [refreshToken])
   const live = useAsyncData(() => listVenturesByStatus('live'), [refreshToken])
   const settings = useAsyncData(() => getSiteSettings(), [refreshToken])
-  const traffic = useAsyncData(() => listTraffic(14), [refreshToken])
+  const traffic = useAsyncData(() => listTraffic(TRAFFIC_DAYS), [refreshToken])
+  // The whole orders collection, moderators only. One billed read per order,
+  // which is why nothing outside this page calls it. See listAllOrders.
+  const orders = useAsyncData(() => listAllOrders(), [refreshToken])
   const approved = useAsyncData(() => listApprovedEmails(), [refreshToken])
   const users = useAsyncData(() => listUsers(), [refreshToken])
 
@@ -517,6 +737,33 @@ export default function Moderator() {
   }
 
   const isOwner = profile.email === OWNER_EMAIL
+
+  /**
+   * The figures the two counting panels share.
+   *
+   * Derived here rather than inside the panels so both are reading the same
+   * fortnight: the traffic chart and the usage ladder disagreeing about what
+   * "the last 14 days" means is the sort of thing nobody notices and everybody
+   * later argues about.
+   *
+   * `windowStart` is midnight local at the start of the window, matching how
+   * traffic days are keyed — the counter buckets by the reader's own calendar
+   * day, so an order at 11pm belongs to the same bucket as the visit that
+   * placed it.
+   *
+   * Opens and asks have no timestamps to filter by. They are running totals on
+   * the venture and menu item documents, so they cover all time and the panel
+   * says as much rather than quietly presenting them as part of the window.
+   */
+  // Null while the read is in flight, so the panels can say "counting" instead
+  // of "none" — see OrdersPanel.
+  const allOrders = orders.data ?? null
+  const visitsInWindow = (traffic.data ?? []).reduce((sum, day) => sum + day.count, 0)
+  const ventureOpens = (live.data ?? []).reduce((sum, venture) => sum + venture.clickCount, 0)
+  const totalAsks = Object.values(inquiries.data ?? {}).reduce((sum, count) => sum + count, 0)
+  const windowStart = new Date()
+  windowStart.setDate(windowStart.getDate() - (TRAFFIC_DAYS - 1))
+  windowStart.setHours(0, 0, 0, 0)
 
   const lookupModerator = async () => {
     setModeratorLookupBusy(true)
@@ -609,6 +856,16 @@ export default function Moderator() {
           look at, and it changes every day. The drawers below hold the
           settings that get touched twice a term. */}
       <TrafficPanel days={traffic.data ?? []} />
+
+      <OrdersPanel orders={allOrders} />
+
+      <RealUsagePanel
+        visits={visitsInWindow}
+        ventureOpens={ventureOpens}
+        asks={totalAsks}
+        orders={allOrders && ordersSince(allOrders, windowStart)}
+        days={TRAFFIC_DAYS}
+      />
 
       <Drawer title="Look of the site" hint="Backdrop, and the words on the front page.">
       <div className="space-y-2">
