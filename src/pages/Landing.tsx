@@ -292,7 +292,13 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
   const picks = topPicks(products.data ?? [], 10)
   const rails = shelves(products.data ?? [], { maxShelves: 3, perShelf: 10 })
 
-  if (skipToApp) return <Navigate to="/browse" replace />
+  // TO THE PRODUCTS PAGE, not the list of shops. Somebody who has been here
+  // before is coming back for a thing, not for a directory: they want to see
+  // what is actually for sale today and tap it. The shop list is still one tap
+  // away in the sidebar, and it is the wrong first screen for a regular.
+  // Same destination as the buyer's door above, so the landing page and the
+  // skip past it now agree about where "in" is.
+  if (skipToApp) return <Navigate to="/products" replace />
 
   return (
     <div className="min-h-screen">

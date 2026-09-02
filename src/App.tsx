@@ -5,13 +5,14 @@ import AtmosphereBackdrop from './components/AtmosphereBackdrop'
 import AppShell from './components/layout/AppShell'
 import Button from './components/ui/Button'
 import EmptyState from './components/ui/EmptyState'
-import LoadingLine from './components/ui/LoadingLine'
+import StuckPage from './components/StuckPage'
 import { AuthProvider } from './auth/AuthProvider'
 import MaintenanceGate from './components/MaintenanceGate'
 import { recordVisit } from './data/traffic'
 import Landing from './pages/Landing'
 import ErrorBoundary from './components/ErrorBoundary'
 import Browse from './pages/Browse'
+import Products from './pages/Products'
 
 /**
  * Route-level code splitting.
@@ -21,16 +22,18 @@ import Browse from './pages/Browse'
  * form, the photo uploader and the whole design system before seeing a word of
  * the landing page.
  *
- * Landing and Browse are NOT lazy. They are the two pages a stranger actually
- * arrives on, and splitting them would only add a second round trip in front
- * of the thing they came for.
+ * Landing, Browse and Products are NOT lazy. They are the pages people
+ * actually arrive on, and splitting them would only add a second round trip in
+ * front of the thing they came for. Products joined them when it became where
+ * a returning visitor lands — a front door behind a separate chunk request is
+ * the front door that sometimes does not open at all, which is the whole
+ * failure StuckPage exists to paper over.
  *
  * Everything else is loaded when its route is first visited. The heavy ones
  * are worth naming: DesignDemo is a development reference no visitor will ever
  * open, and AddVenture and EditVenture drag in the form, the Cloudinary
  * uploader and the menu scanner.
  */
-const Products = lazy(() => import('./pages/Products'))
 const VentureDetail = lazy(() => import('./pages/VentureDetail'))
 const EditVenture = lazy(() => import('./pages/EditVenture'))
 const AddVenture = lazy(() => import('./pages/AddVenture'))
@@ -99,7 +102,7 @@ export default function App() {
             <Route
               path="*"
               element={
-                <Suspense fallback={<LoadingLine label="Loading…" />}>
+                <Suspense fallback={<StuckPage />}>
                   <Routes>
                     <Route path="products" element={<Products />} />
                     <Route path="venture/:ventureId" element={<VentureDetail />} />

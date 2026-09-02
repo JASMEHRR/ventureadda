@@ -706,7 +706,6 @@ export default function VentureDetail() {
             // The readable one when it has it, so what gets pasted into a
             // group chat says the venture's name rather than its document id.
             ventureId={v.slug ?? v.id}
-            photo={v.photos[0]}
           />
         </div>
 
