@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Clock, MapPin, MessageCircle, PackageSearch, Phone } from 'lucide-react'
+import { Clock, MapPin, MessageCircle, PackageSearch, Phone, Trash2 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import LoadingLine from '../components/ui/LoadingLine'
+import Modal from '../components/ui/Modal'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsyncData } from '../hooks/useAsyncData'
-import { listOrdersForBuyer } from '../data/orders'
+import { hideOrderForBuyer, listOrdersForBuyer } from '../data/orders'
 import type { Order, OrderStatus } from '../data/orders'
 import { PAYMENT_LABEL } from '../data/types'
 
@@ -56,7 +58,7 @@ function when(date: Date | null): string {
   })
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order, onRemove }: { order: Order; onRemove: () => void }) {
   const state = BUYER_STATUS[order.status]
 
   // NO WHATSAPP BUTTON HERE, deliberately. The seller's number is not on the
@@ -126,20 +128,36 @@ function OrderCard({ order }: { order: Order }) {
 
       <p className="text-[15px] leading-relaxed text-white/60">{state.detail}</p>
 
-      {order.status !== 'completed' && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-3">
+      <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-3">
+        {order.status !== 'completed' && (
           <Button variant="secondary" to={`/venture/${order.ventureId}`}>
             <MessageCircle size={13} aria-hidden="true" />
             Open listing to contact them
           </Button>
-        </div>
-      )}
+        )}
+        {/* Last and quiet. This clears a row off a list; it is not a way out
+            of an order, and a button that looks like one would be read as
+            cancelling. */}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="ml-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-[15px] font-bold text-white/45 transition duration-150 hover:bg-white/[0.06] hover:text-white/70 active:scale-[0.96]"
+        >
+          <Trash2 size={13} aria-hidden="true" />
+          Remove
+          <span className="sr-only"> this order from your list</span>
+        </button>
+      </div>
     </article>
   )
 }
 
 export default function MyOrders() {
   const { profile, status } = useAuth()
+  const [confirmRemove, setConfirmRemove] = useState<Order | null>(null)
+  const [removed, setRemoved] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetched = useAsyncData(
     () => (profile ? listOrdersForBuyer(profile.uid) : Promise.resolve([])),
@@ -149,7 +167,29 @@ export default function MyOrders() {
   if (status === 'loading') return <LoadingLine label="Loading your orders…" />
   if (status === 'signedOut') return <Navigate to="/signin" replace />
 
-  const orders = fetched.data ?? []
+  /**
+   * Hides the order, then drops it from the list already on screen rather than
+   * re-reading every order to learn one is gone — the write has either
+   * succeeded, in which case the row is right to go, or thrown, in which case
+   * the row stays and the message says why.
+   */
+  const remove = async () => {
+    const target = confirmRemove
+    if (!target) return
+    setBusy(true)
+    setError(null)
+    try {
+      await hideOrderForBuyer(target.id)
+      setRemoved((previous) => [...previous, target.id])
+      setConfirmRemove(null)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not remove that order.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const orders = (fetched.data ?? []).filter((order) => !removed.includes(order.id))
   const open = orders.filter((order) => order.status !== 'completed')
   const done = orders.filter((order) => order.status === 'completed')
 
@@ -168,6 +208,12 @@ export default function MyOrders() {
       {fetched.error && (
         <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-4 text-[16px] text-red-400">
           Could not load your orders: {fetched.error.message}
+        </p>
+      )}
+
+      {error && (
+        <p role="alert" className="liquid-glass-panel rounded-2xl px-5 py-3.5 text-[16px] text-red-400">
+          {error}
         </p>
       )}
 
@@ -193,7 +239,7 @@ export default function MyOrders() {
             In progress · {open.length}
           </h3>
           {open.map((order) => (
-            <OrderCard key={order.id} order={order} />
+            <OrderCard key={order.id} order={order} onRemove={() => setConfirmRemove(order)} />
           ))}
         </section>
       )}
@@ -204,10 +250,41 @@ export default function MyOrders() {
             Done · {done.length}
           </h3>
           {done.map((order) => (
-            <OrderCard key={order.id} order={order} />
+            <OrderCard key={order.id} order={order} onRemove={() => setConfirmRemove(order)} />
           ))}
         </section>
       )}
+
+      <Modal
+        open={confirmRemove !== null}
+        onClose={() => setConfirmRemove(null)}
+        title={`Remove your order from ${confirmRemove?.ventureName ?? ''}?`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmRemove(null)}>
+              Keep it
+            </Button>
+            <Button variant="danger" loading={busy} onClick={() => void remove()}>
+              Remove from my list
+            </Button>
+          </>
+        }
+      >
+        <p className="text-[16px] leading-relaxed text-white/70">
+          This clears it off your list only. It does <strong>not</strong> cancel the order and the
+          seller is not told &mdash; they keep their copy, because they may already have made it.
+          If you no longer want it, message them from the listing first.
+        </p>
+        {/* IN THE DIALOG, not only on the page. A failed removal leaves this
+            open, and Modal draws a backdrop over everything behind it — an
+            error message out there is an error message nobody can read, so
+            the button would just stop spinning and say nothing. */}
+        {error && (
+          <p role="alert" className="mt-3 text-[15.5px] leading-relaxed text-red-400">
+            {error}
+          </p>
+        )}
+      </Modal>
     </div>
   )
 }

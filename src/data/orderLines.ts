@@ -1,4 +1,4 @@
-import type { OrderLine } from './types'
+import type { Order, OrderLine } from './types'
 
 /**
  * The money path of an order, kept free of Firestore.
@@ -42,4 +42,22 @@ export function toOrderLines(value: unknown): OrderLine[] {
       },
     ]
   })
+}
+
+/**
+ * Whether an order still belongs in the buyer's own list.
+ *
+ * Filtered here rather than in the query, for the same reason the sort is:
+ * `where('buyerUid', ..)` plus `where('hiddenForBuyer', ..)` is two equalities
+ * Firestore would serve happily, but every order already has to be read to be
+ * sorted, so the second filter buys nothing and the query stays one clause
+ * simpler.
+ *
+ * HERE RATHER THAN IN orders.ts for the reason at the top of this file: that
+ * module imports lib/firebase and `node` cannot load it, so a predicate left
+ * there is a predicate with no test. Callers import it from here, the same way
+ * they import orderTotal.
+ */
+export function visibleToBuyer(order: Order): boolean {
+  return !order.hiddenForBuyer
 }

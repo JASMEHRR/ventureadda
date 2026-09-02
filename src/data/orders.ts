@@ -14,7 +14,7 @@ import {
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { reportError } from '../lib/errors'
-import { orderTotal, toOrderLines } from './orderLines'
+import { orderTotal, toOrderLines, visibleToBuyer } from './orderLines'
 import type {
   ContactPreference,
   Order,
@@ -74,6 +74,9 @@ function toOrder(snapshot: QueryDocumentSnapshot<DocumentData>): Order {
     payment: data.payment === 'online' ? 'online' : 'cod',
     deliveryAddress: data.deliveryAddress ?? '',
     deliverySlot: data.deliverySlot ?? '',
+    // Absent on every order placed before buyers could clear their list, and
+    // absent means visible. Only an explicit true hides one.
+    hiddenForBuyer: data.hiddenForBuyer === true,
     // An unrecognised status is treated as the least advanced one rather than
     // rendered raw: this drives a badge and a set of buttons, and an unknown
     // value there would leave the seller with a row they cannot move.
@@ -117,6 +120,7 @@ export async function createOrder(input: OrderInput): Promise<string> {
     payment: input.payment,
     deliveryAddress: input.deliveryAddress,
     deliverySlot: input.deliverySlot,
+    hiddenForBuyer: false,
     status: 'pending' as OrderStatus,
     seen: false,
     createdAt: serverTimestamp(),
@@ -164,7 +168,25 @@ export async function listOrdersForBuyer(buyerUid: string): Promise<Order[]> {
   const snapshot = await getDocs(query(ordersRef, where('buyerUid', '==', buyerUid)))
   return snapshot.docs
     .map(toOrder)
+    .filter(visibleToBuyer)
     .sort((a, b) => (b.createdAt?.getTime() ?? Infinity) - (a.createdAt?.getTime() ?? Infinity))
+}
+
+/**
+ * Clears one order out of the buyer's list, leaving the seller's untouched.
+ *
+ * The only field a buyer may write after creating an order, and the rules say
+ * so as narrowly as this does: see the second `allow update` on /orders in
+ * firestore.rules. It cannot cancel anything, and the seller is not told —
+ * cancelling is a conversation, which is what the listing's WhatsApp button is
+ * for.
+ */
+export async function hideOrderForBuyer(orderId: string): Promise<void> {
+  try {
+    await updateDoc(doc(ordersRef, orderId), { hiddenForBuyer: true })
+  } catch (cause) {
+    throw new Error(reportError(`hideOrderForBuyer: ${orderId}`, cause))
+  }
 }
 
 /**

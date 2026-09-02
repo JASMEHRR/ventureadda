@@ -349,6 +349,22 @@ export type Order = {
    * conversation that follows, same as they always have.
    */
   deliverySlot: string
+  /**
+   * The buyer has cleared this out of their own list.
+   *
+   * A HIDE, NOT A DELETE, and the distinction is the whole reason this field
+   * exists rather than a deleteDoc. An order is a record of something two
+   * people agreed, and only one of them is holding the obligation: the seller
+   * has to make the thing, and may already have made it. Letting the buyer
+   * remove the document would let them erase the seller's only note of what
+   * was asked for and how to reach them — and the buyer is the party with a
+   * reason to want an awkward order to stop existing.
+   *
+   * So this is scoped to the buyer's view. listOrdersForBuyer drops these;
+   * listOrdersForOwner does not know the field is there. Absent on every order
+   * written before this existed, which reads as false.
+   */
+  hiddenForBuyer: boolean
   status: OrderStatus
   /** False until the seller has opened their orders page. Drives the badge. */
   seen: boolean

@@ -8,8 +8,8 @@
  * Run with: node src/data/orders.test.ts   (Node strips the types itself)
  */
 import assert from 'node:assert/strict'
-import { orderTotal, toOrderLines } from './orderLines.ts'
-import type { OrderLine } from './types.ts'
+import { orderTotal, toOrderLines, visibleToBuyer } from './orderLines.ts'
+import type { Order, OrderLine } from './types.ts'
 
 const line = (over: Partial<OrderLine> = {}): OrderLine => ({
   itemId: 'i1',
@@ -61,3 +61,18 @@ assert.deepEqual(toOrderLines('two stickers'), [])
 assert.deepEqual(toOrderLines([null, 'x', 7]), [])
 
 console.log('order totals and line parsing: all checks passed')
+
+// --- whose list an order belongs in -----------------------------------------
+//
+// The seller's list must never lose a row to this, so the only thing under
+// test is that the flag is read strictly. An order written before the field
+// existed has no `hiddenForBuyer` at all, and it has to stay visible: a
+// buyer's whole history silently emptying is the failure this guards.
+const order = (over: Partial<Order> = {}): Order =>
+  ({ id: 'o1', hiddenForBuyer: false, ...over }) as Order
+
+assert.equal(visibleToBuyer(order()), true)
+assert.equal(visibleToBuyer(order({ hiddenForBuyer: true })), false)
+assert.equal(visibleToBuyer(order({ hiddenForBuyer: undefined as unknown as boolean })), true)
+
+console.log('orders: ok')

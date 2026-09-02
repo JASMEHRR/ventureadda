@@ -445,7 +445,8 @@ service cloud.firestore {
                          'ventureId', 'ventureName', 'ownerId', 'buyerUid',
                          'buyerName', 'buyerPhone', 'lines', 'total',
                          'contactPreference', 'payment', 'deliveryAddress',
-                         'deliverySlot', 'status', 'seen', 'createdAt'
+                         'deliverySlot', 'status', 'seen', 'createdAt',
+                         'hiddenForBuyer'
                        ])
                     // Pins the order to the caller. Without this, one account
                     // could paper a seller's dashboard with orders in other
@@ -453,6 +454,17 @@ service cloud.firestore {
                     && request.resource.data.buyerUid == request.auth.uid
                     && request.resource.data.status == 'pending'
                     && request.resource.data.seen == false
+                    // A new order is in the buyer's own list by definition:
+                    // nobody may file one that is already invisible to the
+                    // person it is attributed to.
+                    //
+                    // `get` with a default rather than a bare field read,
+                    // because a tab that loaded before this field existed is
+                    // still out there and still sending fifteen keys. Reading
+                    // a missing field directly would evaluate to an error and
+                    // refuse those orders outright, which is a real order lost
+                    // to make a new field tidy.
+                    && request.resource.data.get('hiddenForBuyer', false) == false
                     // Forces serverTimestamp(). A client-supplied time could
                     // backdate an order to the top of the seller's list.
                     && request.resource.data.createdAt == request.time
@@ -507,9 +519,25 @@ service cloud.firestore {
                     && request.resource.data.status in ['pending', 'paid', 'completed']
                     && request.resource.data.seen is bool;
 
-      // The seller clearing a prank or a duplicate. Buyers cannot withdraw an
-      // order — by then the seller may already have made it — they message and
-      // sort it out, which is what this whole site is.
+      // The buyer clearing an old order out of their OWN list, and nothing
+      // else. `hasOnly` plus the literal `== true` is the whole guarantee
+      // here: this cannot touch the lines, the total, the status or the
+      // seller's `seen` flag, and it cannot be aimed at somebody else's order.
+      //
+      // A separate statement rather than another clause on the rule above,
+      // because these two are not variations on one permission — the seller
+      // moves an order through its life, the buyer only stops looking at it.
+      // Firestore ORs the allow statements, so nothing is widened by writing
+      // them apart.
+      allow update: if request.auth != null
+                    && resource.data.buyerUid == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hiddenForBuyer'])
+                    && request.resource.data.hiddenForBuyer == true;
+
+      // The seller clearing a prank or a duplicate. Buyers still cannot delete
+      // an order — by then the seller may already have made it — they hide it
+      // from their own list and, if it needs cancelling, they message and sort
+      // it out, which is what this whole site is.
       allow delete: if isModerator()
                     || (request.auth != null && resource.data.ownerId == request.auth.uid);
     }
