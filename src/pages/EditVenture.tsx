@@ -84,6 +84,7 @@ export default function EditVenture() {
     // an empty field. String(undefined) would put the word "undefined" in it.
     stock: item.stock === undefined ? '' : String(item.stock),
     inStock: item.inStock,
+    limitedTime: item.limitedTime === true,
     photo: item.photo,
   }))
 

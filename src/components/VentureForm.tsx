@@ -81,6 +81,9 @@ const newDraft = (): MenuItemDraft => ({
   // A new item is for sale. The other default would mean every item added in a
   // hurry is invisible to buyers for reasons its owner never sees.
   inStock: true,
+  // Off. A strip that features everything features nothing, and a seller who
+  // has to untick a box on every ordinary item will stop using the form.
+  limitedTime: false,
 })
 
 export type VentureFormValues = {
@@ -746,6 +749,9 @@ export default function VentureForm({
   }
 
   const soldOutCount = items.filter((item) => !item.inStock && item.name.trim() !== '').length
+  const featuredCount = items.filter(
+    (item) => item.limitedTime && item.inStock && item.name.trim() !== '',
+  ).length
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -794,6 +800,7 @@ export default function VentureForm({
           price: item.price.trim() === '' ? undefined : Math.round(Number(item.price)),
           category: item.category.trim() || undefined,
           inStock: item.inStock,
+          limitedTime: item.limitedTime,
           // Blank means the seller is not counting. Number('') is 0, which
           // would silently publish every uncounted item as "none left".
           stock: item.stock.trim() === '' ? undefined : Math.round(Number(item.stock)),
@@ -1089,6 +1096,26 @@ export default function VentureForm({
                 className={`${inputClass} mt-3`}
               />
 
+              {/* THE SWITCH THE SELLER ASKED FOR, next to the item's other
+                  framing rather than up in the header beside sold-out. Sold-out
+                  is a fact about whether an order can happen at all and belongs
+                  where it cannot be missed; this is a choice about promotion,
+                  and it earns its place in the body. Running low needs no
+                  switch — the stock number above already says it. */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <StockToggle
+                  value={item.limitedTime}
+                  onChange={(next) => patchItem(item.key, { limitedTime: next })}
+                  label={`Item ${index + 1} limited time offer`}
+                  onText="Limited time"
+                  offText="Not featured"
+                />
+                <p className="min-w-0 flex-1 text-[14.5px] leading-relaxed text-white/50">
+                  Puts it in the strip across the top of your listing and on the front page. Turn
+                  it off when the offer ends &mdash; there is no timer.
+                </p>
+              </div>
+
               <div className="mt-3">
                 <SectionPicker
                   value={item.category}
@@ -1173,6 +1200,14 @@ export default function VentureForm({
                   Sold out
                 </dt>
                 <dd className="font-mono text-[15px] font-bold text-red-400">{soldOutCount}</dd>
+              </div>
+            )}
+            {featuredCount > 0 && (
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="font-mono text-[12.5px] tracking-[0.18em] text-white/55 uppercase">
+                  Featured
+                </dt>
+                <dd className="font-mono text-[15px] font-bold text-amber-400">{featuredCount}</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between gap-2">

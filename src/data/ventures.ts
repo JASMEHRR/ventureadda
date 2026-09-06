@@ -115,6 +115,9 @@ function toMenuItem(snapshot: QueryDocumentSnapshot<DocumentData>): MenuItem {
     // no value here, and defaulting those to false would empty every menu on
     // the site the moment this deploys.
     inStock: data.inStock !== false,
+    // Absent means off. Only an explicit true features an item, so nothing
+    // written before this field existed is promoted by accident.
+    limitedTime: data.limitedTime === true,
     // Zero is meaningful — the seller counted and has none — so this cannot
     // collapse to a falsy check.
     stock: typeof data.stock === 'number' && data.stock >= 0 ? data.stock : undefined,
@@ -484,6 +487,15 @@ export type MenuItemInput = {
   inStock: boolean
   /** Undefined means the seller is not counting units. */
   stock?: number
+  /**
+   * The seller has flagged this as a limited time offer.
+   *
+   * Optional on the way in and guaranteed on the way out: seed data and any
+   * other caller with no opinion about promotion leaves it out, and both write
+   * sites coerce it to a real boolean. The key is always written, which is
+   * what lets an update turn a finished offer back off.
+   */
+  limitedTime?: boolean
   photo?: StoredImage
 }
 
@@ -505,6 +517,10 @@ function menuItemPayload(ventureId: string, item: MenuItemInput) {
     name: item.name,
     description: item.description,
     inStock: item.inStock,
+    // Always written, both on create and on update. A boolean the seller can
+    // turn back off cannot be expressed by omitting the key — see the note on
+    // the update below, which is the same lesson learned on photo and price.
+    limitedTime: item.limitedTime === true,
     // Omitted rather than written as null: the rules accept a missing price
     // and refuse a non-number, and an absent field is what the reader turns
     // back into "ask".
@@ -674,6 +690,11 @@ export async function updateVenture(
         ...payload,
         stock: item.stock ?? null,
         photo: item.photo ?? null,
+        // In the payload already, and repeated here only so the list of
+        // clearable fields stays the list of clearable fields: turning a
+        // limited time offer back off is exactly the case the note above is
+        // about.
+        limitedTime: item.limitedTime === true,
         price: typeof item.price === 'number' ? item.price : null,
         category: item.category ?? null,
       })

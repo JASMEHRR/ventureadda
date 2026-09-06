@@ -5,6 +5,7 @@ import VentureLogo from './ui/VentureLogo'
 import { displayUrl } from '../lib/cloudinary'
 import { cartQuantity, setCartQuantity, useCart } from '../data/cart'
 import { venturePath } from '../data/ventures'
+import { spotlightLabel, spotlightReason } from '../data/spotlight'
 import type { ItemMatch } from '../data/ventures'
 
 /**
@@ -32,6 +33,16 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
   const brandIcon = venture.brandLogos
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
   const priced = typeof item.price === 'number'
+  /**
+   * "Limited time" or "Last one", when either is true of this item.
+   *
+   * On the tile itself rather than only inside a spotlight row, because it is
+   * a fact about the item and not about which row it landed in: an item down
+   * to its last unit is down to its last unit in the middle of a section rail
+   * too, and that is exactly where somebody about to scroll past it needs to
+   * be told. See data/spotlight.ts for what qualifies.
+   */
+  const reason = spotlightReason(item)
 
   // Narrower on a phone than on a desktop: at 208px a single tile was
   // two-thirds of a 375px screen, so the row read as one enormous card rather
@@ -42,7 +53,21 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
       style={{ '--surface-height': '300px' } as React.CSSProperties}
     >
       <Link to={venturePath(venture)} className="block">
-        <span className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
+        <span className="relative mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
+          {reason && (
+            // Amber for the seller's own claim, red for running out: one is an
+            // offer and the other is a warning, and colouring them alike would
+            // make the warning read as marketing.
+            <span
+              className={`absolute top-1.5 left-1.5 z-10 rounded-lg px-2 py-1 font-mono text-[11px] font-extrabold tracking-wider uppercase backdrop-blur-sm ${
+                reason.kind === 'limitedTime'
+                  ? 'bg-amber-500/85 text-black'
+                  : 'bg-red-500/85 text-white'
+              }`}
+            >
+              {spotlightLabel(reason)}
+            </span>
+          )}
           {item.photo ? (
             <img
               src={displayUrl(item.photo, 400)}

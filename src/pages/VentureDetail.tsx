@@ -38,6 +38,8 @@ import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
 import { formatRuns, tidyBreaks } from '../lib/richText'
 import ShareVenture from '../components/ShareVenture'
+import ProductRail from '../components/ProductRail'
+import { spotlightOf } from '../data/spotlight'
 import WhatsAppIcon from '../components/ui/WhatsAppIcon'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
@@ -580,6 +582,11 @@ export default function VentureDetail() {
   // the whole contract: the store sets the default, the visitor overrules it.
   const density = resolveMenuDensity(appearance.menuDensity, v.menuDensity)
 
+  // Built from the whole menu rather than the filtered view: the strip is
+  // hidden during a search anyway, so filtering it would only make it flicker
+  // on the way there.
+  const spotlight = spotlightOf(menu.data ?? [])
+
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
   const showItemStats = Boolean(profile && (profile.uid === v.ownerId || profile.isModerator))
@@ -739,6 +746,27 @@ export default function VentureDetail() {
         </p>
         </section>
       </div>
+
+      {/*
+        ABOVE THE MENU, NOT IN IT.
+
+        A menu is a list in the seller's own order and it treats every item the
+        same, which is right for reading and wrong for the two things that will
+        not be here tomorrow. Loopberry has one rose and one lily; both sit
+        somewhere in a list of ten looking exactly like the eight that are not
+        running out. This is the row that says so before anyone starts
+        scrolling.
+
+        Not shown when a search is on: a strip of things the visitor did not
+        ask about, pushing down the results they did, is the site talking over
+        them. See data/spotlight.ts for what earns a place.
+      */}
+      {needle === '' && spotlight.length > 0 && (
+        <ProductRail
+          title={spotlight.some((item) => item.limitedTime) ? 'Limited time' : 'Going fast'}
+          items={spotlight.map((item) => ({ item, venture: v }))}
+        />
+      )}
 
       <section className="space-y-3">
         <header className="flex flex-wrap items-center justify-between gap-3 px-1">
