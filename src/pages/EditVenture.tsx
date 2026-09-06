@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import VentureForm from '../components/VentureForm'
+import BillboardPanel from '../components/BillboardPanel'
 import type { VentureFormValues } from '../components/VentureForm'
 import LoadingLine from '../components/ui/LoadingLine'
 import ChooseUsername from './ChooseUsername'
@@ -84,7 +85,6 @@ export default function EditVenture() {
     // an empty field. String(undefined) would put the word "undefined" in it.
     stock: item.stock === undefined ? '' : String(item.stock),
     inStock: item.inStock,
-    limitedTime: item.limitedTime === true,
     photo: item.photo,
   }))
 
@@ -106,6 +106,15 @@ export default function EditVenture() {
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         canEditManagers={isOwner || profile.isModerator}
+      />
+
+      {/* Below the form and saving on its own. An advert is submitted for
+          approval, not edited into existence alongside twenty menu items, so
+          it must not ride on the form's save button. */}
+      <BillboardPanel
+        venture={venture.data}
+        items={menu.data ?? []}
+        ownerId={venture.data.ownerId}
       />
     </div>
   )

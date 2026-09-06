@@ -647,6 +647,85 @@ service cloud.firestore {
      * READ IS MODERATORS ONLY. Traffic is the sort of thing a competitor asks
      * about and nobody else needs.
      */
+    match /billboards/{adId} {
+      /**
+       * The front page advert slot. Approval is the whole point of this
+       * collection, so it is enforced here rather than in the page that draws
+       * it: a rule that only the UI respects is not approval, it is a habit.
+       *
+       * Live is public, and the app's own query filters on it so it passes.
+       * A seller sees their own whatever the status, because they have to be
+       * able to read back why theirs was refused.
+       */
+      allow read: if resource.data.status == 'live'
+                  || isModerator()
+                  || (request.auth != null && resource.data.ownerId == request.auth.uid);
+
+      // Submitting one. PENDING IS PINNED HERE: without this line a seller
+      // could write status 'live' straight onto their own advert and put it on
+      // the front page themselves, which would make the moderator queue
+      // decorative.
+      allow create: if isSeller()
+                    && request.resource.data.keys().hasOnly([
+                         'ventureId', 'ventureName', 'ventureSlug', 'ownerId',
+                         'itemId', 'itemName', 'photo', 'pitch', 'offer',
+                         'status', 'rejectionReason', 'paused', 'createdAt'
+                       ])
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.rejectionReason == ''
+                    && request.resource.data.paused == false
+                    // Forces serverTimestamp(); a client time could backdate an
+                    // advert to the top of the moderator's queue.
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.pitch is string
+                    && request.resource.data.pitch.size() > 0
+                    && request.resource.data.pitch.size() <= 90
+                    && request.resource.data.offer is string
+                    && request.resource.data.offer.size() <= 24
+                    && request.resource.data.itemId is string
+                    && request.resource.data.itemId.size() > 0
+                    // The advert must be for a venture this person really runs,
+                    // and one that is live. Advertising a listing nobody has
+                    // approved would route around venture moderation entirely.
+                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.ownerId == request.auth.uid
+                    && get(/databases/$(database)/documents/ventures/$(request.resource.data.ventureId)).data.status == 'live';
+
+      // The seller taking their own advert down for the day, and putting it
+      // back. Only `paused` — no re-approval, because nothing a moderator
+      // agreed to has changed.
+      allow update: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paused'])
+                    && request.resource.data.paused is bool;
+
+      // The seller rewriting it. BACK TO PENDING, ALWAYS: an approved advert
+      // whose words can be changed afterwards is an unapproved advert with
+      // extra steps, and this is the clause that stops "20% off" being
+      // approved and then edited into anything at all.
+      allow update: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pitch', 'offer', 'status', 'rejectionReason'])
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.rejectionReason == ''
+                    && request.resource.data.pitch is string
+                    && request.resource.data.pitch.size() > 0
+                    && request.resource.data.pitch.size() <= 90
+                    && request.resource.data.offer is string
+                    && request.resource.data.offer.size() <= 24;
+
+      // The decision itself. Only a moderator, and only the two fields that
+      // record it.
+      allow update: if isModerator()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rejectionReason'])
+                    && request.resource.data.status in ['pending', 'live', 'rejected']
+                    && request.resource.data.rejectionReason is string
+                    && request.resource.data.rejectionReason.size() <= 200;
+
+      allow delete: if isModerator()
+                    || (request.auth != null && resource.data.ownerId == request.auth.uid);
+    }
+
     match /traffic/{day} {
       allow read: if isModerator();
 

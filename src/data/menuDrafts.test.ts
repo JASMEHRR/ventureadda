@@ -18,7 +18,6 @@ const draft = (over: Partial<MenuItemDraft> = {}): MenuItemDraft => ({
   price: '',
   category: '',
   stock: '',
-  limitedTime: false,
   inStock: true,
   ...over,
 })

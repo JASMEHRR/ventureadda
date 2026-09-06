@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   List,
   Minus,
+  Pencil,
   Plus,
   SearchX,
   ShoppingCart,
@@ -38,8 +39,6 @@ import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
 import { formatRuns, tidyBreaks } from '../lib/richText'
 import ShareVenture from '../components/ShareVenture'
-import ProductRail from '../components/ProductRail'
-import { spotlightOf } from '../data/spotlight'
 import WhatsAppIcon from '../components/ui/WhatsAppIcon'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
@@ -429,7 +428,7 @@ function ItemCard({
 
 export default function VentureDetail() {
   const { ventureId = '' } = useParams()
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   /**
    * The cart is no longer page-local.
    *
@@ -582,14 +581,29 @@ export default function VentureDetail() {
   // the whole contract: the store sets the default, the visitor overrules it.
   const density = resolveMenuDensity(appearance.menuDensity, v.menuDensity)
 
-  // Built from the whole menu rather than the filtered view: the strip is
-  // hidden during a search anyway, so filtering it would only make it flicker
-  // on the way there.
-  const spotlight = spotlightOf(menu.data ?? [])
-
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
   const showItemStats = Boolean(profile && (profile.uid === v.ownerId || profile.isModerator))
+
+  /**
+   * Whether the person reading this is one of the people who can change it.
+   *
+   * THE ROUTE TO EDITING WAS HIDDEN and sellers said so: the only way in was
+   * My ventures, then find your own listing, then Edit — three steps from a
+   * page that was already the listing itself. People open their own shop from
+   * a shared link or from Browse like everybody else, and there was nothing on
+   * it to press.
+   *
+   * Co-owners are matched on the verified address, the same comparison the
+   * rules make — see Venture.managerEmails. A moderator sees it too, since
+   * fixing a listing on a seller's behalf is most of what they do.
+   */
+  const mayEdit = Boolean(
+    profile &&
+      (profile.uid === v.ownerId ||
+        profile.isModerator ||
+        (user?.email && v.managerEmails.includes(user.email.toLowerCase()))),
+  )
 
   /**
    * The menu, filtered by whatever is in the shell's search box.
@@ -704,16 +718,31 @@ export default function VentureDetail() {
           {/* Beside the name, which is the one place on the page that is
               unambiguously about this venture as a whole rather than about one
               item on its menu. */}
-          <ShareVenture
-            venture={{
-              ...v,
-              categoryName: categoryName(v.categoryId),
-              itemCount: menu.data?.length,
-            }}
-            // The readable one when it has it, so what gets pasted into a
-            // group chat says the venture's name rather than its document id.
-            ventureId={v.slug ?? v.id}
-          />
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Beside Share, not buried in a menu. It is only rendered for the
+                handful of people who can actually use it, so it costs everyone
+                else nothing. */}
+            {mayEdit && (
+              <Link
+                to={`${venturePath(v)}/edit`}
+                className="flex h-11 items-center gap-1.5 rounded-full border border-brand-400/40 bg-brand-500/15 px-4 font-mono text-[13px] font-bold tracking-wider text-brand-300 uppercase transition duration-150 hover:bg-brand-500/25 active:scale-[0.96]"
+              >
+                <Pencil size={14} aria-hidden="true" />
+                Edit
+                <span className="sr-only"> {v.name}</span>
+              </Link>
+            )}
+            <ShareVenture
+              venture={{
+                ...v,
+                categoryName: categoryName(v.categoryId),
+                itemCount: menu.data?.length,
+              }}
+              // The readable one when it has it, so what gets pasted into a
+              // group chat says the venture's name rather than its document id.
+              ventureId={v.slug ?? v.id}
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -746,27 +775,6 @@ export default function VentureDetail() {
         </p>
         </section>
       </div>
-
-      {/*
-        ABOVE THE MENU, NOT IN IT.
-
-        A menu is a list in the seller's own order and it treats every item the
-        same, which is right for reading and wrong for the two things that will
-        not be here tomorrow. Loopberry has one rose and one lily; both sit
-        somewhere in a list of ten looking exactly like the eight that are not
-        running out. This is the row that says so before anyone starts
-        scrolling.
-
-        Not shown when a search is on: a strip of things the visitor did not
-        ask about, pushing down the results they did, is the site talking over
-        them. See data/spotlight.ts for what earns a place.
-      */}
-      {needle === '' && spotlight.length > 0 && (
-        <ProductRail
-          title={spotlight.some((item) => item.limitedTime) ? 'Limited time' : 'Going fast'}
-          items={spotlight.map((item) => ({ item, venture: v }))}
-        />
-      )}
 
       <section className="space-y-3">
         <header className="flex flex-wrap items-center justify-between gap-3 px-1">

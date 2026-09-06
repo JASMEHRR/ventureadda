@@ -41,6 +41,12 @@ import { OWNER_EMAIL, auth } from '../lib/firebase'
 import { listTraffic } from '../data/traffic'
 import type { TrafficDay } from '../data/traffic'
 import { listAllOrders } from '../data/orders'
+import {
+  deleteBillboard,
+  listBillboardsByStatus,
+  setBillboardStatus,
+} from '../data/billboard'
+import type { Billboard } from '../data/billboardPick'
 import { ordersByVenture, ordersSince, usageLadder } from '../data/orderStats'
 import type { VentureOrders } from '../data/orderStats'
 import type { Order } from '../data/types'
@@ -532,6 +538,102 @@ function RealUsagePanel({
 }
 
 /**
+ * The advert queue: what sellers have asked to put on the front page.
+ *
+ * THE APPROVAL IS THE PRODUCT. Anyone running a venture can write a line and
+ * submit it, and until somebody here reads it, nobody sees it — that is the
+ * only thing standing between the site's front page and whatever a seller
+ * fancies claiming. It is deliberately the first thing under the venture queue
+ * rather than folded into a drawer: a queue nobody opens is an approval that
+ * happens by neglect, which in practice means never.
+ *
+ * A refusal takes a reason, and the seller reads it on their own edit page.
+ * "No" with no explanation gets resubmitted unchanged, and then it is in the
+ * queue twice.
+ */
+function BillboardQueue({
+  ads,
+  busy,
+  onDecide,
+  onDelete,
+}: {
+  ads: Billboard[]
+  busy: boolean
+  onDecide: (ad: Billboard, status: 'live' | 'rejected', reason: string) => void
+  onDelete: (ad: Billboard) => void
+}) {
+  const [reasons, setReasons] = useState<Record<string, string>>({})
+
+  if (ads.length === 0) return null
+
+  return (
+    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+          Billboard queue
+        </h2>
+        <span className="font-mono text-[13px] text-white/55">
+          {ads.length} waiting
+        </span>
+      </div>
+
+      <ul className="space-y-2.5">
+        {ads.map((ad) => (
+          <li key={ad.id} className="space-y-2.5 rounded-2xl border border-white/8 bg-white/[0.03] p-3.5">
+            <p className="text-[17px] leading-snug font-bold text-white">{ad.pitch}</p>
+            <p className="font-mono text-[12.5px] tracking-wider text-white/55 uppercase">
+              {ad.itemName} · {ad.ventureName}
+              {ad.offer && ` · ${ad.offer}`}
+            </p>
+
+            <TextField
+              id={`billboard-reason-${ad.id}`}
+              label="Reason, if you are refusing it"
+              value={reasons[ad.id] ?? ''}
+              onChange={(event) =>
+                setReasons((previous) => ({ ...previous, [ad.id]: event.target.value }))
+              }
+              maxLength={200}
+              placeholder="Says 50% off but the item is not discounted"
+            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={busy}
+                onClick={() => onDecide(ad, 'live', '')}
+              >
+                Put it up
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => onDecide(ad, 'rejected', (reasons[ad.id] ?? '').trim())}
+              >
+                Refuse
+              </Button>
+              <Link
+                to={`/venture/${ad.ventureSlug || ad.ventureId}`}
+                className="font-mono text-[13px] font-bold tracking-wider text-white/55 uppercase transition hover:text-brand-300"
+              >
+                Open listing
+              </Link>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onDelete(ad)}
+                className="ml-auto font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-red-300 disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
  * The words on the front page, editable without a deploy.
  *
  * WHY THIS IS A SETTING. The hook is a guess. Nobody knows whether "Hungry?"
@@ -700,6 +802,7 @@ export default function Moderator() {
   // The whole orders collection, moderators only. One billed read per order,
   // which is why nothing outside this page calls it. See listAllOrders.
   const orders = useAsyncData(() => listAllOrders(), [refreshToken])
+  const pendingAds = useAsyncData(() => listBillboardsByStatus('pending'), [refreshToken])
   const approved = useAsyncData(() => listApprovedEmails(), [refreshToken])
   const users = useAsyncData(() => listUsers(), [refreshToken])
 
@@ -855,6 +958,18 @@ export default function Moderator() {
       {/* Stays out in the open: it is the thing a moderator opens this page to
           look at, and it changes every day. The drawers below hold the
           settings that get touched twice a term. */}
+      <BillboardQueue
+        ads={pendingAds.data ?? []}
+        busy={busy}
+        onDecide={(ad, status, reason) =>
+          void act(
+            () => setBillboardStatus(ad.id, status, reason),
+            status === 'live' ? `"${ad.pitch}" is on the billboard.` : `Refused "${ad.pitch}".`,
+          )
+        }
+        onDelete={(ad) => void act(() => deleteBillboard(ad.id), 'Advert deleted.')}
+      />
+
       <TrafficPanel days={traffic.data ?? []} />
 
       <OrdersPanel orders={allOrders} />

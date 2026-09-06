@@ -5,7 +5,9 @@ import EmptyState from '../components/ui/EmptyState'
 import LoadingLine from '../components/ui/LoadingLine'
 import ProductCard from '../components/ui/ProductCard'
 import ProductRail from '../components/ProductRail'
-import { spotlightAcross } from '../data/spotlight'
+import BillboardSlot from '../components/BillboardSlot'
+import { listLiveBillboards } from '../data/billboard'
+import { pickBillboard } from '../data/billboardPick'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
 import type { ItemMatch } from '../data/ventures'
@@ -177,18 +179,21 @@ export default function Products() {
   // suggestions above their answer is in the way.
   const showWindow = !section && !kind && query.trim() === '' && !categoryId
   const picks = useMemo(() => (showWindow ? topPicks(all, 10) : []), [all, showWindow])
+
   /**
-   * Limited time offers and last units, from across the campus.
+   * The advert on the board right now, if anybody has one approved.
    *
-   * ABOVE "READY TO ORDER" because it is the only row on this page with a
-   * deadline on it. Everything else here will still be for sale on Thursday;
-   * these are the ones that will not be, and a shop window that buries them
-   * under a general selection has put them in the wrong order.
+   * Its own read rather than something derived from the products already
+   * loaded, because an advert is a separate thing with its own approval — and
+   * it is one small query returning only live rows, so it costs a read per
+   * approved advert rather than per item.
    *
    * Under the same `showWindow` guard as the picks: somebody who has typed a
-   * word or picked a section asked a question, and this is not an answer to it.
+   * word or picked a section asked a question, and an advert is not an answer
+   * to it. The front page is where this belongs; a search result is not.
    */
-  const spotlight = useMemo(() => (showWindow ? spotlightAcross(all, 10) : []), [all, showWindow])
+  const ads = useAsyncData(() => listLiveBillboards(), [])
+  const ad = showWindow ? pickBillboard(ads.data ?? []) : null
 
   const isFiltered =
     query.trim() !== '' || categoryId !== null || section !== null || kind !== null || hideSoldOut
@@ -397,9 +402,9 @@ export default function Products() {
           <div className="min-w-0 flex-1 space-y-8">
             {/* SEGMENT TWO: the shop window. Wide tiles, a few things from
                 different shops, and gone the moment anything is narrowed. */}
-            {spotlight.length > 0 && (
-              <ProductRail title="Limited time &amp; nearly gone" items={spotlight} />
-            )}
+            {/* SEGMENT ONE AND A HALF: the billboard. One approved advert,
+                above the shop window, labelled as an advert. */}
+            {ad && <BillboardSlot ad={ad} />}
 
             {picks.length > 0 && <ProductRail title="Ready to order" items={picks} />}
 

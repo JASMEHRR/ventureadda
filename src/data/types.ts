@@ -247,20 +247,6 @@ export type MenuItem = {
    * `inStock` still exists to say so in words.
    */
   stock?: number
-  /**
-   * The seller has put this up as a limited time offer.
-   *
-   * THEIR CLAIM, NOT A TIMER. There is no end date and no countdown, on
-   * purpose: a date is a promise the site would have to keep, and an offer
-   * that silently expires at midnight because nobody updated a field is worse
-   * than one a seller takes down when it is over. This is a switch they turn
-   * on and off, the way they already do with sold-out.
-   *
-   * Distinct from running low, which is derived from `stock` and needs no
-   * switch at all — see data/spotlight.ts. Absent on every item written before
-   * this existed, which reads as off.
-   */
-  limitedTime?: boolean
   inquiryCount: number
 }
 
@@ -276,7 +262,6 @@ export type MenuItemDraft = {
   /** Empty string means "not counting", which is the common case. */
   stock: string
   inStock: boolean
-  limitedTime: boolean
   photo?: StoredImage
 }
 
