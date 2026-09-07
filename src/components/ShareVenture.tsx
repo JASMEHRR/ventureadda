@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Check, Link2 } from 'lucide-react'
 import WhatsAppIcon from './ui/WhatsAppIcon'
-import { ventureUrl, whatsappShareLink } from '../lib/share'
+import ShareDialog from './ShareDialog'
+import { ventureShareMessage, ventureUrl } from '../lib/share'
 import type { ShareableVenture } from '../lib/share'
 
 /**
@@ -44,6 +45,7 @@ export default function ShareVenture({
 }) {
   const [copied, setCopied] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   // The origin is read at click time rather than at module load so this is
   // correct on any deployment without being told which one it is on.
@@ -91,16 +93,18 @@ export default function ShareVenture({
           )}
         </button>
 
-        <a
-          href={whatsappShareLink(venture, ventureId, origin)}
-          target="_blank"
-          rel="noopener noreferrer"
+        {/* Opens the dialog rather than WhatsApp directly, so the message can
+            be read and changed before it goes to forty people. See
+            ShareDialog. */}
+        <button
+          type="button"
+          onClick={() => setSharing(true)}
           aria-label={`Share ${venture.name} on WhatsApp`}
           title="Share on WhatsApp"
           className="flex h-11 w-11 items-center justify-center rounded-full border border-whatsapp/40 bg-whatsapp/15 text-whatsapp transition duration-150 hover:bg-whatsapp/25 active:scale-[0.94]"
         >
           <WhatsAppIcon size={18} />
-        </a>
+        </button>
       </div>
 
       {/* Announced, not just shown: the button's own label does not change
@@ -108,6 +112,22 @@ export default function ShareVenture({
       <span role="status" className="sr-only">
         {copied ? 'Link copied to your clipboard.' : ''}
       </span>
+
+      <ShareDialog
+        open={sharing}
+        onClose={() => setSharing(false)}
+        title={`Send ${venture.name}`}
+        // A shop is not on offer and has no last one, so there is one way to
+        // introduce it and the preset row would be a row of one button.
+        pitches={['plain']}
+        build={(pitch, custom) =>
+          pitch === 'custom' && custom.trim()
+            ? `${custom.trim()}
+
+${url}`
+            : ventureShareMessage(venture, ventureId, origin)
+        }
+      />
 
       {failed && (
         <p className="mt-2 max-w-56 text-[13px] leading-relaxed break-all text-white/60">

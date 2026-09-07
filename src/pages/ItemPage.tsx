@@ -8,6 +8,7 @@ import BrandIcon from '../components/ui/BrandIcon'
 import VentureLogo from '../components/ui/VentureLogo'
 import WhatsAppIcon from '../components/ui/WhatsAppIcon'
 import ProductRail from '../components/ProductRail'
+import ShareDialog from '../components/ShareDialog'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { getVenture, listMenuItems, recordInquiry, venturePath } from '../data/ventures'
 import { cartQuantity, setCartQuantity, useCart } from '../data/cart'
@@ -38,6 +39,7 @@ export default function ItemPage() {
   const cart = useCart()
   const [copied, setCopied] = useState(false)
   const [asked, setAsked] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   const venture = useAsyncData(() => getVenture(ventureId), [ventureId])
   // The document id, not the slug in the URL — see the same note in
@@ -243,17 +245,17 @@ export default function ItemPage() {
           )}
 
           <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                itemShareMessage(item, v.name, url),
-              )}`}
-              target="_blank"
-              rel="noreferrer noopener"
+            {/* Opens the dialog rather than WhatsApp: the message is the
+                point, and a link sent under nothing does an advert's job with
+                none of the words. See ShareDialog. */}
+            <button
+              type="button"
+              onClick={() => setSharing(true)}
               className="flex items-center gap-1.5 rounded-xl bg-white/8 px-3.5 py-2.5 text-[14.5px] font-bold text-white/70 transition duration-150 hover:bg-white/12 hover:text-white active:scale-[0.96]"
             >
               <WhatsAppIcon size={14} />
               Send this
-            </a>
+            </button>
             <button
               type="button"
               onClick={() => void copyLink()}
@@ -278,6 +280,13 @@ export default function ItemPage() {
       </div>
 
       {alsoHere.length > 0 && <ProductRail title={`More from ${v.name}`} items={alsoHere} />}
+
+      <ShareDialog
+        open={sharing}
+        onClose={() => setSharing(false)}
+        title={`Send ${item.name}`}
+        build={(pitch, custom) => itemShareMessage(item, v.name, url, pitch, custom)}
+      />
     </div>
   )
 }

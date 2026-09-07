@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { AlertTriangle, Plus, Store, Trash2 } from 'lucide-react'
 import Button from '../components/ui/Button'
+import InviteSellers from '../components/InviteSellers'
 import EmptyState from '../components/ui/EmptyState'
 import LoadingLine from '../components/ui/LoadingLine'
 import Modal from '../components/ui/Modal'
@@ -131,12 +132,17 @@ export default function MyVentures() {
             Everything you have submitted, live or waiting for approval.
           </p>
         </div>
-        {canPost && (
-          <Button to="/add">
-            <Plus size={13} aria-hidden="true" />
-            Add venture
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Somebody who has already listed one is the likeliest person to
+              know the next seller, so the ask lives where they already are. */}
+          <InviteSellers subtle />
+          {canPost && (
+            <Button to="/add">
+              <Plus size={13} aria-hidden="true" />
+              Add venture
+            </Button>
+          )}
+        </div>
       </header>
 
       {mine.error && (

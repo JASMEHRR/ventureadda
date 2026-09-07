@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Button from '../components/ui/Button'
+import InviteSellers from '../components/InviteSellers'
 import Logo from '../components/ui/Logo'
 import Reveal from '../components/ui/Reveal'
 import VentureCard from '../components/ui/VentureCard'
@@ -605,11 +606,14 @@ export default function Landing({ always = false }: { always?: boolean } = {}) {
               photographs, hours, prices, and a WhatsApp button that tells you which item
               someone is asking about.
             </p>
-            <div className="mt-7">
+            <div className="mt-7 flex flex-wrap items-center gap-3">
               <Button to="/add">
                 <Plus size={13} aria-hidden="true" />
                 Add your venture
               </Button>
+              {/* Beside it, because the person reading the seller's half of
+                  this page is as likely to know a seller as to be one. */}
+              <InviteSellers />
             </div>
           </Reveal>
 

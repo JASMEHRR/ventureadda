@@ -73,16 +73,92 @@ export function itemUrl(venturePath: string, itemId: string, origin: string): st
   return `${origin.replace(/\/$/, '')}${venturePath}/item/${encodeURIComponent(itemId)}`
 }
 
-/** The message that carries one item into a chat: what it is, whose it is,
- *  what it costs when that is known, and the link that opens it. */
+/**
+ * The angle a share is sent at.
+ *
+ * PRESETS BECAUSE NOBODY WRITES THE GOOD ONE. A share button that hands over a
+ * bare link gets pasted into a group under whatever the sender can be bothered
+ * to type, which is usually nothing, and the message does the work of an
+ * advert with none of the words. These are the three things people actually
+ * mean when they send a product: look at this, hurry, and there is one left.
+ * `custom` is the escape hatch, because the sender knows their group.
+ */
+export type SharePitch = 'plain' | 'limited' | 'lastOne' | 'custom'
+
+/**
+ * The opening line for each, in the sender's voice rather than the site's.
+ *
+ * Nothing here is a claim the site is making: a person chose it and a person
+ * is sending it. Which is also why "Limited time" is a preset and not
+ * something inferred from a stock count — see the note on data/billboard.
+ */
+export const SHARE_PITCH_LABEL: Record<Exclude<SharePitch, 'custom'>, string> = {
+  plain: 'Just sharing it',
+  limited: 'Limited time offer',
+  lastOne: 'Final piece',
+}
+
+function pitchLine(pitch: SharePitch, ventureName: string): string {
+  if (pitch === 'limited') return `⏳ Limited time from *${ventureName}* on VentureAdda`
+  if (pitch === 'lastOne') return `🔥 Last one left at *${ventureName}* on VentureAdda`
+  return `*${ventureName}* is selling this on VentureAdda`
+}
+
+/**
+ * What one product looks like when it lands in a group chat.
+ *
+ * SINGLE ASTERISKS, NOT DOUBLE. WhatsApp's own emphasis is `*bold*`; the
+ * double-asterisk form the rest of this codebase parses is Markdown's, and
+ * sending it puts literal asterisks in front of forty people. This is the one
+ * place that has to speak WhatsApp's dialect rather than ours.
+ *
+ * The link goes LAST and on its own line, so WhatsApp draws the preview card
+ * under the message — the card carries the photograph, which is why no file is
+ * attached here. Attaching one meant `navigator.share({files})`, and WhatsApp
+ * dropped the file, kept the caption, and suppressed the preview: a message
+ * with no picture at all. The link's own card is the reliable picture.
+ */
 export function itemShareMessage(
-  item: { name: string; price?: number },
+  item: { name: string; price?: number; description?: string },
   ventureName: string,
   url: string,
+  pitch: SharePitch = 'plain',
+  custom = '',
 ): string {
+  const lead = pitch === 'custom' ? custom.trim() : pitchLine(pitch, ventureName)
   const price = typeof item.price === 'number' ? ` — ₹${item.price}` : ''
-  return `${item.name}${price} from ${ventureName} on VentureAdda:
-${url}`
+  const lines = [lead, '', `*${item.name}*${price}`]
+
+  const blurb = item.description?.trim().replace(/\s+/g, ' ')
+  if (blurb) lines.push(trimDescription(blurb, 110))
+
+  lines.push('', url)
+  // A custom message left empty leaves no lead at all, and the message must
+  // not open on a blank line because of it.
+  while (lines.length > 0 && lines[0].trim() === '') lines.shift()
+  return lines.join('\n')
+}
+
+/**
+ * The message that asks somebody to open a shop of their own.
+ *
+ * THE SITE'S ONE GROWTH LEVER, and it was a thing people were writing by hand.
+ * Every venture on here arrived because somebody in a group chat said "you
+ * should put that on VentureAdda", and the difference between that sentence
+ * landing and not landing is whether it says what the site does and what it
+ * costs. Both are in here, because "free" and "you keep talking on WhatsApp"
+ * are the two objections.
+ */
+export function inviteMessage(origin: string, custom = ''): string {
+  const url = `${origin.replace(/\/$/, '')}/add`
+  if (custom.trim()) return `${custom.trim()}\n\n${url}`
+  return [
+    'Selling anything on campus? Put it on *VentureAdda*.',
+    '',
+    'Brownies, stickers, crochet, subscriptions, whatever you make — students find it and message you on WhatsApp, same as now. Free, and it takes two minutes.',
+    '',
+    url,
+  ].join('\n')
 }
 
 /**
