@@ -21,14 +21,25 @@ import type { Billboard } from '../data/billboardPick'
  * Whose turn it is comes from pickBillboard — see billboardPick.ts for how the
  * slot is shared out.
  */
-export default function BillboardSlot({ ad }: { ad: Billboard }) {
-  const to = `/venture/${ad.ventureSlug || ad.ventureId}`
+export default function BillboardSlot({
+  ad,
+  /**
+   * Draw it, but do not make it a link.
+   *
+   * For the seller writing one: the preview has to be the real component or it
+   * is not a preview, and a preview that navigates away mid-sentence is a trap.
+   */
+  preview = false,
+}: {
+  ad: Billboard
+  preview?: boolean
+}) {
+  const className = `liquid-glass-panel group relative flex items-stretch gap-4 overflow-hidden rounded-3xl p-3 sm:gap-5 sm:p-4 ${
+    preview ? '' : 'transition duration-200 hover:ring-1 hover:ring-brand-400/40'
+  }`
 
-  return (
-    <Link
-      to={to}
-      className="liquid-glass-panel group relative flex items-stretch gap-4 overflow-hidden rounded-3xl p-3 transition duration-200 hover:ring-1 hover:ring-brand-400/40 sm:gap-5 sm:p-4"
-    >
+  const body = (
+    <>
       {/* The item, when there is a photograph of it. The seller's own mark
           otherwise, which is still a picture of who is talking. */}
       <span className="flex aspect-square w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/[0.04] sm:w-32">
@@ -72,6 +83,14 @@ export default function BillboardSlot({ ad }: { ad: Billboard }) {
           />
         </span>
       </span>
+    </>
+  )
+
+  return preview ? (
+    <div className={className}>{body}</div>
+  ) : (
+    <Link to={`/venture/${ad.ventureSlug || ad.ventureId}`} className={className}>
+      {body}
     </Link>
   )
 }

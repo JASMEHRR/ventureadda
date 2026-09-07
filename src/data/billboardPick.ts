@@ -60,23 +60,46 @@ export const OFFER_LIMIT = 24
 export const ROTATE_MS = 20 * 60 * 1000
 
 /**
- * Whose turn it is, out of the approved and unpaused ads.
+ * Whose turn it is, out of the approved and unpaused adverts.
  *
- * DETERMINISTIC AND FAIR, which is the whole job. Everybody viewing the site
- * in the same twenty minutes sees the same advert, and the sequence walks
- * every ad in turn rather than picking at random — random means a venture can
- * be skipped for an afternoon by luck alone, and there is no way to explain
- * that to the person who submitted it.
+ * ROTATES OVER VENTURES, NOT OVER ADVERTS, and that is the whole subtlety. A
+ * venture may put up as many items as it likes — there is no cap and there
+ * should not be one, since a shop with six things worth advertising has six
+ * things worth advertising. But if the slot simply cycled through every
+ * approved advert, that shop would hold the board six times as often as the
+ * shop with one, and the board would belong to whoever submits most.
  *
- * Sorted by id so the running order does not depend on what Firestore happened
- * to return first. Pure, so billboard.test.ts can hold it to all of the above.
+ * So the turn is a venture's, and a venture's adverts share it: each round the
+ * board comes back to them, they show the next one. Six adverts do not buy six
+ * times the exposure, they buy six different things to say with the same
+ * exposure. That is the version of "as many as you want" that is fair to
+ * everybody else on the board.
+ *
+ * DETERMINISTIC. Everybody viewing the site in the same twenty minutes sees
+ * the same advert, and the sequence walks every venture in turn rather than
+ * picking at random — random means a shop can be skipped for an afternoon by
+ * luck alone, and there is no way to explain that to the person who submitted
+ * it. Sorted by id throughout so the running order never depends on what
+ * Firestore happened to return first.
  */
 export function pickBillboard(ads: Billboard[], at: Date = new Date()): Billboard | null {
   const running = ads
     .filter((ad) => ad.status === 'live' && !ad.paused)
     .sort((a, b) => a.id.localeCompare(b.id))
   if (running.length === 0) return null
-  const turn = Math.floor(at.getTime() / ROTATE_MS) % running.length
-  return running[turn]
-}
 
+  // Grouped in encounter order, which is id order because of the sort above.
+  const byVenture = new Map<string, Billboard[]>()
+  for (const ad of running) {
+    const held = byVenture.get(ad.ventureId)
+    if (held) held.push(ad)
+    else byVenture.set(ad.ventureId, [ad])
+  }
+
+  const ventures = [...byVenture.values()]
+  const slot = Math.floor(at.getTime() / ROTATE_MS)
+  const mine = ventures[slot % ventures.length]
+  // Which of this venture's adverts, advancing once per full lap of the board
+  // so that a shop with three of them shows a different one each time round.
+  return mine[Math.floor(slot / ventures.length) % mine.length]
+}

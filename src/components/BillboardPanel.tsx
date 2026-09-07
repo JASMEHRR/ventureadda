@@ -4,6 +4,7 @@ import Button from './ui/Button'
 import TextField from './ui/TextField'
 import LoadingLine from './ui/LoadingLine'
 import StockToggle from './ui/StockToggle'
+import BillboardSlot from './BillboardSlot'
 import { useAsyncData } from '../hooks/useAsyncData'
 import {
   BILLBOARD_STATUS_LABEL,
@@ -48,6 +49,7 @@ export default function BillboardPanel({
 }) {
   const [refreshToken, setRefreshToken] = useState(0)
   const [itemId, setItemId] = useState('')
+  const [itemQuery, setItemQuery] = useState('')
   const [pitch, setPitch] = useState('')
   const [offer, setOffer] = useState('')
   const [busy, setBusy] = useState(false)
@@ -89,6 +91,7 @@ export default function BillboardPanel({
       setPitch('')
       setOffer('')
       setItemId('')
+      setItemQuery('')
       setNotice('Sent for approval. It goes up once a moderator has read it.')
       refresh()
     } catch (cause) {
@@ -113,6 +116,11 @@ export default function BillboardPanel({
 
   const existing = ads.data ?? []
   const sellable = items.filter((item) => item.name.trim() !== '')
+  const needle = itemQuery.trim().toLowerCase()
+  const matchingItems = needle
+    ? sellable.filter((item) => item.name.toLowerCase().includes(needle))
+    : sellable
+  const chosen = sellable.find((item) => item.id === itemId)
 
   return (
     <section className="liquid-glass-panel space-y-4 rounded-3xl p-5">
@@ -123,8 +131,9 @@ export default function BillboardPanel({
         </h2>
         <p className="mt-2 text-[16px] leading-relaxed text-white/55">
           One advert sits across the top of the front page, and every venture on the site takes
-          turns in it. Pick something of yours, write the line, and a moderator reads it before it
-          goes up.
+          turns in it. Put up as many as you like &mdash; the turn belongs to your venture, so
+          several adverts means more to say rather than more time on the board. A moderator reads
+          each one before it goes up.
         </p>
       </header>
 
@@ -193,59 +202,136 @@ export default function BillboardPanel({
       )}
 
       {venture.status === 'live' && (
-        <div className="space-y-3 border-t border-white/8 pt-4">
-          <div>
-            <label
-              htmlFor="billboard-item"
-              className="mb-1.5 block font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase"
-            >
-              What are you advertising
-            </label>
-            <select
-              id="billboard-item"
-              value={itemId}
-              onChange={(event) => setItemId(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[16px] text-white"
-            >
-              <option value="">Pick one of your items…</option>
-              {sellable.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+        <div className="grid gap-5 border-t border-white/8 pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="space-y-3">
+            <div>
+              <p className="mb-1.5 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">
+                What are you advertising
+              </p>
+
+              {/*
+                NOT A <select>. The native one draws its popup in the operating
+                system's own colours -- a white list, carrying this app's white
+                text -- so on a dark theme every option was invisible and the
+                control looked broken. It also cannot be searched, and there is
+                a venture on this site with a hundred and fifty items in it.
+
+                A filtered list of buttons is the same choice, made visible.
+              */}
+              <input
+                type="search"
+                value={itemQuery}
+                onChange={(event) => setItemQuery(event.target.value)}
+                placeholder="Search your items..."
+                aria-label="Search your items"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[16px] text-white placeholder:text-white/35"
+              />
+
+              <div
+                role="radiogroup"
+                aria-label="The item this advert is for"
+                className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-xl border border-white/8 bg-white/[0.02] p-1.5"
+              >
+                {matchingItems.length === 0 ? (
+                  <p className="px-2.5 py-3 text-[15px] text-white/50">
+                    {sellable.length === 0
+                      ? 'Add an item to your menu first, then you can advertise it.'
+                      : 'Nothing on your menu matches that.'}
+                  </p>
+                ) : (
+                  matchingItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={itemId === item.id}
+                      onClick={() => setItemId(item.id)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition duration-150 ${
+                        itemId === item.id
+                          ? 'bg-brand-500/20 text-brand-200'
+                          : 'text-white/75 hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[15.5px] font-bold">
+                        {item.name}
+                      </span>
+                      <span className="shrink-0 font-mono text-[13px] text-white/50">
+                        {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <TextField
+              id="billboard-pitch"
+              label="The line people read"
+              value={pitch}
+              onChange={(event) => setPitch(event.target.value)}
+              maxLength={PITCH_LIMIT}
+              placeholder="Handmade crochet roses, made to order this week"
+              hint={`${pitch.length}/${PITCH_LIMIT}. This is the whole advert, so make it the reason to tap.`}
+            />
+
+            <TextField
+              id="billboard-offer"
+              label="The offer, if there is one"
+              value={offer}
+              onChange={(event) => setOffer(event.target.value)}
+              maxLength={OFFER_LIMIT}
+              placeholder="30% off"
+              hint="Optional. A price cut or a deal, in a few words."
+            />
+
+            {error && (
+              <p role="alert" className="text-[15.5px] leading-relaxed text-red-400">
+                {error}
+              </p>
+            )}
+            {notice && <p className="text-[15.5px] leading-relaxed text-brand-300">{notice}</p>}
+
+            <Button onClick={() => void submit()} loading={busy}>
+              Send for approval
+            </Button>
           </div>
 
-          <TextField
-            id="billboard-pitch"
-            label="The line people read"
-            value={pitch}
-            onChange={(event) => setPitch(event.target.value)}
-            maxLength={PITCH_LIMIT}
-            placeholder="Handmade crochet roses, made to order this week"
-            hint={`${pitch.length}/${PITCH_LIMIT}. This is the whole advert, so make it the reason to tap.`}
-          />
-
-          <TextField
-            id="billboard-offer"
-            label="The offer, if there is one"
-            value={offer}
-            onChange={(event) => setOffer(event.target.value)}
-            maxLength={OFFER_LIMIT}
-            placeholder="30% off"
-            hint="Optional. A price cut or a deal, in a few words. Leave it empty if the advert is not about a price."
-          />
-
-          {error && (
-            <p role="alert" className="text-[15.5px] leading-relaxed text-red-400">
-              {error}
+          {/*
+            THE COLUMN THAT WAS EMPTY. A seller writing ninety characters for
+            the front page of a site whose front page they may never have
+            looked at is writing blind, and there was a whole column of nothing
+            sitting next to them while they did it. This is the real
+            BillboardSlot, drawn from what they have typed so far, so the thing
+            being decided is on the screen during the deciding.
+          */}
+          <div className="space-y-2.5">
+            <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">
+              How it will look
             </p>
-          )}
-          {notice && <p className="text-[15.5px] leading-relaxed text-brand-300">{notice}</p>}
-
-          <Button onClick={() => void submit()} loading={busy}>
-            Send for approval
-          </Button>
+            <BillboardSlot
+              preview
+              ad={{
+                id: 'preview',
+                ventureId: venture.id,
+                ventureName: venture.name,
+                ventureSlug: venture.slug ?? '',
+                ownerId,
+                itemId: chosen?.id ?? '',
+                itemName: chosen?.name ?? 'Your item',
+                photo: chosen?.photo,
+                pitch: pitch.trim() || 'Your line goes here',
+                offer: offer.trim(),
+                status: 'live',
+                rejectionReason: '',
+                paused: false,
+                createdAt: null,
+              }}
+            />
+            <p className="text-[14.5px] leading-relaxed text-white/50">
+              It carries the item&rsquo;s own photo. Adverts take turns by venture, so putting up
+              several gives you more to say rather than more time on the board.
+            </p>
+          </div>
         </div>
       )}
     </section>
