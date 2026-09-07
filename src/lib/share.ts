@@ -53,6 +53,35 @@ export function ventureUrl(ventureId: string, origin: string): string {
 }
 
 /**
+ * A link that opens a venture with one item already expanded.
+ *
+ * WHY AN ITEM NEEDS ITS OWN LINK. Everything here is passed around in
+ * WhatsApp, and until this existed the smallest thing anybody could send was a
+ * whole shop — so "get me one of these" arrived as a hundred and fifty items
+ * and a sentence describing one of them.
+ *
+ * `open`, NOT `item`. That name is already taken by the shell's in-menu search
+ * (see useMenuQuery), and the first build of this shipped share links on it —
+ * so a shared item arrived as a menu filtered to a document id, matching
+ * nothing, over an empty shop. Found by opening one on a phone.
+ */
+export function itemUrl(venturePath: string, itemId: string, origin: string): string {
+  return `${origin.replace(/\/$/, '')}${venturePath}?open=${encodeURIComponent(itemId)}`
+}
+
+/** The message that carries one item into a chat: what it is, whose it is,
+ *  what it costs when that is known, and the link that opens it. */
+export function itemShareMessage(
+  item: { name: string; price?: number },
+  ventureName: string,
+  url: string,
+): string {
+  const price = typeof item.price === 'number' ? ` — ₹${item.price}` : ''
+  return `${item.name}${price} from ${ventureName} on VentureAdda:
+${url}`
+}
+
+/**
  * What lands in the chat.
  *
  * The link goes LAST and on its own line. WhatsApp only previews a link when

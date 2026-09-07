@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { trimDescription, ventureShareMessage, ventureUrl, whatsappShareLink } from './share.ts'
+import {
+  itemShareMessage,
+  itemUrl,
+  trimDescription,
+  ventureShareMessage,
+  ventureUrl,
+  whatsappShareLink,
+} from './share.ts'
 
 const glood = {
   name: 'Glood',
@@ -69,4 +76,25 @@ test('the url and the whatsapp link are built for wherever the app is running', 
   // No number: WhatsApp opens its own contact picker so the sender chooses.
   assert.ok(link.startsWith('https://wa.me/?text='), link)
   assert.ok(decodeURIComponent(link).includes('https://x.dev/venture/abc123'))
+})
+
+test('a single item can be sent on its own', () => {
+  // `open`, not `item`: `?item=` is the venture page's in-menu search, and
+  // sharing on it filtered the menu to a document id and showed an empty shop.
+  assert.equal(itemUrl('/venture/glood', 'i1', 'https://x.dev'), 'https://x.dev/venture/glood?open=i1')
+  // A trailing slash on the origin must not double up.
+  assert.equal(itemUrl('/venture/glood', 'i1', 'https://x.dev/'), 'https://x.dev/venture/glood?open=i1')
+  // Ids are not always url-safe.
+  assert.ok(itemUrl('/venture/g', 'a b', 'https://x.dev').endsWith('?open=a%20b'))
+
+  const priced = itemShareMessage({ name: 'Rose', price: 120 }, 'Loopberry', 'https://x.dev/l?open=i1')
+  assert.ok(priced.includes('Rose — ₹120'), priced)
+  assert.ok(priced.includes('Loopberry'), priced)
+  assert.ok(priced.endsWith('https://x.dev/l?open=i1'), priced)
+
+  // No price is not ₹0 — the seller quotes it in the conversation, so the
+  // message must not invent a number.
+  const unpriced = itemShareMessage({ name: 'Custom cake' }, 'Butter', 'https://x.dev/b?open=i2')
+  assert.ok(!unpriced.includes('₹'), unpriced)
+  assert.ok(unpriced.startsWith('Custom cake from Butter'), unpriced)
 })

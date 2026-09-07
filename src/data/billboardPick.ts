@@ -50,13 +50,42 @@ export const PITCH_LIMIT = 90
 export const OFFER_LIMIT = 24
 
 /**
- * How long one advert holds the slider before the next slides in.
+ * How long one advert holds the slider, and the range a moderator may set.
  *
- * Long enough to read ninety characters without hurrying, short enough that
- * somebody scrolling past the top of the page sees more than one. Fifteen
- * seconds is the seller's ask and it is a sensible one.
+ * Fifteen seconds is a guess — long enough to read ninety characters without
+ * hurrying, short enough that somebody scrolling past the top of the page sees
+ * more than one — and a guess is exactly the kind of number that should not
+ * need a developer and a deploy to revise. A moderator can change it; see
+ * settings.billboardSeconds.
+ *
+ * The floor is not politeness, it is legibility: an advert is up to ninety
+ * characters plus a shop name, and three seconds is already too fast to finish
+ * one. The ceiling stops the board being set so slow it reads as broken — a
+ * slider that never moves is a slot, and if that is what is wanted it should
+ * be asked for rather than reached by typing 900 into a box.
  */
-export const SLIDE_MS = 15_000
+export const BILLBOARD_SECONDS = { min: 3, max: 120, default: 15 }
+
+export function clampSeconds(seconds: number): number {
+  return Math.min(
+    BILLBOARD_SECONDS.max,
+    Math.max(BILLBOARD_SECONDS.min, Math.round(seconds)),
+  )
+}
+
+/**
+ * The interval to actually run the board at.
+ *
+ * Clamped on the way OUT as well as on the way in, because the stored value
+ * can predate these bounds or be typed by hand into the Firebase console, and
+ * neither a zero nor the string "ten" should be able to stall the board or set
+ * it spinning. Anything that is not a usable number falls back to the default
+ * rather than to nothing.
+ */
+export function billboardSeconds(stored: number | null | undefined): number {
+  if (typeof stored !== 'number' || !Number.isFinite(stored)) return BILLBOARD_SECONDS.default
+  return clampSeconds(stored)
+}
 
 /**
  * Every running advert, in the order the slider should show them.

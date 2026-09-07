@@ -191,7 +191,6 @@ export default function Browse() {
                 // Straight to the seller's page with the menu already filtered
                 // to what was typed, so the item is on screen on arrival rather
                 // than somewhere in a grid of forty.
-                itemQuery={query.trim()}
               />
             ))}
           </div>

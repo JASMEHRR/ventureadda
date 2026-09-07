@@ -43,10 +43,13 @@ import type { TrafficDay } from '../data/traffic'
 import { listAllOrders } from '../data/orders'
 import {
   deleteBillboard,
+  editBillboard,
   listBillboardsByStatus,
   setBillboardStatus,
 } from '../data/billboard'
-import type { Billboard } from '../data/billboardPick'
+import { BILLBOARD_SECONDS, billboardSeconds } from '../data/billboardPick'
+import { setBillboardSeconds } from '../data/settings'
+import type { Billboard, BillboardStatus } from '../data/billboardPick'
 import { ordersByVenture, ordersSince, usageLadder } from '../data/orderStats'
 import type { VentureOrders } from '../data/orderStats'
 import type { Order } from '../data/types'
@@ -551,84 +554,259 @@ function RealUsagePanel({
  * "No" with no explanation gets resubmitted unchanged, and then it is in the
  * queue twice.
  */
-function BillboardQueue({
-  ads,
+/**
+ * One advert a moderator is looking at, with its wording in their hands.
+ *
+ * THEY CAN CHANGE IT, not only accept or refuse it. Refusing over "50% of"
+ * costs a round trip through a seller who may not come back for a week and
+ * leaves the board emptier meanwhile; fixing it is a moment's work for the
+ * person already reading the line. The rules allow exactly this and nothing
+ * more — see the moderator update on /billboards, which cannot touch `paused`,
+ * because whether an advert runs today is the seller's call.
+ *
+ * The fields start from what the seller wrote and are only sent when Save is
+ * pressed, so reading an advert cannot accidentally rewrite it.
+ */
+function BillboardCard({
+  ad,
   busy,
   onDecide,
+  onEdit,
   onDelete,
 }: {
-  ads: Billboard[]
+  ad: Billboard
   busy: boolean
-  onDecide: (ad: Billboard, status: 'live' | 'rejected', reason: string) => void
+  onDecide: (ad: Billboard, status: BillboardStatus, reason: string) => void
+  onEdit: (ad: Billboard, pitch: string, offer: string) => void
   onDelete: (ad: Billboard) => void
 }) {
-  const [reasons, setReasons] = useState<Record<string, string>>({})
-
-  if (ads.length === 0) return null
+  const [pitch, setPitch] = useState(ad.pitch)
+  const [offer, setOffer] = useState(ad.offer)
+  const [reason, setReason] = useState('')
+  const edited = pitch.trim() !== ad.pitch || offer.trim() !== ad.offer
 
   return (
-    <div className="liquid-glass-panel space-y-3 rounded-2xl p-4">
+    <li className="space-y-2.5 rounded-2xl border border-white/8 bg-white/[0.03] p-3.5">
+      <p className="font-mono text-[12.5px] tracking-wider text-white/55 uppercase">
+        {ad.itemName} · {ad.ventureName}
+      </p>
+
+      <TextField
+        id={`billboard-pitch-${ad.id}`}
+        label="The line on the front page"
+        value={pitch}
+        onChange={(event) => setPitch(event.target.value)}
+        maxLength={90}
+        hint={`${pitch.length}/90. **bold** and *italic* work.`}
+      />
+
+      <TextField
+        id={`billboard-offer-${ad.id}`}
+        label="Offer"
+        value={offer}
+        onChange={(event) => setOffer(event.target.value)}
+        maxLength={24}
+        placeholder="30% off"
+      />
+
+      {ad.status === 'pending' && (
+        <TextField
+          id={`billboard-reason-${ad.id}`}
+          label="Reason, if you are refusing it"
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          maxLength={200}
+          placeholder="Says 50% off but the item is not discounted"
+        />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Only offered when something has actually changed, so the button is
+            never a thing you press to find out whether you changed anything. */}
+        {edited && (
+          <Button disabled={busy || pitch.trim() === ''} onClick={() => onEdit(ad, pitch, offer)}>
+            Save wording
+          </Button>
+        )}
+
+        {ad.status === 'pending' ? (
+          <>
+            <Button
+              variant={edited ? 'secondary' : 'primary'}
+              disabled={busy}
+              onClick={() => onDecide(ad, 'live', '')}
+            >
+              Put it up
+            </Button>
+            <Button variant="secondary" disabled={busy} onClick={() => onDecide(ad, 'rejected', reason.trim())}>
+              Refuse
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={() => onDecide(ad, 'pending', '')}
+          >
+            Take it down
+          </Button>
+        )}
+
+        <Link
+          to={`/venture/${ad.ventureSlug || ad.ventureId}`}
+          className="font-mono text-[13px] font-bold tracking-wider text-white/55 uppercase transition hover:text-brand-300"
+        >
+          Open listing
+        </Link>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onDelete(ad)}
+          className="ml-auto font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-red-300 disabled:opacity-50"
+        >
+          Delete
+        </button>
+      </div>
+    </li>
+  )
+}
+
+/**
+ * How fast the board moves, which is a guess a moderator can revise.
+ *
+ * Fifteen seconds was chosen before anybody knew how many adverts would run or
+ * how long the lines would be, and both change the right answer. Clamped both
+ * ways — see BILLBOARD_SECONDS — so neither a zero nor a nine hundred can be
+ * typed into it.
+ */
+function BillboardSpeed({
+  current,
+  busy,
+  onSave,
+}: {
+  current: number
+  busy: boolean
+  onSave: (seconds: number) => void
+}) {
+  const [value, setValue] = useState(String(current))
+  const parsed = Number(value)
+  const valid = Number.isFinite(parsed) && parsed >= BILLBOARD_SECONDS.min && parsed <= BILLBOARD_SECONDS.max
+
+  return (
+    <div className="flex flex-wrap items-end gap-2.5">
+      <TextField
+        id="billboard-seconds"
+        label="Seconds per advert"
+        type="number"
+        inputMode="numeric"
+        min={BILLBOARD_SECONDS.min}
+        max={BILLBOARD_SECONDS.max}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        wrapperClassName="w-40"
+        hint={`${BILLBOARD_SECONDS.min}–${BILLBOARD_SECONDS.max}. Now: ${current}s.`}
+      />
+      <Button
+        disabled={busy || !valid || Math.round(parsed) === current}
+        onClick={() => onSave(Math.round(parsed))}
+      >
+        Save speed
+      </Button>
+    </div>
+  )
+}
+
+/**
+ * Everything a moderator does to the billboard, in one place.
+ *
+ * PENDING AND LIVE TOGETHER, because they are the same job seen twice: the
+ * queue is what is about to go on the front page and the live list is what is
+ * on it, and a moderator wanting to fix a line does not know or care which of
+ * the two it is in. Splitting them into separate panels meant approving was
+ * easy and correcting was somewhere else.
+ *
+ * The speed sits at the top because it belongs to the board rather than to any
+ * one advert.
+ */
+function BillboardPanelMod({
+  pending,
+  live,
+  seconds,
+  busy,
+  onDecide,
+  onEdit,
+  onDelete,
+  onSpeed,
+}: {
+  pending: Billboard[]
+  live: Billboard[]
+  seconds: number
+  busy: boolean
+  onDecide: (ad: Billboard, status: BillboardStatus, reason: string) => void
+  onEdit: (ad: Billboard, pitch: string, offer: string) => void
+  onDelete: (ad: Billboard) => void
+  onSpeed: (seconds: number) => void
+}) {
+  return (
+    <div className="liquid-glass-panel space-y-4 rounded-2xl p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          Billboard queue
+          Billboard
         </h2>
         <span className="font-mono text-[13px] text-white/55">
-          {ads.length} waiting
+          {pending.length} waiting · {live.length} up
         </span>
       </div>
 
-      <ul className="space-y-2.5">
-        {ads.map((ad) => (
-          <li key={ad.id} className="space-y-2.5 rounded-2xl border border-white/8 bg-white/[0.03] p-3.5">
-            <p className="text-[17px] leading-snug font-bold text-white">{ad.pitch}</p>
-            <p className="font-mono text-[12.5px] tracking-wider text-white/55 uppercase">
-              {ad.itemName} · {ad.ventureName}
-              {ad.offer && ` · ${ad.offer}`}
-            </p>
+      <BillboardSpeed current={seconds} busy={busy} onSave={onSpeed} />
 
-            <TextField
-              id={`billboard-reason-${ad.id}`}
-              label="Reason, if you are refusing it"
-              value={reasons[ad.id] ?? ''}
-              onChange={(event) =>
-                setReasons((previous) => ({ ...previous, [ad.id]: event.target.value }))
-              }
-              maxLength={200}
-              placeholder="Says 50% off but the item is not discounted"
-            />
+      {pending.length > 0 && (
+        <div className="space-y-2.5 border-t border-white/8 pt-3.5">
+          <h3 className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-amber-400 uppercase">
+            Waiting for you · {pending.length}
+          </h3>
+          <ul className="space-y-2.5">
+            {pending.map((ad) => (
+              <BillboardCard
+                key={ad.id}
+                ad={ad}
+                busy={busy}
+                onDecide={onDecide}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                disabled={busy}
-                onClick={() => onDecide(ad, 'live', '')}
-              >
-                Put it up
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() => onDecide(ad, 'rejected', (reasons[ad.id] ?? '').trim())}
-              >
-                Refuse
-              </Button>
-              <Link
-                to={`/venture/${ad.ventureSlug || ad.ventureId}`}
-                className="font-mono text-[13px] font-bold tracking-wider text-white/55 uppercase transition hover:text-brand-300"
-              >
-                Open listing
-              </Link>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onDelete(ad)}
-                className="ml-auto font-mono text-[13px] font-bold tracking-wider text-white/40 uppercase transition hover:text-red-300 disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {live.length > 0 && (
+        <div className="space-y-2.5 border-t border-white/8 pt-3.5">
+          <h3 className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-brand-300 uppercase">
+            On the board now · {live.length}
+          </h3>
+          <ul className="space-y-2.5">
+            {live.map((ad) => (
+              <BillboardCard
+                key={ad.id}
+                ad={ad}
+                busy={busy}
+                onDecide={onDecide}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {pending.length === 0 && live.length === 0 && (
+        <p className="text-[15px] text-white/60">
+          Nothing on the billboard and nothing waiting. Sellers submit adverts from their own
+          listing&rsquo;s edit page.
+        </p>
+      )}
     </div>
   )
 }
@@ -803,6 +981,7 @@ export default function Moderator() {
   // which is why nothing outside this page calls it. See listAllOrders.
   const orders = useAsyncData(() => listAllOrders(), [refreshToken])
   const pendingAds = useAsyncData(() => listBillboardsByStatus('pending'), [refreshToken])
+  const liveAds = useAsyncData(() => listBillboardsByStatus('live'), [refreshToken])
   const approved = useAsyncData(() => listApprovedEmails(), [refreshToken])
   const users = useAsyncData(() => listUsers(), [refreshToken])
 
@@ -958,16 +1137,28 @@ export default function Moderator() {
       {/* Stays out in the open: it is the thing a moderator opens this page to
           look at, and it changes every day. The drawers below hold the
           settings that get touched twice a term. */}
-      <BillboardQueue
-        ads={pendingAds.data ?? []}
+      <BillboardPanelMod
+        pending={pendingAds.data ?? []}
+        live={liveAds.data ?? []}
+        seconds={billboardSeconds(settings.data?.billboardSeconds)}
         busy={busy}
         onDecide={(ad, status, reason) =>
           void act(
             () => setBillboardStatus(ad.id, status, reason),
-            status === 'live' ? `"${ad.pitch}" is on the billboard.` : `Refused "${ad.pitch}".`,
+            status === 'live'
+              ? `"${ad.pitch}" is on the billboard.`
+              : status === 'rejected'
+                ? `Refused "${ad.pitch}".`
+                : `Took "${ad.pitch}" off the board.`,
           )
         }
+        onEdit={(ad, pitch, offer) =>
+          void act(() => editBillboard(ad.id, pitch, offer), 'Wording saved.')
+        }
         onDelete={(ad) => void act(() => deleteBillboard(ad.id), 'Advert deleted.')}
+        onSpeed={(next) =>
+          void act(() => setBillboardSeconds(next), `The board now changes every ${next}s.`)
+        }
       />
 
       <TrafficPanel days={traffic.data ?? []} />

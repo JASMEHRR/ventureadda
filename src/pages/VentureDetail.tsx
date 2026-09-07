@@ -8,8 +8,6 @@ import {
   Grid3x3,
   LayoutGrid,
   List,
-  Check,
-  Link2,
   Minus,
   Pencil,
   Plus,
@@ -41,6 +39,8 @@ import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
 import { formatRuns, tidyBreaks } from '../lib/richText'
 import ShareVenture from '../components/ShareVenture'
+import ItemDetails from '../components/ItemDetails'
+import type { ItemVenture } from '../components/ItemDetails'
 import WhatsAppIcon from '../components/ui/WhatsAppIcon'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
@@ -138,30 +138,6 @@ function remaining(item: MenuItem, quantity: number): number {
  * this is about. Same shape as the cart's link, and the same reason: the
  * whole product is a WhatsApp conversation with the boring part filled in.
  */
-/**
- * A link that opens this venture with one item already open.
- *
- * WHY AN ITEM NEEDS ITS OWN LINK. Everything on this site is passed around in
- * WhatsApp, and until now the smallest thing anybody could send was a whole
- * venture — so "get me one of these" arrived as a shop with a hundred and
- * fifty items and a sentence describing one of them. The query parameter is
- * read on load, and the item it names is expanded and scrolled to.
- *
- * A query parameter rather than a fragment because the fragment never reaches
- * the server, and api/venture-preview needs to see this to caption the link
- * with the item rather than the shop.
- *
- * `open`, NOT `item`. That name is already taken: `?item=` is what the shell's
- * search box writes when somebody filters this venture's own menu — see
- * useMenuQuery. Shipping a share link on that parameter meant every shared
- * item arrived as a menu filtered to a document id, which matches nothing, so
- * the page read "Nothing on this menu matches OfTGX6rw…" and showed an empty
- * shop. Found by opening one.
- */
-export function itemLink(path: string, itemId: string, origin: string): string {
-  return `${origin.replace(/\/$/, '')}${path}?open=${encodeURIComponent(itemId)}`
-}
-
 function askLink(venture: { name: string; phone: string }, itemName: string): string {
   const text = `Hi ${venture.name}, how much is "${itemName}"? (from VentureAdda)`
   return `https://wa.me/${venture.phone}?text=${encodeURIComponent(text)}`
@@ -177,7 +153,6 @@ function ItemCard({
   brandIcon,
   onAsk,
   venture,
-  path,
   openInitially,
 }: {
   item: MenuItem
@@ -196,32 +171,13 @@ function ItemCard({
    *  has no cart to be added to. */
   onAsk?: () => void
   /** For the fallback tile, and for the number an unpriced item messages. */
-  venture: { name: string; phone: string; logo?: StoredImage }
-  /** This venture's own path, for building a link to this one item. */
-  path: string
+  venture: ItemVenture
   /** Arrived from a link that named this item — see itemLink. */
   openInitially?: boolean
 }) {
   const left = remaining(item, quantity)
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
   const [open, setOpen] = useState(openInitially ?? false)
-  const [copied, setCopied] = useState(false)
-
-  const shareUrl =
-    typeof window === 'undefined' ? '' : itemLink(path, item.id, window.location.origin)
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Refused in some in-app browsers, the WhatsApp one included, which is
-      // where a lot of this traffic comes from. The WhatsApp button beside it
-      // carries the same link and does not need the clipboard.
-      setCopied(false)
-    }
-  }
 
   /**
    * THE VENTURE'S OWN MARK, not the site's, when an item has no photograph.
@@ -246,85 +202,9 @@ function ItemCard({
       <VentureLogo name={venture.name} logo={venture.logo} size={size} />
     )
 
-  /**
-   * What opening an item shows: the things a row has no width for.
-   *
-   * The description in full rather than truncated, the photograph at a size
-   * worth looking at, and the two ways to pass it on. Rendered by both layouts
-   * from one definition so the row and the tile can never disagree about what
-   * an item is.
-   */
-  const expanded = (
-    <div className="space-y-3 border-t border-white/8 px-3 pt-3 pb-3">
-      {item.photo && (
-        <img
-          src={displayUrl(item.photo, 800)}
-          alt={item.name}
-          loading="lazy"
-          className="max-h-64 w-full rounded-xl object-cover"
-        />
-      )}
-
-      {item.description ? (
-        <p className="text-[15.5px] leading-relaxed whitespace-pre-line text-white/70">
-          {tidyBreaks(item.description)}
-        </p>
-      ) : (
-        <p className="text-[15.5px] text-white/45">No description for this one.</p>
-      )}
-
-      {typeof item.stock === 'number' && sellable && (
-        <p className="font-mono text-[13px] tracking-wider text-white/55 uppercase">
-          {item.stock} left
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        {/* SHARING ONE ITEM, which is the thing people were doing by hand:
-            sending a shop and then describing which bit of it they meant. */}
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(
-            `${item.name}${typeof item.price === 'number' ? ` — ₹${item.price}` : ''} from ${venture.name} on VentureAdda:\n${shareUrl}`,
-          )}`}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="flex items-center gap-1.5 rounded-xl bg-[#25D366]/15 px-3 py-2 text-[14px] font-bold text-[#4ade80] transition duration-150 hover:bg-[#25D366]/25 active:scale-[0.96]"
-        >
-          <WhatsAppIcon size={13} />
-          Send this
-        </a>
-
-        <button
-          type="button"
-          onClick={() => void copyLink()}
-          className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[14px] font-bold transition duration-150 active:scale-[0.96] ${
-            copied
-              ? 'bg-brand-500/20 text-brand-300'
-              : 'bg-white/8 text-white/60 hover:bg-white/12 hover:text-white/80'
-          }`}
-        >
-          {copied ? <Check size={13} aria-hidden="true" /> : <Link2 size={13} aria-hidden="true" />}
-          {copied ? 'Copied' : 'Copy link'}
-        </button>
-
-        {typeof item.price !== 'number' && sellable && (
-          <a
-            href={askLink(venture, item.name)}
-            target="_blank"
-            rel="noreferrer noopener"
-            onClick={() => onAsk?.()}
-            className="ml-auto font-mono text-[13px] font-bold tracking-wider text-white/55 uppercase transition hover:text-brand-300"
-          >
-            Negotiate
-          </a>
-        )}
-      </div>
-
-      <span role="status" className="sr-only">
-        {copied ? 'Link copied to your clipboard.' : ''}
-      </span>
-    </div>
-  )
+  // The same panel the products page and the rails open. One definition, so
+  // an item cannot read one way on its own shop's page and another elsewhere.
+  const expanded = <ItemDetails item={item} venture={venture} onAsk={onAsk} />
 
   if (asRow) {
     return (
@@ -1075,8 +955,7 @@ export default function VentureDetail() {
                         asRow={density === 'list'}
                         brandIcon={v.brandLogos}
                         onAsk={() => countInterest(item)}
-                        venture={{ name: v.name, phone: v.phone, logo: v.logo }}
-                        path={venturePath(v)}
+                        venture={v}
                         openInitially={item.id === sharedItemId}
                         quantity={cartQuantity(cart, item.id)}
                         askedCount={localCounts[item.id] ?? item.inquiryCount}

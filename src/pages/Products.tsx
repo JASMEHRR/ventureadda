@@ -441,7 +441,6 @@ export default function Products() {
                       key={match.item.id}
                       match={match}
                       quantity={cartQuantity(cart, match.item.id)}
-                      itemQuery={query.trim() || undefined}
                     />
                   ))}
                 </div>

@@ -1,5 +1,6 @@
 import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { clampSeconds } from './billboardPick'
 import type { StoredImage } from './types'
 import type { MaintenanceWindow } from './maintenance'
 
@@ -70,6 +71,19 @@ export type SiteSettings = {
    * saw before this existed and what a reset goes back to.
    */
   landing?: LandingCopy
+  /**
+   * How long each advert holds the billboard, in seconds.
+   *
+   * A MODERATOR'S DIAL BECAUSE IT IS A GUESS, the same argument as the landing
+   * copy above. Fifteen seconds is a hypothesis about how long somebody looks
+   * at the top of a page, and the number that turns out to be right depends on
+   * how many adverts are running and how long the lines are — neither of which
+   * was knowable when it was written. Needing a developer and a deploy to try
+   * twelve is a bad reason not to try twelve.
+   *
+   * Absent means the shipped default. See BILLBOARD_SECONDS.
+   */
+  billboardSeconds?: number
 }
 
 export type LandingCopy = {
@@ -98,6 +112,11 @@ export const LANDING_DEFAULTS: Required<LandingCopy> = {
   sub: 'Brownies at midnight, stickers, crochet, subscriptions, a cold drink two floors down. Run by students, a walk away, no delivery fee.',
   buyLabel: "See what's on sale",
   sellLabel: 'Sell something',
+}
+
+/** How long each advert holds the billboard. Clamped — see BILLBOARD_SECONDS. */
+export async function setBillboardSeconds(seconds: number): Promise<void> {
+  await setDoc(settingsRef, { billboardSeconds: clampSeconds(seconds) }, { merge: true })
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {

@@ -20,7 +20,8 @@ export {
   BILLBOARD_STATUS_LABEL,
   OFFER_LIMIT,
   PITCH_LIMIT,
-  SLIDE_MS,
+  BILLBOARD_SECONDS,
+  billboardSeconds,
   billboardOrder,
 } from './billboardPick'
 export type { Billboard, BillboardStatus } from './billboardPick'
@@ -171,6 +172,24 @@ export async function setBillboardStatus(
     await updateDoc(doc(billboardsRef, id), { status, rejectionReason })
   } catch (cause) {
     throw new Error(reportError(`setBillboardStatus: ${id} -> ${status}`, cause))
+  }
+}
+
+/**
+ * A moderator correcting the wording, without sending it back to the seller.
+ *
+ * Not a re-approval, because the person doing this IS the approval. Refusing
+ * an advert over a typo costs a round trip through somebody who may not come
+ * back for a week, and leaves the board emptier for it; the rules therefore
+ * let a moderator write pitch and offer directly. `paused` deliberately stays
+ * the seller's, and a moderator who wants an advert off the board refuses it,
+ * which says so and leaves a reason.
+ */
+export async function editBillboard(id: string, pitch: string, offer: string): Promise<void> {
+  try {
+    await updateDoc(doc(billboardsRef, id), { pitch: pitch.trim(), offer: offer.trim() })
+  } catch (cause) {
+    throw new Error(reportError(`editBillboard: ${id}`, cause))
   }
 }
 

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import BillboardSlot from './BillboardSlot'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { listLiveBillboards } from '../data/billboard'
-import { SLIDE_MS, billboardOrder } from '../data/billboardPick'
+import { getSiteSettings } from '../data/settings'
+import { billboardOrder, billboardSeconds } from '../data/billboardPick'
 
 /**
  * The billboard as it appears on a page: one advert at a time, changing itself.
@@ -30,6 +31,11 @@ export default function BillboardBoard({
   title?: string
 }) {
   const ads = useAsyncData(() => listLiveBillboards(), [])
+  // The moderator's dial. One tiny read of a document the shell already
+  // fetches elsewhere, and an unset or malformed value falls back to the
+  // shipped default rather than to a board that never moves.
+  const settings = useAsyncData(() => getSiteSettings(), [])
+  const seconds = billboardSeconds(settings.data?.billboardSeconds)
   const order = billboardOrder(ads.data ?? [])
   const [index, setIndex] = useState(0)
   const [held, setHeld] = useState(false)
@@ -41,9 +47,9 @@ export default function BillboardBoard({
 
   useEffect(() => {
     if (order.length < 2 || held) return
-    const timer = window.setInterval(() => setIndex((at) => at + 1), SLIDE_MS)
+    const timer = window.setInterval(() => setIndex((at) => at + 1), seconds * 1000)
     return () => window.clearInterval(timer)
-  }, [order.length, held])
+  }, [order.length, held, seconds])
 
   if (order.length === 0) return null
   const ad = order[safeIndex]

@@ -714,13 +714,29 @@ service cloud.firestore {
                     && request.resource.data.offer is string
                     && request.resource.data.offer.size() <= 24;
 
-      // The decision itself. Only a moderator, and only the two fields that
-      // record it.
+      // The decision, and the wording.
+      //
+      // A MODERATOR MAY EDIT THE ADVERT ITSELF, not only accept or refuse it.
+      // Refusing over a typo means a round trip through somebody who may not
+      // come back for a week, and leaves the board emptier than it needs to
+      // be; fixing "50% of" to "50% off" is a moment's work for the person
+      // already reading it. The same length limits apply as when a seller
+      // writes it, because it lands in the same ninety characters on the front
+      // page either way.
+      //
+      // `paused` is not in this list on purpose: whether an advert runs today
+      // is the seller's call, and a moderator who wants it off the board
+      // refuses it, which says so and leaves a reason.
       allow update: if isModerator()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rejectionReason'])
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rejectionReason', 'pitch', 'offer'])
                     && request.resource.data.status in ['pending', 'live', 'rejected']
                     && request.resource.data.rejectionReason is string
-                    && request.resource.data.rejectionReason.size() <= 200;
+                    && request.resource.data.rejectionReason.size() <= 200
+                    && request.resource.data.pitch is string
+                    && request.resource.data.pitch.size() > 0
+                    && request.resource.data.pitch.size() <= 90
+                    && request.resource.data.offer is string
+                    && request.resource.data.offer.size() <= 24;
 
       allow delete: if isModerator()
                     || (request.auth != null && resource.data.ownerId == request.auth.uid);
