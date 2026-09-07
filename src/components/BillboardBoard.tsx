@@ -19,10 +19,18 @@ import { billboardOrder, billboardSeconds } from '../data/billboardPick'
  * ONE READ, SHARED BY THE PAGES THAT SHOW IT. Products and Browse both mount
  * this, and each mount is one small query returning only approved rows.
  *
- * IT PAUSES ON HOVER AND FOCUS. An advert that slides away mid-sentence while
- * somebody is reading it, or mid-tab while somebody is reaching for it, is
- * worse than no advert: it is the site taking something away as it is being
- * used.
+ * IT PAUSES ON FOCUS, AND DELIBERATELY NOT ON HOVER. Hover-pause is the
+ * conventional choice and it was wrong here: this is a full-width banner
+ * across the top of the page, so on a desktop the pointer rests over it most
+ * of the time and the board simply stopped — reported as "does not auto
+ * change", and reproduced by dispatching one mouseenter and watching it sit
+ * there. On a touch screen it was worse: a tap can fire mouseenter with no
+ * mouseleave ever following, which froze it for the rest of the visit.
+ *
+ * Focus is a different matter and stays: somebody tabbing towards the link has
+ * asked for it, and moving it under them would be the site taking something
+ * away as it is being reached for. Keyboard focus cannot be entered by
+ * accident the way a pointer crosses a banner.
  */
 export default function BillboardBoard({
   /** A heading above it, on pages where it needs introducing. */
@@ -58,8 +66,6 @@ export default function BillboardBoard({
     <section
       aria-label="Promoted on VentureAdda"
       className="space-y-2.5"
-      onMouseEnter={() => setHeld(true)}
-      onMouseLeave={() => setHeld(false)}
       onFocusCapture={() => setHeld(true)}
       onBlurCapture={() => setHeld(false)}
     >
