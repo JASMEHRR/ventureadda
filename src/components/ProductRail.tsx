@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ChevronDown, Plus } from 'lucide-react'
-import ItemDetails from './ItemDetails'
+import { ArrowRight, Plus } from 'lucide-react'
+import { itemPath } from '../data/ventures'
 import BrandIcon from './ui/BrandIcon'
 import VentureLogo from './ui/VentureLogo'
 import { displayUrl } from '../lib/cloudinary'
@@ -29,7 +28,6 @@ import type { ItemMatch } from '../data/ventures'
  */
 function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
   const { item, venture } = match
-  const [open, setOpen] = useState(false)
   // The seller's own setting, off unless they turned it on. See Venture.brandLogos.
   const brandIcon = venture.brandLogos
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
@@ -43,18 +41,11 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
       className="liquid-glass-panel deferred-surface flex w-44 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-56"
       style={{ '--surface-height': '300px' } as React.CSSProperties}
     >
-      {/* OPENS IN PLACE. It used to be a link to the shop, which answers
-          "whose is this" and throws away the question being asked, which is
-          "what is this" — and made browsing eight hundred products across
-          forty shops a matter of forty page loads. The shop is still one tap
-          away, inside. */}
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((was: boolean) => !was)}
-        className="block w-full text-left"
-      >
-        <span className="relative mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
+      {/* TO THE ITEM, not to the shop it came from. Somebody looking through
+          eight hundred products is asking what something is, not whose it is,
+          and the shop page answers the wrong question. See pages/ItemPage. */}
+      <Link to={itemPath(venture, item.id)} className="block">
+        <span className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/[0.04]">
           {item.photo ? (
             <img
               src={displayUrl(item.photo, 400)}
@@ -73,14 +64,6 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
           ) : (
             <VentureLogo name={venture.name} logo={venture.logo} size={88} />
           )}
-          <span
-            aria-hidden="true"
-            className={`absolute right-1.5 bottom-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white/70 transition-transform duration-150 ${
-              open ? 'rotate-180' : ''
-            }`}
-          >
-            <ChevronDown size={13} />
-          </span>
         </span>
 
         {/* Two lines, then an ellipsis, and a fixed height for them — a row of
@@ -92,13 +75,7 @@ function Tile({ match, quantity }: { match: ItemMatch; quantity: number }) {
         <span className="mt-0.5 block truncate font-mono text-[12.5px] tracking-wider text-white/55 uppercase">
           {venture.name}
         </span>
-      </button>
-
-      {open && (
-        <div className="-mx-3 mt-2">
-          <ItemDetails item={item} venture={venture} />
-        </div>
-      )}
+      </Link>
 
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <span className="font-mono text-[16.5px] font-bold text-brand-400">

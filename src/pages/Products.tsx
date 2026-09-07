@@ -9,7 +9,7 @@ import BillboardBoard from '../components/BillboardBoard'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
 import type { ItemMatch } from '../data/ventures'
-import { venturePath } from '../data/ventures'
+import { itemPath } from '../data/ventures'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { useHoverIntent } from '../hooks/useHoverIntent'
 import { listProducts } from '../data/ventures'
@@ -81,7 +81,7 @@ function priceOf(value: number | undefined): number {
 function AskRow({ match: { item, venture } }: { match: ItemMatch }) {
   return (
     <Link
-      to={venturePath(venture)}
+      to={itemPath(venture, item.id)}
       className="flex items-baseline justify-between gap-4 rounded-xl px-3 py-2.5 transition duration-150 hover:bg-white/[0.05]"
     >
       <span className="min-w-0 flex-1 truncate text-[16px] text-white/85">{item.name}</span>

@@ -79,13 +79,19 @@ test('the url and the whatsapp link are built for wherever the app is running', 
 })
 
 test('a single item can be sent on its own', () => {
-  // `open`, not `item`: `?item=` is the venture page's in-menu search, and
-  // sharing on it filtered the menu to a document id and showed an empty shop.
-  assert.equal(itemUrl('/venture/glood', 'i1', 'https://x.dev'), 'https://x.dev/venture/glood?open=i1')
+  // A path, not a query parameter: the item has its own page, and `?item=`
+  // was in any case the venture page's own in-menu search.
+  assert.equal(
+    itemUrl('/venture/glood', 'i1', 'https://x.dev'),
+    'https://x.dev/venture/glood/item/i1',
+  )
   // A trailing slash on the origin must not double up.
-  assert.equal(itemUrl('/venture/glood', 'i1', 'https://x.dev/'), 'https://x.dev/venture/glood?open=i1')
+  assert.equal(
+    itemUrl('/venture/glood', 'i1', 'https://x.dev/'),
+    'https://x.dev/venture/glood/item/i1',
+  )
   // Ids are not always url-safe.
-  assert.ok(itemUrl('/venture/g', 'a b', 'https://x.dev').endsWith('?open=a%20b'))
+  assert.ok(itemUrl('/venture/g', 'a b', 'https://x.dev').endsWith('/item/a%20b'))
 
   const priced = itemShareMessage({ name: 'Rose', price: 120 }, 'Loopberry', 'https://x.dev/l?open=i1')
   assert.ok(priced.includes('Rose — ₹120'), priced)

@@ -52,11 +52,12 @@ export const OFFER_LIMIT = 24
 /**
  * How long one advert holds the slider, and the range a moderator may set.
  *
- * Fifteen seconds is a guess — long enough to read ninety characters without
- * hurrying, short enough that somebody scrolling past the top of the page sees
- * more than one — and a guess is exactly the kind of number that should not
- * need a developer and a deploy to revise. A moderator can change it; see
- * settings.billboardSeconds.
+ * Five seconds. It started at fifteen, on the theory that ninety characters
+ * want reading time; in front of the real board that was long enough for the
+ * second advert to feel like it was never coming, and a board that appears
+ * static is a board nobody watches. Short enough to see three of them while
+ * deciding whether to scroll. A moderator can change it either way without a
+ * deploy; see settings.billboardSeconds.
  *
  * The floor is not politeness, it is legibility: an advert is up to ninety
  * characters plus a shop name, and three seconds is already too fast to finish
@@ -64,7 +65,7 @@ export const OFFER_LIMIT = 24
  * slider that never moves is a slot, and if that is what is wanted it should
  * be asked for rather than reached by typing 900 into a box.
  */
-export const BILLBOARD_SECONDS = { min: 3, max: 120, default: 15 }
+export const BILLBOARD_SECONDS = { min: 3, max: 120, default: 5 }
 
 export function clampSeconds(seconds: number): number {
   return Math.min(

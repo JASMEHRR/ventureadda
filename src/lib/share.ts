@@ -60,13 +60,17 @@ export function ventureUrl(ventureId: string, origin: string): string {
  * whole shop — so "get me one of these" arrived as a hundred and fifty items
  * and a sentence describing one of them.
  *
- * `open`, NOT `item`. That name is already taken by the shell's in-menu search
- * (see useMenuQuery), and the first build of this shipped share links on it —
- * so a shared item arrived as a menu filtered to a document id, matching
- * nothing, over an empty shop. Found by opening one on a phone.
+ * A PATH, NOT A QUERY PARAMETER. It was `?open=` first, which opened the shop
+ * with one item expanded — and expanding inside a grid takes the whole row
+ * with it, leaving the neighbours as tall empty voids. The item has its own
+ * page now, so the link is that page.
+ *
+ * (The parameter also collided: `?item=` is the shell's in-menu search, so the
+ * first attempt shipped share links that filtered a menu to a document id and
+ * showed an empty shop. Neither problem exists on a path.)
  */
 export function itemUrl(venturePath: string, itemId: string, origin: string): string {
-  return `${origin.replace(/\/$/, '')}${venturePath}?open=${encodeURIComponent(itemId)}`
+  return `${origin.replace(/\/$/, '')}${venturePath}/item/${encodeURIComponent(itemId)}`
 }
 
 /** The message that carries one item into a chat: what it is, whose it is,

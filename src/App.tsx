@@ -35,6 +35,7 @@ import Products from './pages/Products'
  * uploader and the menu scanner.
  */
 const VentureDetail = lazy(() => import('./pages/VentureDetail'))
+const ItemPage = lazy(() => import('./pages/ItemPage'))
 const EditVenture = lazy(() => import('./pages/EditVenture'))
 const AddVenture = lazy(() => import('./pages/AddVenture'))
 const Chat = lazy(() => import('./pages/Chat'))
@@ -106,6 +107,7 @@ export default function App() {
                   <Routes>
                     <Route path="products" element={<Products />} />
                     <Route path="venture/:ventureId" element={<VentureDetail />} />
+                    <Route path="venture/:ventureId/item/:itemId" element={<ItemPage />} />
                     <Route path="venture/:ventureId/edit" element={<EditVenture />} />
                     <Route path="signin" element={<SignIn />} />
                     <Route path="profile" element={<Profile />} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ChevronDown,
@@ -25,12 +25,13 @@ import { useAsyncData } from '../hooks/useAsyncData'
 import {
   categoryName,
   getVenture,
+  itemPath,
   listMenuItems,
   recordInquiry,
   recordVentureView,
   venturePath,
 } from '../data/ventures'
-import type { ImageCredit, MenuItem, StoredImage } from '../data/types'
+import type { ImageCredit, MenuItem, StoredImage, Venture } from '../data/types'
 import { MENU_GRID_CLASS } from '../data/types'
 import type { MenuDensity } from '../data/types'
 import { resolveMenuDensity, useAppearance } from '../lib/appearance'
@@ -39,8 +40,6 @@ import { displayUrl } from '../lib/cloudinary'
 import PhotoCarousel from '../components/ui/PhotoCarousel'
 import { formatRuns, tidyBreaks } from '../lib/richText'
 import ShareVenture from '../components/ShareVenture'
-import ItemDetails from '../components/ItemDetails'
-import type { ItemVenture } from '../components/ItemDetails'
 import WhatsAppIcon from '../components/ui/WhatsAppIcon'
 import { useDeclareSearchScope, useMenuQuery } from '../components/layout/useShellSearch'
 
@@ -143,6 +142,9 @@ function askLink(venture: { name: string; phone: string }, itemName: string): st
   return `https://wa.me/${venture.phone}?text=${encodeURIComponent(text)}`
 }
 
+/** Just enough of a venture to draw an item and link to it. */
+type ItemVenture = Pick<Venture, 'id' | 'name' | 'phone' | 'slug' | 'logo'>
+
 function ItemCard({
   item,
   quantity,
@@ -153,7 +155,6 @@ function ItemCard({
   brandIcon,
   onAsk,
   venture,
-  openInitially,
 }: {
   item: MenuItem
   quantity: number
@@ -172,12 +173,9 @@ function ItemCard({
   onAsk?: () => void
   /** For the fallback tile, and for the number an unpriced item messages. */
   venture: ItemVenture
-  /** Arrived from a link that named this item — see itemLink. */
-  openInitially?: boolean
 }) {
   const left = remaining(item, quantity)
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
-  const [open, setOpen] = useState(openInitially ?? false)
 
   /**
    * THE VENTURE'S OWN MARK, not the site's, when an item has no photograph.
@@ -202,10 +200,6 @@ function ItemCard({
       <VentureLogo name={venture.name} logo={venture.logo} size={size} />
     )
 
-  // The same panel the products page and the rails open. One definition, so
-  // an item cannot read one way on its own shop's page and another elsewhere.
-  const expanded = <ItemDetails item={item} venture={venture} onAsk={onAsk} />
-
   if (asRow) {
     return (
       /**
@@ -222,16 +216,17 @@ function ItemCard({
        * button cannot legally contain them.
        */
       <div
-        id={`item-${item.id}`}
-        className={`liquid-glass-panel rounded-2xl transition duration-150 ${
+        className={`liquid-glass-panel flex items-center gap-3 rounded-2xl p-2.5 transition duration-150 ${
           sellable ? '' : 'opacity-60'
-        } ${open ? 'ring-1 ring-white/12' : ''}`}
+        }`}
       >
-        <div className="flex items-center gap-3 p-2.5">
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={() => setOpen((was: boolean) => !was)}
+          {/* TO THE ITEM'S OWN PAGE. It expanded in place for a while, which
+              a row survives and a grid does not — a cell that grows takes its
+              whole row with it and leaves the neighbours as empty voids. One
+              destination everywhere is also one answer to "what is this".
+              See pages/ItemPage. */}
+          <Link
+            to={itemPath(venture, item.id)}
             className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition duration-150 hover:bg-white/[0.05] active:scale-[0.995]"
           >
             {item.photo ? (
@@ -249,7 +244,7 @@ function ItemCard({
 
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[16px] font-bold text-white">{item.name}</span>
-              {item.description && !open && (
+              {item.description && (
                 <span className="block truncate text-[14.5px] text-white/60">
                   {item.description}
                 </span>
@@ -261,14 +256,7 @@ function ItemCard({
               </span>
             </span>
 
-            <ChevronDown
-              size={16}
-              aria-hidden="true"
-              className={`mr-1 shrink-0 text-white/40 transition-transform duration-150 ${
-                open ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
+          </Link>
 
         {typeof item.price !== 'number' ? (
           /* A real link again, now that it is a sibling of the toggle rather
@@ -323,30 +311,18 @@ function ItemCard({
             </button>
           </div>
         )}
-        </div>
-
-        {open && expanded}
       </div>
     )
   }
 
   return (
     <div
-      id={`item-${item.id}`}
       className={`liquid-glass-panel flex flex-col overflow-hidden rounded-2xl text-left transition duration-150 ${
         sellable ? '' : 'opacity-60'
       }`}
     >
-      {/* Picture and name open the item, the same as the row. Everything the
-          tile has no room for is in there: the description in full, the
-          photograph at a size worth looking at, and the two ways to send it to
-          somebody. */}
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((was: boolean) => !was)}
-        className="relative block w-full text-left"
-      >
+      {/* Picture and name open the item's own page — see the note on the row. */}
+      <Link to={itemPath(venture, item.id)} className="relative block w-full text-left">
         {item.photo ? (
           <img
             src={displayUrl(item.photo, 400)}
@@ -367,17 +343,7 @@ function ItemCard({
             Sold out
           </span>
         )}
-        <span
-          aria-hidden="true"
-          className={`absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white/70 transition-transform duration-150 ${
-            open ? 'rotate-180' : ''
-          }`}
-        >
-          <ChevronDown size={15} />
-        </span>
-      </button>
-
-      {open && expanded}
+      </Link>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
         <p className="line-clamp-2 text-[16px] font-bold text-white">{item.name}</p>
@@ -518,7 +484,6 @@ export default function VentureDetail() {
    */
   useDeclareSearchScope(venture.data?.name ?? null)
   const menuQuery = useMenuQuery()
-  const [searchParams] = useSearchParams()
 
   // One venture-level open per visit. Deliberately not in the same effect as
   // the data load, which re-runs whenever the id changes for other reasons.
@@ -527,26 +492,6 @@ export default function VentureDetail() {
     void recordVentureView(resolvedId)
   }, [resolvedId])
 
-  /**
-   * Brings a shared item into view once the menu it lives in has rendered.
-   *
-   * KEYED ON THE MENU, not on the parameter alone. The parameter is known on
-   * the first render and the row it names does not exist until the items come
-   * back, so scrolling straight away scrolls to nothing at all — which is what
-   * makes a shared link land on the top of a hundred-and-fifty-item menu and
-   * look broken.
-   *
-   * `menu.data` is in the dependencies rather than a length, because a menu
-   * that reloads with the same number of items still replaces the nodes. The
-   * row opens itself; this only moves the page to it.
-   */
-  useEffect(() => {
-    const wanted = searchParams.get('open')
-    if (!wanted || !menu.data) return
-    const node = document.getElementById(`item-${wanted}`)
-    if (!node) return
-    node.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  }, [searchParams, menu.data])
 
   const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [category]: !prev[category] }))
@@ -649,15 +594,6 @@ export default function VentureDetail() {
   // the whole contract: the store sets the default, the visitor overrules it.
   const density = resolveMenuDensity(appearance.menuDensity, v.menuDensity)
 
-  /**
-   * The item a shared link named, opened on arrival.
-   *
-   * Read straight off the URL rather than copied into state, so it survives a
-   * refresh and a link pasted back into the address bar. Closing the item again
-   * is a tap on the row; the parameter staying in the URL afterwards is
-   * harmless, being the same link still pointing at the same item.
-   */
-  const sharedItemId = searchParams.get('open') ?? ''
 
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
@@ -956,7 +892,6 @@ export default function VentureDetail() {
                         brandIcon={v.brandLogos}
                         onAsk={() => countInterest(item)}
                         venture={v}
-                        openInitially={item.id === sharedItemId}
                         quantity={cartQuantity(cart, item.id)}
                         askedCount={localCounts[item.id] ?? item.inquiryCount}
                         showAsked={showItemStats}

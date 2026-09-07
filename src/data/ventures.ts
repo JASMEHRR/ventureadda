@@ -301,6 +301,11 @@ export function venturePath(venture: Pick<Venture, 'id' | 'slug'>): string {
   return `/venture/${venture.slug ?? venture.id}`
 }
 
+/** One item's own page, under its venture. See pages/ItemPage. */
+export function itemPath(venture: Pick<Venture, 'id' | 'slug'>, itemId: string): string {
+  return `${venturePath(venture)}/item/${encodeURIComponent(itemId)}`
+}
+
 /**
  * Resolves whatever is in the URL — a slug or a document id — to a venture.
  *

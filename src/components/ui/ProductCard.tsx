@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import ItemDetails from '../ItemDetails'
+import { Link } from 'react-router-dom'
+import { itemPath } from '../../data/ventures'
 import { Minus, Plus } from 'lucide-react'
 import BrandIcon from './BrandIcon'
 import VentureLogo from './VentureLogo'
@@ -44,24 +43,17 @@ export default function ProductCard({
   // The seller's own setting, off unless they turned it on. See Venture.brandLogos.
   const brandIcon = venture.brandLogos
   const left = item.stock === undefined ? Infinity : item.stock - quantity
-  const [open, setOpen] = useState(false)
 
   return (
     <div
-      className="liquid-glass-panel deferred-surface rounded-2xl transition duration-150 hover:bg-white/[0.06]"
+      className="liquid-glass-panel deferred-surface flex items-center gap-4 rounded-2xl p-4 transition duration-150 hover:bg-white/[0.06]"
       style={{ '--surface-height': '112px' } as React.CSSProperties}
     >
-     <div className="flex items-center gap-4 p-4">
-      {/* OPENS IN PLACE rather than navigating to the shop. Somebody looking
-          through eight hundred products across forty shops is asking what
-          something is, not whose it is, and answering with a page load per tap
-          made the products page a directory of doors. The shop is still one
-          tap away, inside the panel. */}
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((was: boolean) => !was)}
-        className="flex min-w-0 flex-1 items-center gap-4 text-left">
+      {/* TO THE ITEM'S OWN PAGE, not to the shop it came from. Somebody
+          looking through eight hundred products is asking what something is,
+          not whose it is. See pages/ItemPage for why this is a page rather
+          than something that expands here. */}
+      <Link to={itemPath(venture, item.id)} className="flex min-w-0 flex-1 items-center gap-4">
         {item.photo ? (
           <img
             src={displayUrl(item.photo, 400)}
@@ -104,14 +96,7 @@ export default function ProductCard({
             )}
           </span>
         </span>
-        <ChevronDown
-          size={16}
-          aria-hidden="true"
-          className={`shrink-0 text-white/40 transition-transform duration-150 ${
-            open ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
+      </Link>
 
       {/* No price means no cart — see setCartQuantity. The card still opens the
           shop, which is where that conversation happens. */}
@@ -157,9 +142,6 @@ export default function ProductCard({
           )}
         </span>
       )}
-     </div>
-
-      {open && <ItemDetails item={item} venture={venture} />}
     </div>
   )
 }
