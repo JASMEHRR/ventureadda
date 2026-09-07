@@ -16,7 +16,13 @@ import { reportError } from '../lib/errors'
 import type { Billboard, BillboardStatus } from './billboardPick'
 import type { StoredImage } from './types'
 
-export { BILLBOARD_STATUS_LABEL, OFFER_LIMIT, PITCH_LIMIT, ROTATE_MS, pickBillboard } from './billboardPick'
+export {
+  BILLBOARD_STATUS_LABEL,
+  OFFER_LIMIT,
+  PITCH_LIMIT,
+  SLIDE_MS,
+  billboardOrder,
+} from './billboardPick'
 export type { Billboard, BillboardStatus } from './billboardPick'
 
 /**

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Megaphone } from 'lucide-react'
 import VentureLogo from './ui/VentureLogo'
 import { displayUrl } from '../lib/cloudinary'
+import { formatRuns, tidyBreaks } from '../lib/richText'
 import type { Billboard } from '../data/billboardPick'
 
 /**
@@ -68,8 +69,25 @@ export default function BillboardSlot({
           )}
         </span>
 
-        <span className="line-clamp-2 text-[18px] leading-snug font-extrabold tracking-tight text-white sm:text-[21px]">
-          {ad.pitch}
+        {/* THE SAME FORMATTING A DESCRIPTION GETS. Sellers type **bold** because
+            that is what they type in WhatsApp all day, and a front page advert
+            printing the asterisks back at them is the same bug richText.ts was
+            written for. Nothing here produces HTML — formatRuns returns plain
+            React nodes — so there is no route from an advert to markup on the
+            page, which matters more here than anywhere: this is the one place
+            a seller writes onto the site's own front page. */}
+        <span className="line-clamp-2 text-[18px] leading-snug font-extrabold tracking-tight whitespace-pre-line text-white sm:text-[21px]">
+          {formatRuns(tidyBreaks(ad.pitch)).map((run, index) =>
+            run.bold ? (
+              <strong key={index} className="text-brand-300">
+                {run.text}
+              </strong>
+            ) : run.italic ? (
+              <em key={index}>{run.text}</em>
+            ) : (
+              <span key={index}>{run.text}</span>
+            ),
+          )}
         </span>
 
         <span className="flex items-center gap-1.5 font-mono text-[12.5px] tracking-wider text-white/55 uppercase">

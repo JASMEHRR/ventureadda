@@ -50,43 +50,37 @@ export const PITCH_LIMIT = 90
 export const OFFER_LIMIT = 24
 
 /**
- * How long one advert holds the slot before the next takes over.
+ * How long one advert holds the slider before the next slides in.
  *
- * Not per page load, which would flicker a different shop into the same space
- * every time somebody navigated back, and not per day, which would hand one
- * venture every visitor between Monday and Tuesday. Twenty minutes is long
- * enough to be seen and short enough that a lunchtime's traffic is shared out.
+ * Long enough to read ninety characters without hurrying, short enough that
+ * somebody scrolling past the top of the page sees more than one. Fifteen
+ * seconds is the seller's ask and it is a sensible one.
  */
-export const ROTATE_MS = 20 * 60 * 1000
+export const SLIDE_MS = 15_000
 
 /**
- * Whose turn it is, out of the approved and unpaused adverts.
+ * Every running advert, in the order the slider should show them.
  *
- * ROTATES OVER VENTURES, NOT OVER ADVERTS, and that is the whole subtlety. A
- * venture may put up as many items as it likes — there is no cap and there
- * should not be one, since a shop with six things worth advertising has six
- * things worth advertising. But if the slot simply cycled through every
- * approved advert, that shop would hold the board six times as often as the
- * shop with one, and the board would belong to whoever submits most.
+ * INTERLEAVED BY VENTURE, which is the whole reason this is not just a filter.
+ * A venture may put up as many adverts as it likes and should not be talked
+ * out of it — but sorted naively, a shop with six of them occupies six
+ * consecutive slides, and anybody watching the board for a minute sees one
+ * shop. Taking one from each venture in turn, then the second from each, and
+ * so on, means the board reads as the campus however lopsided the submissions
+ * are. Six adverts still all get shown; they are just spread out.
  *
- * So the turn is a venture's, and a venture's adverts share it: each round the
- * board comes back to them, they show the next one. Six adverts do not buy six
- * times the exposure, they buy six different things to say with the same
- * exposure. That is the version of "as many as you want" that is fair to
- * everybody else on the board.
+ * Nothing pending, rejected or paused is ever included: approval is the only
+ * thing between a moderator's front page and whatever anybody types, and this
+ * is the function that has to honour it.
  *
- * DETERMINISTIC. Everybody viewing the site in the same twenty minutes sees
- * the same advert, and the sequence walks every venture in turn rather than
- * picking at random — random means a shop can be skipped for an afternoon by
- * luck alone, and there is no way to explain that to the person who submitted
- * it. Sorted by id throughout so the running order never depends on what
- * Firestore happened to return first.
+ * Sorted by id throughout so the order never depends on what Firestore
+ * happened to return first, and pure so billboard.test.ts can hold it to all
+ * of the above.
  */
-export function pickBillboard(ads: Billboard[], at: Date = new Date()): Billboard | null {
+export function billboardOrder(ads: Billboard[]): Billboard[] {
   const running = ads
     .filter((ad) => ad.status === 'live' && !ad.paused)
     .sort((a, b) => a.id.localeCompare(b.id))
-  if (running.length === 0) return null
 
   // Grouped in encounter order, which is id order because of the sort above.
   const byVenture = new Map<string, Billboard[]>()
@@ -96,10 +90,13 @@ export function pickBillboard(ads: Billboard[], at: Date = new Date()): Billboar
     else byVenture.set(ad.ventureId, [ad])
   }
 
-  const ventures = [...byVenture.values()]
-  const slot = Math.floor(at.getTime() / ROTATE_MS)
-  const mine = ventures[slot % ventures.length]
-  // Which of this venture's adverts, advancing once per full lap of the board
-  // so that a shop with three of them shows a different one each time round.
-  return mine[Math.floor(slot / ventures.length) % mine.length]
+  const queues = [...byVenture.values()]
+  const deepest = Math.max(0, ...queues.map((queue) => queue.length))
+  const order: Billboard[] = []
+  for (let round = 0; round < deepest; round += 1) {
+    for (const queue of queues) {
+      if (round < queue.length) order.push(queue[round])
+    }
+  }
+  return order
 }

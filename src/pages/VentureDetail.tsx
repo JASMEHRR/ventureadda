@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ChevronDown,
@@ -8,6 +8,8 @@ import {
   Grid3x3,
   LayoutGrid,
   List,
+  Check,
+  Link2,
   Minus,
   Pencil,
   Plus,
@@ -136,6 +138,30 @@ function remaining(item: MenuItem, quantity: number): number {
  * this is about. Same shape as the cart's link, and the same reason: the
  * whole product is a WhatsApp conversation with the boring part filled in.
  */
+/**
+ * A link that opens this venture with one item already open.
+ *
+ * WHY AN ITEM NEEDS ITS OWN LINK. Everything on this site is passed around in
+ * WhatsApp, and until now the smallest thing anybody could send was a whole
+ * venture — so "get me one of these" arrived as a shop with a hundred and
+ * fifty items and a sentence describing one of them. The query parameter is
+ * read on load, and the item it names is expanded and scrolled to.
+ *
+ * A query parameter rather than a fragment because the fragment never reaches
+ * the server, and api/venture-preview needs to see this to caption the link
+ * with the item rather than the shop.
+ *
+ * `open`, NOT `item`. That name is already taken: `?item=` is what the shell's
+ * search box writes when somebody filters this venture's own menu — see
+ * useMenuQuery. Shipping a share link on that parameter meant every shared
+ * item arrived as a menu filtered to a document id, which matches nothing, so
+ * the page read "Nothing on this menu matches OfTGX6rw…" and showed an empty
+ * shop. Found by opening one.
+ */
+export function itemLink(path: string, itemId: string, origin: string): string {
+  return `${origin.replace(/\/$/, '')}${path}?open=${encodeURIComponent(itemId)}`
+}
+
 function askLink(venture: { name: string; phone: string }, itemName: string): string {
   const text = `Hi ${venture.name}, how much is "${itemName}"? (from VentureAdda)`
   return `https://wa.me/${venture.phone}?text=${encodeURIComponent(text)}`
@@ -151,6 +177,8 @@ function ItemCard({
   brandIcon,
   onAsk,
   venture,
+  path,
+  openInitially,
 }: {
   item: MenuItem
   quantity: number
@@ -169,9 +197,31 @@ function ItemCard({
   onAsk?: () => void
   /** For the fallback tile, and for the number an unpriced item messages. */
   venture: { name: string; phone: string; logo?: StoredImage }
+  /** This venture's own path, for building a link to this one item. */
+  path: string
+  /** Arrived from a link that named this item — see itemLink. */
+  openInitially?: boolean
 }) {
   const left = remaining(item, quantity)
   const sellable = item.inStock && (item.stock === undefined || item.stock > 0)
+  const [open, setOpen] = useState(openInitially ?? false)
+  const [copied, setCopied] = useState(false)
+
+  const shareUrl =
+    typeof window === 'undefined' ? '' : itemLink(path, item.id, window.location.origin)
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Refused in some in-app browsers, the WhatsApp one included, which is
+      // where a lot of this traffic comes from. The WhatsApp button beside it
+      // carries the same link and does not need the clipboard.
+      setCopied(false)
+    }
+  }
 
   /**
    * THE VENTURE'S OWN MARK, not the site's, when an item has no photograph.
@@ -197,71 +247,164 @@ function ItemCard({
     )
 
   /**
-   * THE WHOLE ROW IS THE TARGET when there is no price, not a button on the end
-   * of it.
+   * What opening an item shows: the things a row has no width for.
    *
-   * A button at the right edge is a small thing to hit on a phone and, worse,
-   * it makes the other ninety percent of the row look inert — which on a menu
-   * of a hundred and forty-seven items reads as a list you cannot do anything
-   * with. Nothing else in an unpriced row is interactive, so the row can be one
-   * link with no nested controls.
-   *
-   * A priced row cannot do this: it holds a stepper, and buttons inside an
-   * anchor are invalid markup that browsers fix by discarding the buttons.
+   * The description in full rather than truncated, the photograph at a size
+   * worth looking at, and the two ways to pass it on. Rendered by both layouts
+   * from one definition so the row and the tile can never disagree about what
+   * an item is.
    */
-  const wholeRowAsks = typeof item.price !== 'number' && sellable
-  const RowTag = wholeRowAsks ? 'a' : 'div'
-  const rowLinkProps = wholeRowAsks
-    ? {
-        href: askLink(venture, item.name),
-        target: '_blank',
-        rel: 'noreferrer noopener',
-        onClick: () => onAsk?.(),
-      }
-    : {}
+  const expanded = (
+    <div className="space-y-3 border-t border-white/8 px-3 pt-3 pb-3">
+      {item.photo && (
+        <img
+          src={displayUrl(item.photo, 800)}
+          alt={item.name}
+          loading="lazy"
+          className="max-h-64 w-full rounded-xl object-cover"
+        />
+      )}
+
+      {item.description ? (
+        <p className="text-[15.5px] leading-relaxed whitespace-pre-line text-white/70">
+          {tidyBreaks(item.description)}
+        </p>
+      ) : (
+        <p className="text-[15.5px] text-white/45">No description for this one.</p>
+      )}
+
+      {typeof item.stock === 'number' && sellable && (
+        <p className="font-mono text-[13px] tracking-wider text-white/55 uppercase">
+          {item.stock} left
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {/* SHARING ONE ITEM, which is the thing people were doing by hand:
+            sending a shop and then describing which bit of it they meant. */}
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(
+            `${item.name}${typeof item.price === 'number' ? ` — ₹${item.price}` : ''} from ${venture.name} on VentureAdda:\n${shareUrl}`,
+          )}`}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="flex items-center gap-1.5 rounded-xl bg-[#25D366]/15 px-3 py-2 text-[14px] font-bold text-[#4ade80] transition duration-150 hover:bg-[#25D366]/25 active:scale-[0.96]"
+        >
+          <WhatsAppIcon size={13} />
+          Send this
+        </a>
+
+        <button
+          type="button"
+          onClick={() => void copyLink()}
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[14px] font-bold transition duration-150 active:scale-[0.96] ${
+            copied
+              ? 'bg-brand-500/20 text-brand-300'
+              : 'bg-white/8 text-white/60 hover:bg-white/12 hover:text-white/80'
+          }`}
+        >
+          {copied ? <Check size={13} aria-hidden="true" /> : <Link2 size={13} aria-hidden="true" />}
+          {copied ? 'Copied' : 'Copy link'}
+        </button>
+
+        {typeof item.price !== 'number' && sellable && (
+          <a
+            href={askLink(venture, item.name)}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={() => onAsk?.()}
+            className="ml-auto font-mono text-[13px] font-bold tracking-wider text-white/55 uppercase transition hover:text-brand-300"
+          >
+            Negotiate
+          </a>
+        )}
+      </div>
+
+      <span role="status" className="sr-only">
+        {copied ? 'Link copied to your clipboard.' : ''}
+      </span>
+    </div>
+  )
 
   if (asRow) {
     return (
-      <RowTag
-        {...rowLinkProps}
-        className={`liquid-glass-panel flex items-center gap-3 rounded-2xl p-2.5 transition duration-150 ${
+      /**
+       * THE ROW OPENS. It used to be one big link to WhatsApp when the item had
+       * no price, which was right about the target being too small and wrong
+       * about what most people want from a row: a row that can only message a
+       * seller cannot show them a photograph, a full description, or a way to
+       * send that one item to a friend. Tapping opens it; the green chip on the
+       * right is still one tap to WhatsApp, so nothing that worked before takes
+       * an extra step now.
+       *
+       * The toggle is a button around the left of the row rather than around
+       * all of it, because the chip and the stepper live on the right and a
+       * button cannot legally contain them.
+       */
+      <div
+        id={`item-${item.id}`}
+        className={`liquid-glass-panel rounded-2xl transition duration-150 ${
           sellable ? '' : 'opacity-60'
-        } ${wholeRowAsks ? 'hover:bg-white/[0.07] active:scale-[0.99]' : ''}`}
+        } ${open ? 'ring-1 ring-white/12' : ''}`}
       >
-        {item.photo ? (
-          <img
-            src={displayUrl(item.photo, 400)}
-            alt=""
-            loading="lazy"
-            className={`h-12 w-12 shrink-0 rounded-xl object-cover ${sellable ? '' : 'grayscale'}`}
-          />
-        ) : (
-          <span aria-hidden="true" className="shrink-0">
-            {placeholder(48)}
-          </span>
-        )}
+        <div className="flex items-center gap-3 p-2.5">
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setOpen((was: boolean) => !was)}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition duration-150 hover:bg-white/[0.05] active:scale-[0.995]"
+          >
+            {item.photo ? (
+              <img
+                src={displayUrl(item.photo, 400)}
+                alt=""
+                loading="lazy"
+                className={`h-12 w-12 shrink-0 rounded-xl object-cover ${sellable ? '' : 'grayscale'}`}
+              />
+            ) : (
+              <span aria-hidden="true" className="shrink-0">
+                {placeholder(48)}
+              </span>
+            )}
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[16px] font-bold text-white">{item.name}</p>
-          {item.description && (
-            <p className="truncate text-[14.5px] text-white/60">{item.description}</p>
-          )}
-          <p className="font-mono text-[14px] font-bold text-white/70">
-            {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
-            {!sellable && <span className="ml-2 text-red-300">Sold out</span>}
-            {showAsked && <span className="ml-2 text-brand-400/70">{askedCount} asked</span>}
-          </p>
-        </div>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[16px] font-bold text-white">{item.name}</span>
+              {item.description && !open && (
+                <span className="block truncate text-[14.5px] text-white/60">
+                  {item.description}
+                </span>
+              )}
+              <span className="block font-mono text-[14px] font-bold text-white/70">
+                {typeof item.price === 'number' ? `₹${item.price}` : 'Ask'}
+                {!sellable && <span className="ml-2 text-red-300">Sold out</span>}
+                {showAsked && <span className="ml-2 text-brand-400/70">{askedCount} asked</span>}
+              </span>
+            </span>
+
+            <ChevronDown
+              size={16}
+              aria-hidden="true"
+              className={`mr-1 shrink-0 text-white/40 transition-transform duration-150 ${
+                open ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
 
         {typeof item.price !== 'number' ? (
-          /* Not a button any more — the row is the link. This says where the
-             tap goes, in the words a buyer uses: nobody reads "Ask" as "opens
-             WhatsApp". */
-          <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#25D366]/15 px-3 py-2 text-[13px] font-bold text-[#4ade80]">
+          /* A real link again, now that it is a sibling of the toggle rather
+             than nested inside it. One tap to WhatsApp, in the words a buyer
+             uses: nobody reads "Ask" as "opens WhatsApp". */
+          <a
+            href={askLink(venture, item.name)}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={() => onAsk?.()}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#25D366]/15 px-3 py-2 text-[13px] font-bold text-[#4ade80] transition duration-150 hover:bg-[#25D366]/25 active:scale-[0.96]"
+          >
             <WhatsAppIcon size={13} />
             Negotiate
             <span className="sr-only"> the price of {item.name} on WhatsApp</span>
-          </span>
+          </a>
         ) : !sellable ? null : quantity === 0 ? (
           <button
             type="button"
@@ -300,17 +443,30 @@ function ItemCard({
             </button>
           </div>
         )}
-      </RowTag>
+        </div>
+
+        {open && expanded}
+      </div>
     )
   }
 
   return (
     <div
+      id={`item-${item.id}`}
       className={`liquid-glass-panel flex flex-col overflow-hidden rounded-2xl text-left transition duration-150 ${
         sellable ? '' : 'opacity-60'
       }`}
     >
-      <div className="relative">
+      {/* Picture and name open the item, the same as the row. Everything the
+          tile has no room for is in there: the description in full, the
+          photograph at a size worth looking at, and the two ways to send it to
+          somebody. */}
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((was: boolean) => !was)}
+        className="relative block w-full text-left"
+      >
         {item.photo ? (
           <img
             src={displayUrl(item.photo, 400)}
@@ -331,7 +487,17 @@ function ItemCard({
             Sold out
           </span>
         )}
-      </div>
+        <span
+          aria-hidden="true"
+          className={`absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white/70 transition-transform duration-150 ${
+            open ? 'rotate-180' : ''
+          }`}
+        >
+          <ChevronDown size={15} />
+        </span>
+      </button>
+
+      {open && expanded}
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
         <p className="line-clamp-2 text-[16px] font-bold text-white">{item.name}</p>
@@ -472,6 +638,7 @@ export default function VentureDetail() {
    */
   useDeclareSearchScope(venture.data?.name ?? null)
   const menuQuery = useMenuQuery()
+  const [searchParams] = useSearchParams()
 
   // One venture-level open per visit. Deliberately not in the same effect as
   // the data load, which re-runs whenever the id changes for other reasons.
@@ -479,6 +646,27 @@ export default function VentureDetail() {
     if (!resolvedId) return
     void recordVentureView(resolvedId)
   }, [resolvedId])
+
+  /**
+   * Brings a shared item into view once the menu it lives in has rendered.
+   *
+   * KEYED ON THE MENU, not on the parameter alone. The parameter is known on
+   * the first render and the row it names does not exist until the items come
+   * back, so scrolling straight away scrolls to nothing at all — which is what
+   * makes a shared link land on the top of a hundred-and-fifty-item menu and
+   * look broken.
+   *
+   * `menu.data` is in the dependencies rather than a length, because a menu
+   * that reloads with the same number of items still replaces the nodes. The
+   * row opens itself; this only moves the page to it.
+   */
+  useEffect(() => {
+    const wanted = searchParams.get('open')
+    if (!wanted || !menu.data) return
+    const node = document.getElementById(`item-${wanted}`)
+    if (!node) return
+    node.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [searchParams, menu.data])
 
   const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [category]: !prev[category] }))
@@ -580,6 +768,16 @@ export default function VentureDetail() {
   // The seller's layout unless this reader has asked for another one, which is
   // the whole contract: the store sets the default, the visitor overrules it.
   const density = resolveMenuDensity(appearance.menuDensity, v.menuDensity)
+
+  /**
+   * The item a shared link named, opened on arrival.
+   *
+   * Read straight off the URL rather than copied into state, so it survives a
+   * refresh and a link pasted back into the address bar. Closing the item again
+   * is a tap on the row; the parameter staying in the URL afterwards is
+   * harmless, being the same link still pointing at the same item.
+   */
+  const sharedItemId = searchParams.get('open') ?? ''
 
   // Per-item enquiry counts are the seller's own evidence of what sells, so
   // they belong to the owner and the moderator, not to every passing browser.
@@ -878,6 +1076,8 @@ export default function VentureDetail() {
                         brandIcon={v.brandLogos}
                         onAsk={() => countInterest(item)}
                         venture={{ name: v.name, phone: v.phone, logo: v.logo }}
+                        path={venturePath(v)}
+                        openInitially={item.id === sharedItemId}
                         quantity={cartQuantity(cart, item.id)}
                         askedCount={localCounts[item.id] ?? item.inquiryCount}
                         showAsked={showItemStats}

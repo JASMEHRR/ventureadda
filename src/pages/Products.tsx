@@ -5,9 +5,7 @@ import EmptyState from '../components/ui/EmptyState'
 import LoadingLine from '../components/ui/LoadingLine'
 import ProductCard from '../components/ui/ProductCard'
 import ProductRail from '../components/ProductRail'
-import BillboardSlot from '../components/BillboardSlot'
-import { listLiveBillboards } from '../data/billboard'
-import { pickBillboard } from '../data/billboardPick'
+import BillboardBoard from '../components/BillboardBoard'
 import Select from '../components/ui/Select'
 import type { SelectOption } from '../components/ui/Select'
 import type { ItemMatch } from '../data/ventures'
@@ -180,20 +178,6 @@ export default function Products() {
   const showWindow = !section && !kind && query.trim() === '' && !categoryId
   const picks = useMemo(() => (showWindow ? topPicks(all, 10) : []), [all, showWindow])
 
-  /**
-   * The advert on the board right now, if anybody has one approved.
-   *
-   * Its own read rather than something derived from the products already
-   * loaded, because an advert is a separate thing with its own approval — and
-   * it is one small query returning only live rows, so it costs a read per
-   * approved advert rather than per item.
-   *
-   * Under the same `showWindow` guard as the picks: somebody who has typed a
-   * word or picked a section asked a question, and an advert is not an answer
-   * to it. The front page is where this belongs; a search result is not.
-   */
-  const ads = useAsyncData(() => listLiveBillboards(), [])
-  const ad = showWindow ? pickBillboard(ads.data ?? []) : null
 
   const isFiltered =
     query.trim() !== '' || categoryId !== null || section !== null || kind !== null || hideSoldOut
@@ -402,9 +386,10 @@ export default function Products() {
           <div className="min-w-0 flex-1 space-y-8">
             {/* SEGMENT TWO: the shop window. Wide tiles, a few things from
                 different shops, and gone the moment anything is narrowed. */}
-            {/* SEGMENT ONE AND A HALF: the billboard. One approved advert,
-                above the shop window, labelled as an advert. */}
-            {ad && <BillboardSlot ad={ad} />}
+            {/* SEGMENT ONE AND A HALF: the billboard, above the shop window.
+                Under the same guard as the picks — somebody who has typed a
+                word asked a question, and an advert is not an answer to it. */}
+            {showWindow && <BillboardBoard />}
 
             {picks.length > 0 && <ProductRail title="Ready to order" items={picks} />}
 

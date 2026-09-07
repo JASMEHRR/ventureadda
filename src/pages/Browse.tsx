@@ -4,6 +4,7 @@ import { Plus, SearchX, Store } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import VentureCard from '../components/ui/VentureCard'
+import BillboardBoard from '../components/BillboardBoard'
 import LoadingLine from '../components/ui/LoadingLine'
 import { useAsyncData } from '../hooks/useAsyncData'
 import { listCategories, listVentures, searchMenuItems } from '../data/ventures'
@@ -126,6 +127,15 @@ export default function Browse() {
 
   return (
     <div className="space-y-4">
+      {/* ABOVE THE VENTURES, the same board the products page carries. This is
+          the other page people arrive on, and an advert that only ever appears
+          on one of them is an advert half the site never sees.
+
+          Hidden once anything is filtered: somebody who has typed a word or
+          picked a category asked a question, and an advert is not an answer
+          to it. */}
+      {!isFiltered && <BillboardBoard title="Promoted" />}
+
       {ventures.error && (
         <p className="liquid-glass-panel rounded-3xl px-5 py-4 text-[16px] text-red-400">
           Could not load the listings: {ventures.error.message}

@@ -123,7 +123,7 @@ export default function BillboardPanel({
   const chosen = sellable.find((item) => item.id === itemId)
 
   return (
-    <section className="liquid-glass-panel space-y-4 rounded-3xl p-5">
+    <section className="liquid-glass-panel space-y-4 rounded-3xl p-4">
       <header>
         <h2 className="flex items-center gap-2 font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
           <Megaphone size={13} aria-hidden="true" />
@@ -202,7 +202,7 @@ export default function BillboardPanel({
       )}
 
       {venture.status === 'live' && (
-        <div className="grid gap-5 border-t border-white/8 pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="space-y-4 border-t border-white/8 pt-4">
           <div className="space-y-3">
             <div>
               <p className="mb-1.5 font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">
@@ -271,7 +271,7 @@ export default function BillboardPanel({
               onChange={(event) => setPitch(event.target.value)}
               maxLength={PITCH_LIMIT}
               placeholder="Handmade crochet roses, made to order this week"
-              hint={`${pitch.length}/${PITCH_LIMIT}. This is the whole advert, so make it the reason to tap.`}
+              hint={`${pitch.length}/${PITCH_LIMIT}. The whole advert, so make it the reason to tap. **bold** and *italic* work, the same as WhatsApp.`}
             />
 
             <TextField
@@ -297,12 +297,12 @@ export default function BillboardPanel({
           </div>
 
           {/*
-            THE COLUMN THAT WAS EMPTY. A seller writing ninety characters for
-            the front page of a site whose front page they may never have
-            looked at is writing blind, and there was a whole column of nothing
-            sitting next to them while they did it. This is the real
-            BillboardSlot, drawn from what they have typed so far, so the thing
-            being decided is on the screen during the deciding.
+            A LIVE PREVIEW, because a seller writing ninety characters for the
+            front page of a site whose front page they may never have looked at
+            is writing blind. This is the real BillboardSlot drawn from what
+            they have typed so far, so the thing being decided is on the screen
+            during the deciding — and if the component changes, this changes
+            with it rather than drifting into a lie.
           */}
           <div className="space-y-2.5">
             <p className="font-mono text-[12.5px] font-extrabold tracking-[0.18em] text-white/55 uppercase">

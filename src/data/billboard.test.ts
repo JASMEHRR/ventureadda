@@ -1,100 +1,81 @@
 /**
- * Self-check for whose advert is on the front page.
+ * Self-check for what goes on the front page and in what order.
  *
- * Two things here are promises to sellers rather than rendering details. An
- * unapproved advert must never be shown, because approval is the only thing
- * standing between a moderator's front page and whatever anybody types. And
- * the turn-taking must actually take turns, because "your ad ran, you were
- * just unlucky" is not something anybody can be told.
+ * Two things here are promises rather than rendering details. An unapproved
+ * advert must never be shown, because approval is the only thing standing
+ * between a moderator's front page and whatever anybody types. And the order
+ * must not let one shop own the board, because "put up as many as you like"
+ * and "one shop filled the slider" cannot both be true.
  *
  * Run with: node --experimental-strip-types src/data/billboard.test.ts
  */
 import assert from 'node:assert/strict'
-import { ROTATE_MS, pickBillboard } from './billboardPick.ts'
+import { billboardOrder } from './billboardPick.ts'
 import type { Billboard } from './billboardPick.ts'
 
 const ad = (over: Partial<Billboard> = {}): Billboard =>
   ({ id: 'a', ventureId: 'v', status: 'live', paused: false, ...over }) as Billboard
 
-const at = (slots: number) => new Date(slots * ROTATE_MS)
+const ids = (ads: Billboard[]) => billboardOrder(ads).map((entry) => entry.id)
 
 // --- nothing unapproved, ever -----------------------------------------------
-assert.equal(pickBillboard([ad({ status: 'pending' })]), null)
-assert.equal(pickBillboard([ad({ status: 'rejected' })]), null)
+assert.deepEqual(billboardOrder([ad({ status: 'pending' })]), [])
+assert.deepEqual(billboardOrder([ad({ status: 'rejected' })]), [])
 // The seller's own switch, which is separate from approval.
-assert.equal(pickBillboard([ad({ paused: true })]), null)
+assert.deepEqual(billboardOrder([ad({ paused: true })]), [])
 // An empty board is an empty board, not a crash.
-assert.equal(pickBillboard([]), null)
+assert.deepEqual(billboardOrder([]), [])
 
-// A live ad beside unapproved ones is the one that runs.
-assert.equal(
-  pickBillboard(
-    [ad({ id: 'x', ventureId: 'v1', status: 'pending' }), ad({ id: 'y', ventureId: 'v2' })],
-    at(0),
-  )?.id,
-  'y',
+// A live advert beside unapproved ones is the only one that runs.
+assert.deepEqual(
+  ids([ad({ id: 'x', ventureId: 'v1', status: 'pending' }), ad({ id: 'y', ventureId: 'v2' })]),
+  ['y'],
 )
 
-// --- taking turns -----------------------------------------------------------
-const three = [
-  ad({ id: 'c', ventureId: 'v3' }),
-  ad({ id: 'a', ventureId: 'v1' }),
-  ad({ id: 'b', ventureId: 'v2' }),
-]
-
-// Sorted by id, so the running order does not depend on what came back first.
-assert.equal(pickBillboard(three, at(0))?.id, 'a')
-assert.equal(pickBillboard(three, at(1))?.id, 'b')
-assert.equal(pickBillboard(three, at(2))?.id, 'c')
-// And it wraps rather than stopping on the last one.
-assert.equal(pickBillboard(three, at(3))?.id, 'a')
-
-// EVERY AD GETS A TURN. The failure this guards is a rotation that favours one
-// venture: over one full cycle each of the three must appear exactly once.
-const cycle = [0, 1, 2].map((slot) => pickBillboard(three, at(slot))?.id)
-assert.deepEqual([...cycle].sort(), ['a', 'b', 'c'])
-
-// Stable WITHIN a slot: two people loading the page a minute apart see the
-// same advert, so the board does not flicker as somebody navigates back.
-assert.equal(
-  pickBillboard(three, new Date(0))?.id,
-  pickBillboard(three, new Date(60_000))?.id,
+// --- the order does not depend on what came back first ----------------------
+assert.deepEqual(
+  ids([
+    ad({ id: 'c', ventureId: 'v3' }),
+    ad({ id: 'a', ventureId: 'v1' }),
+    ad({ id: 'b', ventureId: 'v2' }),
+  ]),
+  ['a', 'b', 'c'],
 )
 
-// A paused ad is skipped without leaving a gap in the rotation — the others
-// share the slot rather than the board going blank on its turn.
-const paused = [
-  ad({ id: 'a', ventureId: 'v1', paused: true }),
-  ad({ id: 'b', ventureId: 'v2' }),
-  ad({ id: 'c', ventureId: 'v3' }),
-]
-assert.equal(pickBillboard(paused, at(0))?.id, 'b')
-assert.equal(pickBillboard(paused, at(1))?.id, 'c')
-assert.equal(pickBillboard(paused, at(2))?.id, 'b')
-
-// One approved ad holds the slot at every moment rather than alternating with
-// nothing.
-const alone = [ad({ id: 'only' })]
-assert.equal(pickBillboard(alone, at(0))?.id, 'only')
-assert.equal(pickBillboard(alone, at(7))?.id, 'only')
-
-// --- as many adverts as a venture likes, without buying the board -----------
+// --- as many adverts as a venture likes, without owning the board -----------
 //
-// THE POINT OF ROTATING BY VENTURE. A shop with three adverts and a shop with
-// one must each hold the slot half the time; cycling every advert instead
-// would give the first shop three turns out of four.
+// THE POINT OF INTERLEAVING. Sorted naively this is a1, a2, a3, b1: the big
+// shop holds three consecutive slides, and anybody watching the top of the
+// page for a minute sees one shop. One from each venture per round spreads
+// them out, and all four are still shown.
 const lopsided = [
   ad({ id: 'a1', ventureId: 'big' }),
   ad({ id: 'a2', ventureId: 'big' }),
   ad({ id: 'a3', ventureId: 'big' }),
   ad({ id: 'b1', ventureId: 'small' }),
 ]
-const owners = [0, 1, 2, 3, 4, 5].map((slot) => pickBillboard(lopsided, at(slot))?.ventureId)
-assert.deepEqual(owners, ['big', 'small', 'big', 'small', 'big', 'small'])
+assert.deepEqual(ids(lopsided), ['a1', 'b1', 'a2', 'a3'])
 
-// And the big shop's three adverts take it in turns across its own slots, so
-// submitting more buys different things to say rather than more airtime.
-const shown = [0, 2, 4, 6].map((slot) => pickBillboard(lopsided, at(slot))?.id)
-assert.deepEqual(shown, ['a1', 'a2', 'a3', 'a1'])
+// Nothing is dropped on the way: every approved advert appears exactly once.
+assert.equal(billboardOrder(lopsided).length, 4)
+assert.deepEqual([...ids(lopsided)].sort(), ['a1', 'a2', 'a3', 'b1'])
+
+// The small shop is not buried at the end: it is in the first round, which is
+// the one most people will still be looking at.
+assert.equal(billboardOrder(lopsided)[1].ventureId, 'small')
+
+// Two shops, two adverts each, alternate all the way down.
+assert.deepEqual(
+  ids([
+    ad({ id: 'a1', ventureId: 'x' }),
+    ad({ id: 'a2', ventureId: 'x' }),
+    ad({ id: 'b1', ventureId: 'y' }),
+    ad({ id: 'b2', ventureId: 'y' }),
+  ]),
+  ['a1', 'b1', 'a2', 'b2'],
+)
+
+// One advert is one slide, not a rotation with nothing in it.
+assert.deepEqual(ids([ad({ id: 'only' })]), ['only'])
 
 console.log('billboard: ok')

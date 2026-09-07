@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Check, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import Button from './ui/Button'
 import MenuImport from './MenuImport'
@@ -98,6 +99,16 @@ type VentureFormProps = {
    * looks editable and then fails the whole save is worse than no field.
    */
   canEditManagers?: boolean
+  /**
+   * Rendered in the rail, below the save panel.
+   *
+   * For things that belong to this listing but do not belong to this form —
+   * the Billboard, which submits an advert for approval on its own rather than
+   * riding the save button. The rail is where the space is: below `lg` the
+   * save panel sticks to the bottom of the viewport and this falls after the
+   * form, which is the right order to read it in either way.
+   */
+  aside?: ReactNode
 }
 
 /**
@@ -594,6 +605,7 @@ export default function VentureForm({
   submitLabel,
   onSubmit,
   canEditManagers = true,
+  aside,
 }: VentureFormProps) {
   const { user } = useAuth()
   const [name, setName] = useState(initial?.name ?? '')
@@ -1186,6 +1198,13 @@ export default function VentureForm({
           </dl>
         </div>
       </div>
+
+      {/* AFTER the sticky wrapper, not inside it. Sticky would pin this to the
+          top of the screen too and let a tall panel run off the bottom; it is
+          meant to sit under the save button and scroll with the column. On a
+          phone the rail is not a rail, so this simply follows the form, which
+          is the right reading order anyway. */}
+      {aside && <div className="mt-4 lg:col-start-2">{aside}</div>}
     </form>
   )
 }

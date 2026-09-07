@@ -106,15 +106,16 @@ export default function EditVenture() {
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         canEditManagers={isOwner || profile.isModerator}
-      />
-
-      {/* Below the form and saving on its own. An advert is submitted for
-          approval, not edited into existence alongside twenty menu items, so
-          it must not ride on the form's save button. */}
-      <BillboardPanel
-        venture={venture.data}
-        items={menu.data ?? []}
-        ownerId={venture.data.ownerId}
+        // In the rail under Save changes, where there was empty column. It
+        // still saves on its own: an advert is submitted for approval, not
+        // edited into existence alongside twenty menu items.
+        aside={
+          <BillboardPanel
+            venture={venture.data}
+            items={menu.data ?? []}
+            ownerId={venture.data.ownerId}
+          />
+        }
       />
     </div>
   )
