@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Megaphone, Trash2 } from 'lucide-react'
+import { ChevronRight, Megaphone, Trash2 } from 'lucide-react'
 import Button from './ui/Button'
 import TextField from './ui/TextField'
 import LoadingLine from './ui/LoadingLine'
@@ -122,20 +122,42 @@ export default function BillboardPanel({
     : sellable
   const chosen = sellable.find((item) => item.id === itemId)
 
+  const live = existing.filter((ad: Billboard) => ad.status === 'live' && !ad.paused).length
+
   return (
-    <section className="liquid-glass-panel space-y-4 rounded-3xl p-4">
-      <header>
-        <h2 className="flex items-center gap-2 font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          <Megaphone size={13} aria-hidden="true" />
-          Billboard
-        </h2>
-        <p className="mt-2 text-[16px] leading-relaxed text-white/55">
-          One advert sits across the top of the front page, and every venture on the site takes
-          turns in it. Put up as many as you like &mdash; the turn belongs to your venture, so
-          several adverts means more to say rather than more time on the board. A moderator reads
-          each one before it goes up.
+    /*
+      SHUT UNTIL ASKED. This lives in an eighteen-rem rail beside a form people
+      came here to fill in, and open it was four paragraphs and a search box
+      standing between them and the save button. A seller who has no advert
+      never needs to see any of it; one who has three wants the count, which is
+      why it is in the summary.
+    */
+    <details className="liquid-glass-panel group rounded-3xl">
+      <summary className="flex cursor-pointer items-center gap-2.5 rounded-3xl px-4 py-3.5 transition duration-150 hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          size={14}
+          aria-hidden="true"
+          className="shrink-0 text-white/55 transition-transform duration-200 group-open:rotate-90"
+        />
+        <Megaphone size={13} aria-hidden="true" className="shrink-0 text-brand-400" />
+        <span className="min-w-0 flex-1">
+          <span className="block font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
+            Billboard
+          </span>
+          <span className="mt-0.5 block text-[14.5px] text-white/55">
+            {existing.length === 0
+              ? 'Advertise something on the front page.'
+              : `${existing.length} advert${existing.length === 1 ? '' : 's'}${live > 0 ? `, ${live} up` : ''}.`}
+          </span>
+        </span>
+      </summary>
+
+      <div className="space-y-4 px-4 pt-1 pb-4">
+        <p className="text-[15.5px] leading-relaxed text-white/55">
+          One advert sits across the top of the front page, and every venture takes turns in it.
+          Put up as many as you like &mdash; the turn belongs to your venture, so several adverts
+          means more to say rather than more time on the board. A moderator reads each one first.
         </p>
-      </header>
 
       {venture.status !== 'live' && (
         <p className="rounded-2xl bg-white/[0.04] px-4 py-3 text-[15.5px] leading-relaxed text-white/60">
@@ -334,6 +356,7 @@ export default function BillboardPanel({
           </div>
         </div>
       )}
-    </section>
+      </div>
+    </details>
   )
 }

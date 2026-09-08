@@ -1155,10 +1155,20 @@ export default function VentureForm({
         </section>
       </div>
 
+      {/*
+        THE WHOLE RAIL, as one grid cell.
+        
+        This wrapper is the fix for the Billboard landing at the very bottom of
+        the page. It used to be a third child of the grid with `lg:col-start-2`,
+        which does put it in the right column — and on a NEW ROW, and row two
+        of this grid starts below the form, which is thirty items tall. The
+        rail is one cell now, and everything in it stacks from the top.
+      */}
+      <div className="mt-4 lg:mt-0">
       {/* Sticks to the top of the rail on desktop, to the bottom of the
           viewport on a phone. `bottom-24` clears MobileNav, which is fixed at
           bottom-3 below md. */}
-      <div className="sticky bottom-24 z-30 mt-4 md:bottom-4 lg:top-6 lg:bottom-auto lg:mt-0">
+      <div className="sticky bottom-24 z-30 md:bottom-4 lg:top-6 lg:bottom-auto">
         <div className="liquid-glass-panel space-y-3 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           {error && (
             <p role="alert" className="text-[15.5px] leading-relaxed text-red-400">
@@ -1199,12 +1209,11 @@ export default function VentureForm({
         </div>
       </div>
 
-      {/* AFTER the sticky wrapper, not inside it. Sticky would pin this to the
-          top of the screen too and let a tall panel run off the bottom; it is
-          meant to sit under the save button and scroll with the column. On a
-          phone the rail is not a rail, so this simply follows the form, which
-          is the right reading order anyway. */}
-      {aside && <div className="mt-4 lg:col-start-2">{aside}</div>}
+        {/* Under the save panel and outside its sticky box: sticky would pin
+            this to the top of the screen as well and let a tall panel run off
+            the bottom of it. */}
+        {aside && <div className="mt-4">{aside}</div>}
+      </div>
     </form>
   )
 }
