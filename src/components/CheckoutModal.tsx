@@ -103,6 +103,21 @@ export default function CheckoutModal({
   const { profile, signInWithGoogle } = useAuth()
   const remembered = readBuyer()
 
+  /**
+   * Placing this order for somebody else.
+   *
+   * IT WAS ALWAYS POSSIBLE and never sayable. The name and number have always
+   * been free text, so anybody could type a friend's — but the fields say
+   * "Your name" and "Your number", so nobody would, and the details they typed
+   * were then remembered as their own and came back wrong on the next order.
+   *
+   * The switch fixes both halves: the labels stop lying, and nothing typed
+   * under it is kept. The order is still attributed to the account that placed
+   * it — `buyerUid` is pinned by the rules and is not what this changes — so a
+   * seller being messed about still has a name to report. This only changes
+   * who the seller should call.
+   */
+  const [forSomeoneElse, setForSomeoneElse] = useState(false)
   const [buyerName, setBuyerName] = useState(remembered.name || (profile?.username ?? ''))
   const [buyerPhone, setBuyerPhone] = useState(remembered.phone)
   const [deliveryAddress, setDeliveryAddress] = useState(remembered.address)
@@ -306,7 +321,13 @@ export default function CheckoutModal({
       return
     }
 
-    rememberBuyer({ name: buyer.name, phone: buyer.phone, address: deliveryAddress.trim() })
+    // Somebody else's name and number are not this device's defaults. The
+    // address is, since it is usually still where the thing is going.
+    if (forSomeoneElse) {
+      rememberBuyer({ ...remembered, address: deliveryAddress.trim() })
+    } else {
+      rememberBuyer({ name: buyer.name, phone: buyer.phone, address: deliveryAddress.trim() })
+    }
     setPlaced({ lines, total: orderTotal(lines) })
 
     /**
@@ -473,9 +494,26 @@ export default function CheckoutModal({
               typed — so warning people up front is asking them to worry about
               a step that no longer interrupts them. */}
           <div className="space-y-3.5 border-t border-white/8 pt-3.5">
+            <label className="flex items-center gap-2.5 text-[15.5px] text-white/70">
+              <input
+                type="checkbox"
+                checked={forSomeoneElse}
+                onChange={(event) => {
+                  const on = event.target.checked
+                  setForSomeoneElse(on)
+                  // Clearing on the way in, and putting your own back on the
+                  // way out, so neither set of details is left half-typed.
+                  setBuyerName(on ? '' : remembered.name || (profile?.username ?? ''))
+                  setBuyerPhone(on ? '' : remembered.phone)
+                }}
+                className="h-4 w-4 shrink-0 accent-brand-400"
+              />
+              I&rsquo;m ordering for someone else
+            </label>
+
             <TextField
               id="checkout-name"
-              label="Your name"
+              label={forSomeoneElse ? 'Their name' : 'Your name'}
               required
               maxLength={60}
               value={buyerName}
@@ -484,8 +522,12 @@ export default function CheckoutModal({
             />
             <TextField
               id="checkout-phone"
-              label="Your number"
-              hint="With country code, so the seller can reach you."
+              label={forSomeoneElse ? 'Their number' : 'Your number'}
+              hint={
+                forSomeoneElse
+                  ? 'With country code. This is who the seller will contact, not you.'
+                  : 'With country code, so the seller can reach you.'
+              }
               required
               inputMode="tel"
               value={buyerPhone}

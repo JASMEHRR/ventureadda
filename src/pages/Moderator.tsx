@@ -51,6 +51,7 @@ import { BILLBOARD_SECONDS, billboardSeconds } from '../data/billboardPick'
 import { setBillboardSeconds } from '../data/settings'
 import type { Billboard, BillboardStatus } from '../data/billboardPick'
 import { ordersByVenture, ordersSince, usageLadder } from '../data/orderStats'
+import { ORDER_STATUS_LABEL } from '../data/orders'
 import type { VentureOrders } from '../data/orderStats'
 import type { Order } from '../data/types'
 import {
@@ -349,6 +350,93 @@ function TrafficPanel({ days }: { days: TrafficDay[] }) {
  * through this site, so it is the value of what was agreed rather than what
  * was collected, and the panel says so.
  */
+/**
+ * One venture's line in the orders table, which opens onto its actual orders.
+ *
+ * THE TOTALS WERE NOT THE QUESTION. "Glood: 4 orders, ₹600" tells a moderator
+ * that something is happening and nothing about what — and the next thing
+ * anybody asks is who ordered, for how much, and whether it went anywhere.
+ * That answer already sits in the documents this panel has read; it was simply
+ * not being shown.
+ *
+ * A <details>, so every row is shut until asked. Forty ventures with their
+ * orders unrolled underneath is a page nobody can scan, and the summary line
+ * is the thing being scanned.
+ */
+function VentureOrdersRow({
+  row,
+  orders,
+  busiest,
+}: {
+  row: VentureOrders
+  orders: Order[]
+  busiest: number
+}) {
+  const mine = orders
+    .filter((order) => order.ventureId === row.ventureId)
+    .sort((a, b) => (b.createdAt?.getTime() ?? Infinity) - (a.createdAt?.getTime() ?? Infinity))
+
+  return (
+    <details className="group rounded-xl">
+      <summary className="flex cursor-pointer items-center gap-3 rounded-xl px-1.5 py-1.5 transition duration-150 hover:bg-white/[0.05] [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          size={13}
+          aria-hidden="true"
+          className="shrink-0 text-white/40 transition-transform duration-200 group-open:rotate-90"
+        />
+        <span className="min-w-0 flex-1 truncate text-[16px] font-bold text-white">
+          {row.ventureName}
+        </span>
+        <span className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-white/8 sm:block">
+          <span
+            style={{ width: `${(row.orders / busiest) * 100}%` }}
+            className="block h-full rounded-full bg-brand-400"
+          />
+        </span>
+        <span className="shrink-0 font-mono text-[13px] text-white/55">
+          {row.buyers} {row.buyers === 1 ? 'buyer' : 'buyers'}
+        </span>
+        <span className="w-16 shrink-0 text-right font-mono text-[13px] text-white/70">
+          ₹{row.revenue.toLocaleString('en-IN')}
+        </span>
+        <span className="w-8 shrink-0 text-right font-mono text-[15px] font-extrabold text-brand-400">
+          {row.orders}
+        </span>
+      </summary>
+
+      <ul className="space-y-1.5 py-2 pl-6">
+        {mine.map((order) => (
+          <li
+            key={order.id}
+            className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-[15.5px] font-bold text-white">{order.buyerName}</span>
+              <span className="font-mono text-[13px] text-white/55">
+                {ORDER_STATUS_LABEL[order.status]} · ₹{order.total.toLocaleString('en-IN')}
+              </span>
+            </div>
+            <p className="mt-0.5 font-mono text-[12.5px] tracking-wider text-white/45 uppercase">
+              {order.createdAt
+                ? order.createdAt.toLocaleString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                : 'Just now'}
+              {order.deliverySlot && ` · ${order.deliverySlot}`}
+            </p>
+            <p className="mt-1 text-[15px] leading-snug text-white/65">
+              {order.lines.map((line) => `${line.quantity}× ${line.name}`).join(', ')}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
 function OrdersPanel({ orders }: { orders: Order[] | null }) {
   // Derived here, not handed in: the header count and the rows have to come
   // from the same list or they can drift apart with nothing to catch it.
@@ -382,37 +470,20 @@ function OrdersPanel({ orders }: { orders: Order[] | null }) {
         </p>
       ) : (
         <>
-          <ul className="space-y-1.5">
+          {/* The bar is the comparison; the numbers beside it are the detail.
+              Scaled against the busiest venture rather than a fixed width, so
+              one shop with forty orders does not flatten the rest to nothing.
+              Each row opens onto its own orders. */}
+          <div className="space-y-0.5">
             {rows.map((row) => (
-              <li key={row.ventureId} className="flex items-center gap-3">
-                <Link
-                  to={`/venture/${row.ventureId}`}
-                  className="min-w-0 flex-1 truncate text-[16px] font-bold text-white transition-colors hover:text-brand-300"
-                >
-                  {row.ventureName}
-                </Link>
-                {/* The bar is the comparison; the numbers beside it are the
-                    detail. Scaled against the busiest venture rather than a
-                    fixed width, so one shop with forty orders does not flatten
-                    the rest into nothing. */}
-                <span className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-white/8 sm:block">
-                  <span
-                    style={{ width: `${(row.orders / busiest) * 100}%` }}
-                    className="block h-full rounded-full bg-brand-400"
-                  />
-                </span>
-                <span className="shrink-0 font-mono text-[13px] text-white/55">
-                  {row.buyers} {row.buyers === 1 ? 'buyer' : 'buyers'}
-                </span>
-                <span className="w-16 shrink-0 text-right font-mono text-[13px] text-white/70">
-                  ₹{row.revenue.toLocaleString('en-IN')}
-                </span>
-                <span className="w-8 shrink-0 text-right font-mono text-[15px] font-extrabold text-brand-400">
-                  {row.orders}
-                </span>
-              </li>
+              <VentureOrdersRow
+                key={row.ventureId}
+                row={row}
+                orders={orders ?? []}
+                busiest={busiest}
+              />
             ))}
-          </ul>
+          </div>
 
           <p className="text-[14.5px] leading-relaxed text-white/60">
             Orders placed through the site, by venture. No money moves through this site, so the
@@ -749,11 +820,9 @@ function BillboardPanelMod({
   onSpeed: (seconds: number) => void
 }) {
   return (
-    <div className="liquid-glass-panel space-y-4 rounded-2xl p-4">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-mono text-[13px] font-extrabold tracking-[0.22em] text-brand-400 uppercase">
-          Billboard
-        </h2>
+        <h2 className="sr-only">Billboard</h2>
         <span className="font-mono text-[13px] text-white/55">
           {pending.length} waiting · {live.length} up
         </span>
@@ -1137,6 +1206,10 @@ export default function Moderator() {
       {/* Stays out in the open: it is the thing a moderator opens this page to
           look at, and it changes every day. The drawers below hold the
           settings that get touched twice a term. */}
+      <Drawer
+        title={`Billboard (${(pendingAds.data ?? []).length} waiting)`}
+        hint="Approve adverts, fix their wording, and set how fast the board moves."
+      >
       <BillboardPanelMod
         pending={pendingAds.data ?? []}
         live={liveAds.data ?? []}
@@ -1160,18 +1233,28 @@ export default function Moderator() {
           void act(() => setBillboardSeconds(next), `The board now changes every ${next}s.`)
         }
       />
+      </Drawer>
 
-      <TrafficPanel days={traffic.data ?? []} />
+      <Drawer title="Traffic" hint="Tabs that opened the site, a day at a time.">
+        <TrafficPanel days={traffic.data ?? []} />
+      </Drawer>
 
-      <OrdersPanel orders={allOrders} />
+      <Drawer
+        title={`Orders (${allOrders?.length ?? 0})`}
+        hint="Every order, by venture. Open a venture to read its own."
+      >
+        <OrdersPanel orders={allOrders} />
+      </Drawer>
 
-      <RealUsagePanel
-        visits={visitsInWindow}
-        ventureOpens={ventureOpens}
-        asks={totalAsks}
-        orders={allOrders && ordersSince(allOrders, windowStart)}
-        days={TRAFFIC_DAYS}
-      />
+      <Drawer title="Real usage" hint="The free signals next to the ones that cost an account.">
+        <RealUsagePanel
+          visits={visitsInWindow}
+          ventureOpens={ventureOpens}
+          asks={totalAsks}
+          orders={allOrders && ordersSince(allOrders, windowStart)}
+          days={TRAFFIC_DAYS}
+        />
+      </Drawer>
 
       <Drawer title="Look of the site" hint="Backdrop, and the words on the front page.">
       <div className="space-y-2">
